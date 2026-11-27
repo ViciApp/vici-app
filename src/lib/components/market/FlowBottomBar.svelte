@@ -59,15 +59,11 @@
 				/>
 			</svg>
 			<span class="flow-action-label">
-				{t({ locale: $localeStore, key: 'flow.action.no' })}
+				{t({ locale: $localeStore, key: 'outcome.no' })}
 			</span>
 		</button>
 
-		<button
-			class="flow-action flow-action-skip"
-			aria-label={t({ locale: $localeStore, key: 'flow.skip_aria' })}
-			onclick={() => onAction('SKIP')}
-		>
+		<button class="flow-action flow-action-skip" onclick={() => onAction('SKIP')}>
 			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					d="M5 12l7-7 7 7M5 19l7-7 7 7"
@@ -77,7 +73,7 @@
 				/>
 			</svg>
 			<span class="flow-action-label">
-				{t({ locale: $localeStore, key: 'flow.action.skip' })}
+				{t({ locale: $localeStore, key: 'flow.action.pass' })}
 			</span>
 		</button>
 
@@ -95,7 +91,7 @@
 				/>
 			</svg>
 			<span class="flow-action-label">
-				{t({ locale: $localeStore, key: 'flow.action.yes' })}
+				{t({ locale: $localeStore, key: 'outcome.yes' })}
 			</span>
 		</button>
 	</div>
@@ -211,7 +207,7 @@
 		bottom: -1.25rem;
 		font-size: 9px;
 		font-weight: 900;
-		letter-spacing: 0.18em;
+		letter-spacing: 0.04em;
 		color: var(--text-muted);
 	}
 

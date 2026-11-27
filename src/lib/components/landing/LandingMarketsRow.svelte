@@ -8,11 +8,8 @@
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import {
-		formatSettleCountdown,
-		SIDE_LABEL_KEYS,
-		sidePercents
-	} from '#lib/utils/landing-markets.utils.ts';
+	import { SIDE_LABEL_KEYS, sidePercents } from '#lib/utils/landing-markets.utils.ts';
+	import { formatSettlesIn } from '#lib/utils/market-settle.utils.ts';
 
 	/**
 	 * One market in the Markets list: one decision per row. Art, the
@@ -55,8 +52,8 @@
 	const title = $derived(view.titleOf(market));
 	const called = $derived(view.calledOf(market));
 	const percents = $derived(sidePercents(market.yesProbability));
-	const settlesWhen = $derived(
-		formatSettleCountdown({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
+	const settlesIn = $derived(
+		formatSettlesIn({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
 	);
 	const expanded = $derived(selected && !table && nonNullish(expansion));
 </script>
@@ -95,13 +92,7 @@
 						})}
 					</em>
 				{/if}
-				<small>
-					{t({
-						locale: $localeStore,
-						key: 'landing.markets.settles',
-						params: { when: settlesWhen }
-					})}
-				</small>
+				<small>{settlesIn}</small>
 			</span>
 			<span class="lmr-price">
 				{#if nonNullish(percents)}

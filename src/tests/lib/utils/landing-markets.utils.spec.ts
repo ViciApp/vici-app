@@ -1,11 +1,8 @@
 import { ZERO } from '#lib/constants/app.constants.ts';
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { Market } from '#lib/types/market.ts';
 import {
 	callableMarkets,
 	compareBySoonest,
-	dailyMoveCopy,
-	formatSettleCountdown,
 	groupBySettlement,
 	matchesSearchQuery,
 	normalizeSearchText,
@@ -114,38 +111,6 @@ describe('landing-markets.utils', () => {
 
 		it('is unknown while the price is unknown', () => {
 			assert.equal(sidePercents(undefined), undefined);
-		});
-	});
-
-	describe('formatSettleCountdown', () => {
-		const settle = (days: number): string =>
-			formatSettleCountdown({ expiryMs: NOW_MS + days * DAY_IN_MS, nowMs: NOW_MS, locale: 'en' });
-
-		it('reads today and tomorrow in words', () => {
-			assert.equal(settle(0), 'today');
-			assert.equal(settle(1), 'tomorrow');
-		});
-
-		it('counts whole days, rounding a part day up', () => {
-			assert.equal(settle(35), 'in 35 days');
-			assert.equal(settle(34.2), 'in 35 days');
-		});
-
-		it('switches to months from two months out', () => {
-			assert.equal(settle(59), 'in 59 days');
-			assert.equal(settle(120), 'in 4 months');
-		});
-
-		it('never counts into the past', () => {
-			assert.equal(settle(-3), 'today');
-		});
-	});
-
-	describe('dailyMoveCopy', () => {
-		it('names the direction and the size of the move', () => {
-			assert.deepEqual(dailyMoveCopy(4), { key: 'landing.markets.move.up', points: 4 });
-			assert.deepEqual(dailyMoveCopy(-3), { key: 'landing.markets.move.down', points: 3 });
-			assert.deepEqual(dailyMoveCopy(0), { key: 'landing.markets.move.flat', points: 0 });
 		});
 	});
 

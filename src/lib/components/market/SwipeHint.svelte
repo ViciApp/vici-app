@@ -59,7 +59,7 @@
 				{t({ locale: $localeStore, key: 'flow.swipe_hint.tap' })}
 			</span>
 			<span class="eyebrow mute is-faint">
-				{t({ locale: $localeStore, key: 'flow.swipe_hint.skip' })}
+				{t({ locale: $localeStore, key: 'flow.swipe_hint.pass' })}
 			</span>
 		</div>
 		<div class="swipe-hint-dot" aria-hidden="true"></div>
@@ -107,6 +107,13 @@
 	}
 	.swipe-hint-chevs :global(.swipe-hint-chev.yes:first-child) {
 		opacity: 0.6;
+	}
+
+	/* The rail names Yes / No / Pass in sentence case, so its eyebrows keep
+	   their size and weight but not the eyebrow's uppercase. */
+	.swipe-hint .eyebrow {
+		text-transform: none;
+		letter-spacing: 0.04em;
 	}
 
 	.swipe-hint-dot {

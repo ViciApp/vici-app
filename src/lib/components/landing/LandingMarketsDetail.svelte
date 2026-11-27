@@ -8,15 +8,13 @@
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import {
-		dailyMoveCopy,
-		formatSettleCountdown,
-		sidePercents
-	} from '#lib/utils/landing-markets.utils.ts';
+	import { sidePercents } from '#lib/utils/landing-markets.utils.ts';
+	import { formatPriceMove24h } from '#lib/utils/market-price-move.utils.ts';
+	import { formatSettlesIn, formatSettlesOn } from '#lib/utils/market-settle.utils.ts';
 
 	/**
 	 * Market detail, in the order a visitor decides: the question and its
-	 * price, the price history to drag through, today's move, how and when it
+	 * price, the price history to drag through, the 24h move, how and when it
 	 * settles, then Yes / No with the call size. In the table's side panel the
 	 * call bar is fixed under the scrolling body; opened in a front-page row
 	 * (`inRow`) the row already names the question and price, so the detail
@@ -47,16 +45,8 @@
 
 	const percents = $derived(sidePercents(market.yesProbability));
 	const move = $derived(view.moveOf(market));
-	const moveCopy = $derived(nonNullish(move) ? dailyMoveCopy(move) : undefined);
-	const settlesWhen = $derived(
-		formatSettleCountdown({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
-	);
-	const settleDate = $derived(
-		new Date(Number(market.expiryDate)).toLocaleDateString($localeStore, {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric'
-		})
+	const settlesIn = $derived(
+		formatSettlesIn({ expiryMs: Number(market.expiryDate), nowMs, locale: $localeStore })
 	);
 </script>
 
@@ -74,7 +64,7 @@
 				{t({
 					locale: $localeStore,
 					key: 'landing.markets.detail.sub',
-					params: { when: settlesWhen }
+					params: { settles: settlesIn }
 				})}
 			</p>
 		</div>
@@ -86,18 +76,12 @@
 		seriesId={market.id}
 	/>
 
-	{#if nonNullish(moveCopy)}
-		<p class="lmd-why">
-			{t({ locale: $localeStore, key: moveCopy.key, params: { points: moveCopy.points } })}
-		</p>
+	{#if nonNullish(move)}
+		<p class="lmd-why">{formatPriceMove24h({ move, locale: $localeStore })}</p>
 	{/if}
 
 	<p class="lmd-set">
-		{t({
-			locale: $localeStore,
-			key: 'landing.markets.detail.settles_on',
-			params: { date: settleDate }
-		})}
+		{formatSettlesOn({ expiryMs: Number(market.expiryDate), locale: $localeStore })}
 	</p>
 
 	<details class="lmd-more">

@@ -33,7 +33,7 @@
 		onclick={() => oncall('no')}
 		type="button"
 	>
-		{t({ locale: $localeStore, key: 'landing.deck.no' })}
+		{t({ locale: $localeStore, key: 'outcome.no' })}
 	</button>
 	<div class="mid">
 		<button
@@ -43,7 +43,7 @@
 			onclick={onpass}
 			type="button"
 		>
-			{t({ locale: $localeStore, key: 'landing.deck.pass' })}
+			{t({ locale: $localeStore, key: 'flow.action.pass' })}
 		</button>
 		<span class="progress">{progress}</span>
 	</div>
@@ -54,7 +54,7 @@
 		onclick={() => oncall('yes')}
 		type="button"
 	>
-		{t({ locale: $localeStore, key: 'landing.deck.yes' })}
+		{t({ locale: $localeStore, key: 'outcome.yes' })}
 	</button>
 </div>
 

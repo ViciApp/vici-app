@@ -4,9 +4,10 @@
 	import { VXP_DEFAULT_CALL_SIZE } from '#lib/constants/vxp-economy.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingDeckCard } from '#lib/types/landing.ts';
-	import { formatLongDate, formatProbability } from '#lib/utils/format.utils.ts';
+	import { formatProbability } from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import type { DeckTrend } from '#lib/utils/landing-deck.utils.ts';
+	import { formatSettlesOn } from '#lib/utils/market-settle.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { formatWholeVxpMagnitude } from '#lib/utils/playground-display.utils.ts';
 
@@ -36,10 +37,13 @@
 	}: Props = $props();
 
 	const settlesLabel = $derived.by(() => {
-		const date = formatLongDate({ date: card.market.expiryDate, locale: $localeStore });
+		const settles = formatSettlesOn({
+			expiryMs: Number(card.market.expiryDate),
+			locale: $localeStore
+		});
 
 		if (isNullish(card.entry.category)) {
-			return t({ locale: $localeStore, key: 'landing.deck.back.settles_plain', params: { date } });
+			return settles;
 		}
 
 		return t({
@@ -51,7 +55,7 @@
 					variant: 'full',
 					locale: $localeStore
 				}),
-				date
+				settles
 			}
 		});
 	});
@@ -67,7 +71,7 @@
 			<p class="price">
 				<span class="says">{t({ locale: $localeStore, key: 'landing.deck.back.crowd_says' })}</span>
 				<b>{formatProbability(card.yesPercent / 100)}</b>
-				<span>{t({ locale: $localeStore, key: 'landing.deck.yes' })}</span>
+				<span>{t({ locale: $localeStore, key: 'outcome.yes' })}</span>
 				{#if nonNullish(moveLabel)}
 					<em class={trend}>{moveLabel}</em>
 				{/if}

@@ -108,8 +108,6 @@
 		font-family: var(--font-mono);
 		font-size: var(--t-10);
 		font-weight: 600;
-		letter-spacing: var(--tracking-allcaps);
-		text-transform: uppercase;
 	}
 	.md-priorcall.is-yes {
 		color: var(--yes);

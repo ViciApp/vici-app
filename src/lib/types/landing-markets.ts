@@ -11,7 +11,7 @@ export interface LandingMarketsCalled {
 	earnsVxp: number;
 }
 
-/** Last week's real price history of one series, for today's move and the small charts. */
+/** Last week's real price history of one series, for the 24h move and the small charts. */
 export interface LandingMarketsHistory {
 	yes: number[];
 	xs: number[];

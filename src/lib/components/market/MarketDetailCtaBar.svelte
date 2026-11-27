@@ -22,7 +22,7 @@
 <div class="market-cta-bar">
 	<button
 		class="market-cta market-cta-yes"
-		aria-label={t({ locale: $localeStore, key: 'market.detail.cta.predict_yes' })}
+		aria-label={t({ locale: $localeStore, key: 'market.forecast.predict_yes' })}
 		{disabled}
 		onclick={() => onPick('YES')}
 		type="button"
@@ -32,7 +32,7 @@
 	</button>
 	<button
 		class="market-cta market-cta-no"
-		aria-label={t({ locale: $localeStore, key: 'market.detail.cta.predict_no' })}
+		aria-label={t({ locale: $localeStore, key: 'market.forecast.predict_no' })}
 		{disabled}
 		onclick={() => onPick('NO')}
 		type="button"
@@ -110,11 +110,6 @@
 
 	.market-cta-no:hover:not(:disabled) {
 		background: color-mix(in srgb, var(--no) 16%, transparent);
-	}
-
-	.market-cta-label {
-		text-transform: uppercase;
-		letter-spacing: var(--tracking-allcaps);
 	}
 
 	.market-cta-pct {

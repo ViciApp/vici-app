@@ -1,4 +1,3 @@
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import type { Market } from '#lib/types/market.ts';
 import { probabilityToPercent } from '#lib/utils/format.utils.ts';
 import { filterRevealedMarkets } from '#lib/utils/market-reveal.utils.ts';
@@ -94,49 +93,6 @@ export const sidePercents = (
 	return { yes, no: 100 - yes };
 };
 
-// Past this many days the countdown reads in months ("settles in 4 months").
-const COUNTDOWN_DAYS_LIMIT = 60;
-const DAYS_PER_MONTH = 30;
-
-/**
- * "settles today / tomorrow / in 35 days / in 4 months": whole days up to
- * two months out, rounded months beyond, in the visitor's locale.
- */
-export const formatSettleCountdown = ({
-	expiryMs,
-	nowMs,
-	locale
-}: {
-	expiryMs: number;
-	nowMs: number;
-	locale: string;
-}): string => {
-	const days = Math.max(0, Math.ceil((expiryMs - nowMs) / DAY_IN_MS));
-	const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-
-	return days < COUNTDOWN_DAYS_LIMIT
-		? format.format(days, 'day')
-		: format.format(Math.round(days / DAYS_PER_MONTH), 'month');
-};
-
-/** Catalog key and point count for "Up 4 today." / "Down 4 today." / "Flat today.". */
-export const dailyMoveCopy = (
-	move: number
-): {
-	key: 'landing.markets.move.up' | 'landing.markets.move.down' | 'landing.markets.move.flat';
-	points: number;
-} => {
-	if (move > 0) {
-		return { key: 'landing.markets.move.up', points: move };
-	}
-
-	if (move < 0) {
-		return { key: 'landing.markets.move.down', points: -move };
-	}
-
-	return { key: 'landing.markets.move.flat', points: 0 };
-};
-
 /**
  * When a market settles relative to now, as the board's sections: this
  * calendar year, the first quarter of next year, the rest of next year, or
@@ -204,9 +160,9 @@ export const groupBySettlement = ({
 };
 
 /**
- * "Moving now": the markets that moved today, biggest move first. One with no
- * trade in its history window (`undefined`) or a flat day is left out, so the
- * result can be empty.
+ * "Moving now": the markets that moved in the last 24 hours, biggest move
+ * first. One with no trade in its history window (`undefined`) or no move is
+ * left out, so the result can be empty.
  */
 export const pickMovers = <T extends { move?: number }>({
 	candidates,
@@ -251,6 +207,6 @@ export const sparklinePolyline = ({
 
 /** Catalog key of a side's name ("Yes" / "No"). */
 export const SIDE_LABEL_KEYS = {
-	yes: 'landing.markets.side.yes',
-	no: 'landing.markets.side.no'
+	yes: 'outcome.yes',
+	no: 'outcome.no'
 } as const;

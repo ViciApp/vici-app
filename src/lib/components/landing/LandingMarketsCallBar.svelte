@@ -53,7 +53,7 @@
 		onclick={() => oncall('yes')}
 		type="button"
 	>
-		<b>{t({ locale: $localeStore, key: 'landing.markets.side.yes' })}</b>
+		<b>{t({ locale: $localeStore, key: 'outcome.yes' })}</b>
 		<span>{earns('YES')}</span>
 	</button>
 	<button
@@ -62,7 +62,7 @@
 		onclick={() => oncall('no')}
 		type="button"
 	>
-		<b>{t({ locale: $localeStore, key: 'landing.markets.side.no' })}</b>
+		<b>{t({ locale: $localeStore, key: 'outcome.no' })}</b>
 		<span>{earns('NO')}</span>
 	</button>
 </div>

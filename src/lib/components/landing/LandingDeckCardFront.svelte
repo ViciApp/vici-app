@@ -43,7 +43,7 @@
 			: undefined
 	);
 	const sparkline = $derived(
-		nonNullish(card.history) ? deckSparkline([...card.history, card.yesPercent]) : undefined
+		nonNullish(card.history) ? deckSparkline([...card.history.yes, card.yesPercent]) : undefined
 	);
 </script>
 
@@ -104,7 +104,7 @@
 				<span>
 					{t({
 						locale: $localeStore,
-						key: side === 'yes' ? 'landing.deck.yes' : 'landing.deck.no'
+						key: side === 'yes' ? 'outcome.yes' : 'outcome.no'
 					})}
 				</span>
 			</div>

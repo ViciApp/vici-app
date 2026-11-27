@@ -53,7 +53,7 @@
 		pickTrendingMarket,
 		sidePercents
 	} from '#lib/utils/landing-markets.utils.ts';
-	import { dailyPriceMove } from '#lib/utils/landing-price-chart.utils.ts';
+	import { priceMove24h } from '#lib/utils/market-price-move.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
@@ -191,10 +191,15 @@
 
 		return isNullish(history)
 			? undefined
-			: dailyPriceMove({ ...history, livePercent: sidePercents(market.yesProbability)?.yes });
+			: priceMove24h({
+					yes: history.yes,
+					xs: history.xs,
+					windowMs: history.windowEndMs - history.windowStartMs,
+					currentPercent: sidePercents(market.yesProbability)?.yes
+				});
 	};
 
-	// Today's move is read for the most traded markets only: one history read
+	// The 24h move is read for the most traded markets only: one history read
 	// each, bounded however large the catalog.
 	const moverCandidates = $derived(
 		[...open]

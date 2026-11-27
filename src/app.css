@@ -1898,6 +1898,13 @@ html[data-app='1'] body {
 	color: var(--text-muted);
 }
 
+/* Yes / No are written in sentence case, never shouted. */
+.tag.yes,
+.tag.no {
+	text-transform: none;
+	letter-spacing: 0.02em;
+}
+
 .tag.yes {
 	background: var(--yes-wash);
 	color: var(--yes);

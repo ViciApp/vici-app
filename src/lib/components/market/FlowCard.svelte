@@ -10,6 +10,7 @@
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 	import type {
@@ -28,6 +29,7 @@
 	} from '#lib/utils/flow-card-display.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatSettlesIn } from '#lib/utils/market-settle.utils.ts';
 	import { marketDisplayText } from '#lib/utils/market-translation.utils.ts';
 	import { resolveOutcomeExecutionPrice } from '#lib/utils/market.utils.ts';
 	import {
@@ -236,11 +238,13 @@
 	const winYes = $derived(netWinFor('YES'));
 	const winNo = $derived(netWinFor('NO'));
 
-	// Live countdown: days until expiry, displayed as a chip in the
-	// meta row. Computed off `expiryDate` (ms). Urgency tiers:
+	// Countdown chip in the meta row ("Settles in 12 days"). Computed off
+	// `expiryDate` (ms) against the shared minute tick, so it moves on while
+	// the card stays up; the day count drives its urgency tiers:
 	// ≤ 1 day = urgent, ≤ 7 = soon.
+	const hasExpiry = $derived(Number.isFinite(Number(market.expiryDate)));
 	const daysLeft = $derived.by(() => {
-		const ms = Number(market.expiryDate) - Date.now();
+		const ms = Number(market.expiryDate) - $minuteTick_ms;
 
 		if (!Number.isFinite(ms) || ms <= 0) {
 			return 0;
@@ -249,6 +253,13 @@
 		return Math.max(0, Math.ceil(ms / DAY_IN_MS));
 	});
 	const daysLeftUrgency = $derived(daysLeft <= 1 ? 'urgent' : daysLeft <= 7 ? 'soon' : '');
+	const settlesIn = $derived(
+		formatSettlesIn({
+			expiryMs: Number(market.expiryDate),
+			nowMs: $minuteTick_ms,
+			locale: $localeStore
+		})
+	);
 
 	// WC live-state suffix on the category tag; only event-named
 	// milestones (MATCHDAY, KICKS OFF TOMORROW, KICKOFF WK). The numeric
@@ -628,18 +639,13 @@
 									</span>
 								{/if}
 							</span>
-							{#if daysLeft > 0}
+							{#if hasExpiry}
 								<span
 									class="flow-days num"
 									class:is-soon={daysLeftUrgency === 'soon'}
 									class:is-urgent={daysLeftUrgency === 'urgent'}
-									aria-label={t({
-										locale: $localeStore,
-										key: 'card.days_left_aria',
-										params: { days: daysLeft }
-									})}
 								>
-									{daysLeft}d
+									{settlesIn}
 								</span>
 							{/if}
 						</div>
@@ -658,7 +664,13 @@
 						>
 							<span class="flow-whynow-dot" aria-hidden="true"></span>
 							{t({ locale: $localeStore, key: 'card.you_called_eyebrow' })}
-							<strong>{priorCall.side}</strong> · {priorCall.when}
+							<strong>
+								{t({
+									locale: $localeStore,
+									key: priorCall.side === 'YES' ? 'outcome.yes' : 'outcome.no'
+								})}
+							</strong>
+							· {priorCall.when}
 						</p>
 					{:else if whyNowText}
 						<p class="flow-whynow">
@@ -794,24 +806,24 @@
 					<FlowCardFooter callSize={amountNum} {guided} {unitLabel} />
 				</div>
 
-				<!-- Swipe stamps: large centered YES / NO and a compact
-			     top-center SKIP, fading in with drag progress. -->
+				<!-- Swipe stamps: large centered Yes / No and a compact
+			     top-center Pass, fading in with drag progress. -->
 				<div
 					style:opacity={frontOverlayYes}
 					class="flow-overlay flow-overlay-yes"
 					aria-hidden="true"
 				>
-					{t({ locale: $localeStore, key: 'flow.action.yes' })}
+					{t({ locale: $localeStore, key: 'outcome.yes' })}
 				</div>
 				<div style:opacity={frontOverlayNo} class="flow-overlay flow-overlay-no" aria-hidden="true">
-					{t({ locale: $localeStore, key: 'flow.action.no' })}
+					{t({ locale: $localeStore, key: 'outcome.no' })}
 				</div>
 				<div
 					style:opacity={frontOverlaySkip}
 					class="flow-overlay flow-overlay-skip"
 					aria-hidden="true"
 				>
-					{t({ locale: $localeStore, key: 'flow.action.skip' })}
+					{t({ locale: $localeStore, key: 'flow.action.pass' })}
 				</div>
 			</div>
 
@@ -857,14 +869,14 @@
 					class="flow-overlay flow-overlay-yes flow-overlay-back"
 					aria-hidden="true"
 				>
-					{t({ locale: $localeStore, key: 'flow.action.yes' })}
+					{t({ locale: $localeStore, key: 'outcome.yes' })}
 				</div>
 				<div
 					style:opacity={backOverlayNo}
 					class="flow-overlay flow-overlay-no flow-overlay-back"
 					aria-hidden="true"
 				>
-					{t({ locale: $localeStore, key: 'flow.action.no' })}
+					{t({ locale: $localeStore, key: 'outcome.no' })}
 				</div>
 			</div>
 		</div>
@@ -1025,6 +1037,7 @@
 		font-size: var(--text-eyebrow);
 		font-weight: 600;
 		letter-spacing: 0;
+		white-space: nowrap;
 		color: var(--text-muted);
 		background: color-mix(in srgb, var(--text-base) 5%, transparent);
 		border: 1px solid color-mix(in srgb, var(--text-base) 10%, transparent);
@@ -1068,8 +1081,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--text-micro);
 		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		letter-spacing: 0.02em;
 		padding: 3px 10px 3px 9px;
 	}
 	.flow-whynow-prior.is-yes {
@@ -1273,8 +1285,7 @@
 	.flow-probs-label {
 		font-size: var(--t-11);
 		font-weight: 700;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		letter-spacing: 0.02em;
 	}
 
 	.flow-probs-track {
@@ -1355,7 +1366,6 @@
 		justify-content: center;
 		font-family: var(--font-display);
 		line-height: 1;
-		text-transform: uppercase;
 		pointer-events: none;
 		transform-origin: center;
 		/* Settle the stamp in with a subtle pop; opacity is drag-driven. */
@@ -1374,7 +1384,7 @@
 		left: 50%;
 		font-size: 64px;
 		font-weight: 800;
-		letter-spacing: 0.12em;
+		letter-spacing: 0.02em;
 		padding: 12px 22px;
 		border: 4px solid currentColor;
 		border-radius: 12px;
@@ -1395,7 +1405,7 @@
 		border-radius: 6px;
 		font-size: 16px;
 		font-weight: 800;
-		letter-spacing: 0.22em;
+		letter-spacing: 0.04em;
 		transform: translateX(-50%) scale(1.06);
 		color: var(--text-base);
 		/* Glassy scrim so the upward-swipe stamp reads over any artwork,

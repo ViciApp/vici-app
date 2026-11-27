@@ -280,10 +280,7 @@
 				>
 					{t({
 						locale: $localeStore,
-						key:
-							confirmTarget.outcome === 'YES'
-								? 'market.resolution.settle_yes'
-								: 'market.resolution.settle_no'
+						key: confirmTarget.outcome === 'YES' ? 'outcome.yes' : 'outcome.no'
 					})}
 				</p>
 			</div>

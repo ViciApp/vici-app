@@ -32,7 +32,7 @@
 	import { USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
-	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
+	import { MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { orders } from '#lib/derived/orders.derived.ts';
@@ -41,6 +41,7 @@
 		resolvedPositions,
 		resolvedPositionsNotInitialized
 	} from '#lib/derived/resolved-positions.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
@@ -63,6 +64,7 @@
 		probabilityToPercent
 	} from '#lib/utils/format.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
+	import { formatSettlesIn } from '#lib/utils/market-settle.utils.ts';
 	import { categoryLabel } from '#lib/utils/market-tags.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import {
@@ -97,20 +99,12 @@
 	// `isUnresolved` status checks below read from it unchanged.
 	const marketById = $derived($displayMarkets);
 
-	// Short, year-stripped close label so the row end stays compact.
-	const timerOf = (market: Market): string => {
-		const expiry = Number(market.expiryDate);
-
-		if (!Number.isFinite(expiry) || expiry <= Date.now()) {
-			return t({ locale: $localeStore, key: 'dash.build.timer_closed' });
-		}
-
-		const days = Math.ceil((expiry - Date.now()) / DAY_IN_MS);
-
-		return days <= 1
-			? t({ locale: $localeStore, key: 'dash.active.hours_left', params: { count: 24 } })
-			: t({ locale: $localeStore, key: 'dash.active.days_left', params: { count: days } });
-	};
+	const timerOf = (market: Market): string =>
+		formatSettlesIn({
+			expiryMs: Number(market.expiryDate),
+			nowMs: $minuteTick_ms,
+			locale: $localeStore
+		});
 
 	const categoryOf = (market: Market): string => {
 		const micro = primaryMicro($marketTags[market.id] ?? []);
