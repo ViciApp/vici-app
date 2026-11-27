@@ -36,7 +36,8 @@
 
 	const flow = new LandingClaimFlow({
 		submit: () => submit,
-		checkAvailability: checkHandleAvailabilityPublic
+		checkAvailability: checkHandleAvailabilityPublic,
+		source: () => $landingClaimStore.source
 	});
 
 	let root = $state<HTMLDivElement>();

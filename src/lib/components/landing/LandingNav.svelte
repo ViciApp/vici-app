@@ -12,14 +12,13 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingClaimSubmit, LandingView } from '#lib/types/landing-claim.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { readClaimedHandle, rememberClaimedHandle } from '#lib/utils/landing-claim.utils.ts';
 	import { resolve } from '$app/paths';
 
 	/**
 	 * The landing's top bar: the wordmark, the Cards / Markets switch and the
 	 * "Claim your @handle" button, which widens into the claim capsule
 	 * (handle, email, code). Open it from anywhere on the page through
-	 * `landingClaimStore.open({ ack })`.
+	 * `landingClaimStore.open({ source, ack })`.
 	 */
 	interface Props {
 		// The waitlist calls behind the email and code steps.
@@ -49,15 +48,30 @@
 
 	const claiming = $derived($landingClaimStore.open);
 
+	// The cached handle shows at once; the server then confirms it or, once the
+	// reservation is gone, takes it away. A server out of reach leaves the cache.
+	const restoreClaimedHandle = async () => {
+		try {
+			const held = await submit.restore();
+
+			claimedHandle = held?.handle;
+		} catch (err: unknown) {
+			console.warn('Landing claim: the reservation could not be checked', err);
+		}
+	};
+
 	onMount(() => {
-		claimedHandle = readClaimedHandle();
+		claimedHandle = submit.cachedHandle();
+
+		if (nonNullish(claimedHandle)) {
+			void restoreClaimedHandle();
+		}
 
 		return () => landingClaimStore.reset();
 	});
 
 	const onClaimed = (handle: string) => {
 		claimedHandle = handle;
-		rememberClaimedHandle(handle);
 		onclaimed(handle);
 	};
 </script>
@@ -76,7 +90,7 @@
 			class="ln-cta"
 			aria-expanded={claiming}
 			aria-haspopup="dialog"
-			onclick={() => landingClaimStore.open()}
+			onclick={() => landingClaimStore.open({ source: 'nav' })}
 			type="button"
 			bind:offsetWidth={ctaWidth}
 		>

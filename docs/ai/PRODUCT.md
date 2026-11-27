@@ -755,10 +755,13 @@ every open market at its live price, also one tap away on the top bar's
 switch. A call on the landing places no order: it is kept on the device
 (the latest ten, a week at most) for the handle claim. "Claim your
 @handle" lives in the top bar only and opens the capsule (handle, email, code); a Yes /
-No in Markets opens it too, with a line naming the call. **The waitlist
-behind the email and code steps does not exist yet: the capsule checks
-the handle for real and then refuses to send a code**, so no handle is
-ever shown as held. When no curated market is open and priced the landing
+No in Markets opens it too, with a line naming the call. The email and
+code steps put the visitor on the handle waitlist (below): the done state
+"Handle claimed. You're on the waitlist." appears only once the server has
+confirmed, and a returning visitor's top bar reads @handle only while the
+server still holds it. A sentence beside the email field links the Privacy
+Policy; the emailed remove link opens `/waitlist/remove`, where one button
+deletes the reservation. When no curated market is open and priced the landing
 opens on Markets alone. An existing account signs in through the "Sign in" link (top bar on wide
 screens, footer everywhere). In Markets the curated markets keep their
 film stills. Design contract:

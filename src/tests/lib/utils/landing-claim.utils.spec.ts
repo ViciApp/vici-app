@@ -6,9 +6,7 @@ import {
 	isLikelyEmail,
 	landingClaimLine,
 	landingClaimRefusalOf,
-	localClaimCheck,
-	readClaimedHandle,
-	rememberClaimedHandle
+	localClaimCheck
 } from '#lib/utils/landing-claim.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -30,10 +28,13 @@ describe('landingClaimRefusalOf', () => {
 	it('keeps the codes the capsule has words for', () => {
 		for (const code of [
 			'handle_taken',
+			'handle_invalid',
 			'invalid_code',
 			'expired_code',
 			'rate_limited',
-			'email_invalid'
+			'email_invalid',
+			'email_not_accepted',
+			'bot_check_failed'
 		] as const) {
 			assert.equal(landingClaimRefusalOf(code), code);
 		}
@@ -41,6 +42,7 @@ describe('landingClaimRefusalOf', () => {
 
 	it('reads any other code as a generic failure', () => {
 		assert.equal(landingClaimRefusalOf('internal'), 'failed');
+		assert.equal(landingClaimRefusalOf('unavailable'), 'failed');
 		assert.equal(landingClaimRefusalOf(''), 'failed');
 	});
 });
@@ -163,12 +165,5 @@ describe('landingClaimLine', () => {
 			key: 'landing.claim.confirm_failed',
 			tone: 'no'
 		});
-	});
-});
-
-describe('claimed handle cache', () => {
-	it('never throws where storage is unavailable', () => {
-		assert.doesNotThrow(() => rememberClaimedHandle('anna'));
-		assert.doesNotThrow(() => readClaimedHandle());
 	});
 });

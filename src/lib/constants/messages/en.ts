@@ -353,6 +353,17 @@ export const enMessages = {
 	'landing.claim.confirm_failed': "Couldn't check the code. Try again.",
 	'landing.claim.confirming': 'Checking your code…',
 	'landing.claim.consent': 'Your email holds your place on the waitlist.',
+	'landing.claim.bot_check_failed': "We couldn't check you're human. Try again.",
+	'landing.claim.email_not_accepted':
+		'Temporary email addresses are not accepted. Use one you keep.',
+	'landing.claim.handle_refused': "@{handle} can't be claimed. Try another.",
+	'waitlist.remove.body':
+		'This deletes your waitlist reservation: your email, your handle and everything kept with them. The handle is released at once.',
+	'waitlist.remove.cta': 'Remove me from the waitlist',
+	'waitlist.remove.done': 'Done. Your reservation and its data are deleted.',
+	'waitlist.remove.failed': "Couldn't remove it. Try again.",
+	'waitlist.remove.missing': 'This link is incomplete. Open it again from your email.',
+	'waitlist.remove.title': 'Leave the waitlist',
 	'landing.claim.cta.claim': 'Claim',
 	'landing.claim.dialog': 'Claim your handle',
 	'landing.claim.done': "Handle claimed. You're on the waitlist.",

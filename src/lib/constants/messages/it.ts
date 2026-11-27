@@ -361,6 +361,17 @@ export const itMessages = {
 	'landing.claim.confirm_failed': 'Verifica del codice non riuscita. Riprova.',
 	'landing.claim.confirming': 'Verifico il codice…',
 	'landing.claim.consent': "La tua email ti tiene il posto in lista d'attesa.",
+	'landing.claim.bot_check_failed': 'Non siamo riusciti a verificare che sei una persona. Riprova.',
+	'landing.claim.email_not_accepted':
+		'Gli indirizzi email temporanei non sono accettati. Usane uno che tieni.',
+	'landing.claim.handle_refused': '@{handle} non si può prendere. Provane un altro.',
+	'waitlist.remove.body':
+		"Così elimini la tua prenotazione in lista d'attesa: la tua email, il tuo handle e tutto ciò che è salvato con loro. L'handle si libera subito.",
+	'waitlist.remove.cta': "Toglimi dalla lista d'attesa",
+	'waitlist.remove.done': 'Fatto. La tua prenotazione e i suoi dati sono stati eliminati.',
+	'waitlist.remove.failed': 'Non siamo riusciti a rimuoverla. Riprova.',
+	'waitlist.remove.missing': 'Questo link è incompleto. Riaprilo dalla tua email.',
+	'waitlist.remove.title': "Lascia la lista d'attesa",
 	'landing.claim.cta.claim': 'Prendilo',
 	'landing.claim.dialog': 'Prendi il tuo handle',
 	'landing.claim.done': "Handle tuo. Sei in lista d'attesa.",

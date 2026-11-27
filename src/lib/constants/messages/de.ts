@@ -367,6 +367,19 @@ export const deMessages = {
 	'landing.claim.confirm_failed': 'Code konnte nicht geprüft werden. Versuch es noch einmal.',
 	'landing.claim.confirming': 'Code wird geprüft…',
 	'landing.claim.consent': 'Deine E-Mail sichert deinen Platz auf der Warteliste.',
+	'landing.claim.bot_check_failed':
+		'Wir konnten nicht prüfen, ob du ein Mensch bist. Versuch es noch einmal.',
+	'landing.claim.email_not_accepted':
+		'Wegwerf-E-Mail-Adressen werden nicht angenommen. Nimm eine, die du behältst.',
+	'landing.claim.handle_refused': '@{handle} kann nicht reserviert werden. Versuch ein anderes.',
+	'waitlist.remove.body':
+		'Damit löschst du deine Reservierung auf der Warteliste: deine E-Mail, dein Handle und alles, was dazu gespeichert ist. Das Handle wird sofort freigegeben.',
+	'waitlist.remove.cta': 'Von der Warteliste entfernen',
+	'waitlist.remove.done': 'Erledigt. Deine Reservierung und ihre Daten sind gelöscht.',
+	'waitlist.remove.failed': 'Das hat nicht geklappt. Versuch es noch einmal.',
+	'waitlist.remove.missing':
+		'Dieser Link ist unvollständig. Öffne ihn noch einmal aus deiner E-Mail.',
+	'waitlist.remove.title': 'Warteliste verlassen',
 	'landing.claim.cta.claim': 'Sichern',
 	'landing.claim.dialog': 'Sichere dein Handle',
 	'landing.claim.done': 'Handle gesichert. Du bist auf der Warteliste.',

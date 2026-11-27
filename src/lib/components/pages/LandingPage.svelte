@@ -148,7 +148,10 @@
 		});
 
 		clearTimeout(ackTimer);
-		ackTimer = setTimeout(() => landingClaimStore.open({ ack }), LANDING_MARKETS_ACK_DELAY_MS);
+		ackTimer = setTimeout(
+			() => landingClaimStore.open({ source: 'call', ack }),
+			LANDING_MARKETS_ACK_DELAY_MS
+		);
 	};
 
 	const onMarketsClose = (): void => {
@@ -215,14 +218,14 @@
 					calls={$landingCallsStore}
 					{focusSeriesId}
 					oncall={onMarketsCall}
-					onclaim={() => landingClaimStore.open()}
+					onclaim={() => landingClaimStore.open({ source: 'markets' })}
 					onclose={onMarketsClose}
 					onshare={onShare}
 				>
 					{#snippet footer()}
 						<LandingFooter
 							oncards={deckEmpty ? undefined : () => onView('cards')}
-							onclaim={() => landingClaimStore.open()}
+							onclaim={() => landingClaimStore.open({ source: 'footer' })}
 						/>
 					{/snippet}
 				</LandingMarkets>

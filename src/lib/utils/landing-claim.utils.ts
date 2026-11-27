@@ -1,8 +1,5 @@
 import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/handle.constants.ts';
-import {
-	LANDING_CLAIM_CODE_LENGTH,
-	LANDING_CLAIM_HANDLE_STORAGE_KEY
-} from '#lib/constants/landing-claim.constants.ts';
+import { LANDING_CLAIM_CODE_LENGTH } from '#lib/constants/landing-claim.constants.ts';
 import type {
 	LandingClaimCheck,
 	LandingClaimNotice,
@@ -22,10 +19,13 @@ export type LandingClaimLine =
 
 const KNOWN_REFUSALS: readonly LandingClaimRefusal[] = [
 	'handle_taken',
+	'handle_invalid',
 	'invalid_code',
 	'expired_code',
 	'rate_limited',
-	'email_invalid'
+	'email_invalid',
+	'email_not_accepted',
+	'bot_check_failed'
 ];
 
 /** The capsule's reading of a waitlist error code; an unknown code is a generic failure. */
@@ -99,10 +99,13 @@ const handleLine = ({
 
 const REFUSAL_KEYS: Record<Exclude<LandingClaimRefusal, 'failed'>, MessageKey> = {
 	handle_taken: 'landing.claim.taken_meanwhile',
+	handle_invalid: 'landing.claim.handle_refused',
 	invalid_code: 'landing.claim.code_wrong',
 	expired_code: 'landing.claim.code_expired',
 	rate_limited: 'landing.claim.rate_limited',
-	email_invalid: 'landing.claim.email_invalid'
+	email_invalid: 'landing.claim.email_invalid',
+	email_not_accepted: 'landing.claim.email_not_accepted',
+	bot_check_failed: 'landing.claim.bot_check_failed'
 };
 
 const FAILED_KEYS: Record<LandingClaimStep, MessageKey> = {
@@ -170,24 +173,4 @@ export const landingClaimLine = ({
 	}
 
 	return handleLine({ handle, check, ack });
-};
-
-/** The handle this browser last put on the waitlist, when storage allows it. */
-export const readClaimedHandle = (): string | undefined => {
-	try {
-		const handle = localStorage.getItem(LANDING_CLAIM_HANDLE_STORAGE_KEY);
-
-		return nonNullish(handle) && handle !== '' ? handle : undefined;
-	} catch {
-		// Blocked storage (private mode, previews): no label, nothing else lost.
-	}
-};
-
-/** Remembers the claimed handle for the top-bar label; a blocked storage only loses the label. */
-export const rememberClaimedHandle = (handle: string): void => {
-	try {
-		localStorage.setItem(LANDING_CLAIM_HANDLE_STORAGE_KEY, handle);
-	} catch {
-		// Display convenience only: the waitlist holds the claim.
-	}
 };

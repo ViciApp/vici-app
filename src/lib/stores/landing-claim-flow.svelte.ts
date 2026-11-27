@@ -2,6 +2,7 @@ import {
 	LANDING_CLAIM_CHECK_DEBOUNCE_MS,
 	LANDING_CLAIM_CODE_LENGTH
 } from '#lib/constants/landing-claim.constants.ts';
+import type { WaitlistSource } from '#lib/constants/waitlist.constants.ts';
 import type { PublicHandleAvailability } from '#lib/services/handle-availability.services.ts';
 import type {
 	LandingClaimCheck,
@@ -16,6 +17,7 @@ import {
 	landingClaimRefusalOf,
 	localClaimCheck
 } from '#lib/utils/landing-claim.utils.ts';
+import { nonNullish } from '@dfinity/utils';
 
 /** What one press of the capsule's button led to. */
 export type LandingClaimAdvance =
@@ -49,22 +51,29 @@ export class LandingClaimFlow {
 
 	readonly #submit: () => LandingClaimSubmit;
 	readonly #checkAvailability: (params: { handle: string }) => Promise<PublicHandleAvailability>;
+	readonly #source: () => WaitlistSource;
 	#probeToken = 0;
 	#probeTimer: ReturnType<typeof setTimeout> | undefined;
 	// Bumped by anything that makes a pending call's answer stale.
 	#opToken = 0;
 	// The address the code went to: the code step confirms against it, whatever the field holds.
 	#sentEmail = '';
+	// The handle a code was sent for: the waitlist holds it for this browser until the code lapses,
+	// so the probe would only report the visitor's own hold as taken.
+	#pendingHold: { handle: string; untilMs: number } | undefined;
 
 	constructor({
 		submit,
-		checkAvailability
+		checkAvailability,
+		source
 	}: {
 		submit: () => LandingClaimSubmit;
 		checkAvailability: (params: { handle: string }) => Promise<PublicHandleAvailability>;
+		source: () => WaitlistSource;
 	}) {
 		this.#submit = submit;
 		this.#checkAvailability = checkAvailability;
+		this.#source = source;
 	}
 
 	/** Sets the typed handle, lowercased, stripped and capped by the handle rule, and probes it. */
@@ -152,9 +161,23 @@ export class LandingClaimFlow {
 			return;
 		}
 
+		if (this.#holdsPending(this.handle)) {
+			this.check = { kind: 'free' };
+
+			return;
+		}
+
 		const token = this.#probeToken;
 
 		this.#probeTimer = setTimeout(() => void this.#probe(token), LANDING_CLAIM_CHECK_DEBOUNCE_MS);
+	}
+
+	#holdsPending(handle: string): boolean {
+		return (
+			nonNullish(this.#pendingHold) &&
+			this.#pendingHold.handle === handle &&
+			Date.now() < this.#pendingHold.untilMs
+		);
 	}
 
 	async #probe(token: number): Promise<LandingClaimCheck> {
@@ -223,13 +246,15 @@ export class LandingClaimFlow {
 		this.notice = { kind: 'busy' };
 
 		try {
-			const res = await this.#submit().requestCode({ handle: this.handle, email });
+			const { handle } = this;
+			const res = await this.#submit().requestCode({ handle, email, source: this.#source() });
 
 			if (opToken !== this.#opToken) {
 				return { kind: 'ignored' };
 			}
 
 			if ('ok' in res) {
+				this.#pendingHold = { handle, untilMs: Date.now() + res.codeTtlMs };
 				this.notice = { kind: 'none' };
 				this.#sentEmail = email;
 				this.code = '';
@@ -292,10 +317,13 @@ export class LandingClaimFlow {
 
 		this.notice = { kind: 'refused', refusal };
 
-		// The handle went to someone else meanwhile: back to it, the email kept.
-		if (refusal === 'handle_taken') {
+		// The handle went to someone else meanwhile, or the waitlist refuses it: back to it, the
+		// email kept.
+		if (refusal === 'handle_taken' || refusal === 'handle_invalid') {
+			this.#pendingHold = undefined;
 			this.#stopProbe();
-			this.check = { kind: 'taken' };
+			this.check =
+				refusal === 'handle_taken' ? { kind: 'taken' } : { kind: 'format', issue: 'reserved' };
 			this.step = 'handle';
 		}
 	}

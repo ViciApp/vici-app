@@ -333,6 +333,17 @@ the on-chain call untouched on the default side:
   `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
   account's `createdAt` in web2 mode, the profile doc's `created_at` on
   the default backend.
+- `waitlist.services.ts`: the landing's handle waitlist (web2 only, no
+  satellite twin). `requestCode` solves a fresh Turnstile token for the
+  `waitlist_code` action and posts `/api/v1/waitlist/code` with the privacy
+  policy version, the locale, the capsule's entry point and any stashed
+  referral code; `confirm` posts `/confirm` and keeps the private status
+  token in `localStorage`; `restore` re-reads it through `/status` on the next
+  visit and drops the cache on `not_found`; `removeReservation` serves the
+  public `/waitlist/remove` page, whose button (never the link alone) posts
+  `/remove`. Expected refusals resolve `{ error }` instead of throwing.
+  `landing-waitlist.services.ts` picks it on the web2 build and
+  `waitlistUnavailable` otherwise.
 - `handle-availability.services.ts`: `checkHandleAvailabilityPublic`, the
   signed-out handle probe. The signed-in `/nickname-availability` needs a
   session, so a visitor before sign-up goes through

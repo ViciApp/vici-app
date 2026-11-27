@@ -174,12 +174,41 @@ export const TERMS: InfoDoc = {
 	]
 };
 
+const LEGAL_MONTHS = [
+	'January',
+	'February',
+	'March',
+	'April',
+	'May',
+	'June',
+	'July',
+	'August',
+	'September',
+	'October',
+	'November',
+	'December'
+] as const;
+
+/** An ISO date (`2026-11-27`) as the legal pages print it (`27 November 2026`). */
+const legalDate = (iso: string): string => {
+	const [year, month, day] = iso.split('-').map(Number);
+
+	return `${day} ${LEGAL_MONTHS[month - 1]} ${year}`;
+};
+
+/**
+ * The Privacy Policy's version: the date of its "Last updated" line, which is
+ * printed from it. The landing's waitlist stores it with each reservation as
+ * the policy the visitor was shown, so it moves with every change to the text.
+ */
+export const PRIVACY_POLICY_VERSION = '2026-11-27';
+
 export const PRIVACY: InfoDoc = {
 	slug: 'privacy',
 	title: 'Privacy Policy',
 	eyebrow: 'Legal · Effective 10 June 2026',
 	blocks: [
-		{ kind: 'p', text: 'Last updated: 20 August 2026' },
+		{ kind: 'p', text: `Last updated: ${legalDate(PRIVACY_POLICY_VERSION)}` },
 		{ kind: 'h', text: '1. Who we are' },
 		{
 			kind: 'lede',
@@ -218,8 +247,13 @@ export const PRIVACY: InfoDoc = {
 				'Prediction and gameplay data: the predictions you make, the VXP you put into them, your VXP balance and history, accuracy and outcomes, and other in-game activity. This is core to providing the service and to leaderboards.',
 				'Device and usage data: basic technical information such as device type, browser, approximate region (derived from IP), and how you interact with the app, collected for analytics and security.',
 				'Communications: if you contact us, the content of that correspondence and the address you used.',
+				'Waitlist data: if you reserve a handle on the waitlist before having an account, see the waitlist paragraph below.',
 				'Advertising and attribution data: see Section 6.'
 			]
+		},
+		{
+			kind: 'p',
+			text: 'Waitlist. When you reserve a handle on our landing page, we store the email address you give, the handle, the language of the page, the time you asked for a confirmation code and the time you confirmed it, and the time you submitted your email together with the version of this policy shown to you. We use them only to hold the handle for you, to recognise the same mailbox (addresses that differ only by a "+tag" or, for Gmail, by dots count as one mailbox) and to send you the waitlist\'s own emails: the code, a receipt, and later the invitation to create your account. We do not use them for marketing and do not share them for anyone else\'s use. Addresses at known disposable-email providers are refused. A reservation that is never confirmed is deleted 24 hours after the last code request; a confirmed one is kept for 12 months, after which we ask you to confirm it again and delete it if you do not. Every waitlist email carries a link that deletes your reservation at once, without signing in.'
 		},
 		{
 			kind: 'p',
