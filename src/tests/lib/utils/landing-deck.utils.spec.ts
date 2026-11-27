@@ -1,7 +1,9 @@
+import { LANDING_DECK_MEDIA } from '#lib/constants/landing.constants.ts';
 import { VXP_DEFAULT_CALL_SIZE, VXP_P_WIN_FLOOR } from '#lib/constants/vxp-economy.constants.ts';
 import type { LandingDeckSeries } from '#lib/types/landing.ts';
 import type { Market } from '#lib/types/market.ts';
 import {
+	curatedDeckStill,
 	DECK_UNDER_REST_TRANSFORM,
 	deckAttractAmplitude,
 	deckCardFrame,
@@ -508,5 +510,33 @@ describe('landing-deck.utils', () => {
 
 			assert.equal(curated[0].seriesId, 'a');
 		});
+	});
+});
+
+describe('curatedDeckStill', () => {
+	const curated: LandingDeckSeries[] = [
+		{ seriesId: 'film', media: 'gta', wideFocus: '50% 56%' },
+		{ seriesId: 'plain' }
+	];
+
+	it('gives a film card its wide still on a wide window, anchored as the deck anchors it', () => {
+		assert.deepEqual(
+			curatedDeckStill({ seriesId: 'film', viewport: { width: 1440, height: 900 }, curated }),
+			{ cut: LANDING_DECK_MEDIA.gta.wide, focus: '50% 56%' }
+		);
+	});
+
+	it('gives it the upright still on an upright window, centred', () => {
+		assert.deepEqual(
+			curatedDeckStill({ seriesId: 'film', viewport: { width: 390, height: 760 }, curated }),
+			{ cut: LANDING_DECK_MEDIA.gta.tall, focus: '50% 50%' }
+		);
+	});
+
+	it('gives nothing to a series without footage or outside the deck', () => {
+		const viewport = { width: 1440, height: 900 };
+
+		assert.equal(curatedDeckStill({ seriesId: 'plain', viewport, curated }), undefined);
+		assert.equal(curatedDeckStill({ seriesId: 'other', viewport, curated }), undefined);
 	});
 });

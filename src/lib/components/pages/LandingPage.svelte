@@ -194,7 +194,6 @@
 				{attract}
 				{leadSeriesId}
 				oncall={landingCallsStore.add}
-				onclaim={() => landingClaimStore.open()}
 				ondone={onDeckDone}
 				onempty={onDeckEmpty}
 				onengage={() => setStored({ key: LANDING_DECK_SEEN_STORAGE_KEY, value: true })}

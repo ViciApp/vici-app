@@ -7,11 +7,13 @@
 		LANDING_CLAIM_MIN_ORIGIN_PX,
 		LANDING_NAV_WORDMARK_SRC
 	} from '#lib/constants/landing-claim.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { landingClaimStore } from '#lib/stores/landing-claim.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingClaimSubmit, LandingView } from '#lib/types/landing-claim.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { readClaimedHandle, rememberClaimedHandle } from '#lib/utils/landing-claim.utils.ts';
+	import { resolve } from '$app/paths';
 
 	/**
 	 * The landing's top bar: the wordmark, the Cards / Markets switch and the
@@ -66,6 +68,9 @@
 		{#if canSwitch}
 			<LandingNavSwitch {onview} {view} />
 		{/if}
+		<a class="ln-signin" href={resolve(PublicPath.SignIn)}>
+			{t({ locale: $localeStore, key: 'nav.signin' })}
+		</a>
 		<button
 			bind:this={cta}
 			class="ln-cta"
@@ -136,6 +141,39 @@
 	.ln.is-claiming .ln-r {
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* An existing account's way in: quiet beside the claim, wide screens only
+	   (phones find it in the footer). */
+	.ln-signin {
+		display: none;
+		align-items: center;
+		height: 44px;
+		padding: 0 8px;
+		border-radius: 8px;
+		color: color-mix(in srgb, var(--parchment) 78%, transparent);
+		font: 500 14px/1 var(--font-display);
+		white-space: nowrap;
+		text-decoration: none;
+		text-shadow: 0 1px 10px color-mix(in srgb, var(--ink-deep) 65%, transparent);
+		transition: color 140ms var(--ln-out);
+	}
+
+	.ln-signin:focus-visible {
+		outline: 2px solid var(--parchment);
+		outline-offset: 2px;
+	}
+
+	@media (min-width: 900px) {
+		.ln-signin {
+			display: inline-flex;
+		}
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.ln-signin:hover {
+			color: var(--parchment);
+		}
 	}
 
 	.ln-cta {
@@ -221,6 +259,7 @@
 	@media (prefers-reduced-motion: reduce) {
 		.ln-r,
 		.ln-mark,
+		.ln-signin,
 		.ln-cta {
 			transition: none;
 		}

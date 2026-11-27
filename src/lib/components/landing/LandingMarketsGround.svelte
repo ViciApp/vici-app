@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
+	import LandingMarketsArt from '#lib/components/landing/LandingMarketsArt.svelte';
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
 	import type { Market } from '#lib/types/market.ts';
 
@@ -17,7 +17,7 @@
 </script>
 
 <div class="lmg" aria-hidden="true">
-	<MarketArtwork bleed category={view.artOf(market)} fill seed={market.id} size={240} />
+	<LandingMarketsArt {market} size={240} {view} />
 </div>
 <div class="lmg-veil" aria-hidden="true"></div>
 

@@ -6,14 +6,17 @@
 		LANDING_NAV_WORDMARK_SRC
 	} from '#lib/constants/landing-claim.constants.ts';
 	import { LANDING_TERMS_PATH } from '#lib/constants/landing-page.constants.ts';
+	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { mailtoHref } from '#lib/utils/email.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
+	import { resolve } from '$app/paths';
 
 	/**
 	 * The landing's footer, at the end of the Markets list: the wordmark and
-	 * the claim on the left, three short link groups on the right, the legal
+	 * the claim on the left, three short link groups on the right (sign-in
+	 * among them: the landing's quiet way in for an existing account), the legal
 	 * line on a hairline beneath.
 	 */
 	interface Props {
@@ -34,14 +37,15 @@
 			</button>
 		</div>
 		<nav class="lf-links" aria-label={t({ locale: $localeStore, key: 'landing.footer.label' })}>
-			{#if nonNullish(oncards)}
-				<div>
-					<b>{t({ locale: $localeStore, key: 'landing.footer.product' })}</b>
+			<div>
+				<b>{t({ locale: $localeStore, key: 'landing.footer.product' })}</b>
+				{#if nonNullish(oncards)}
 					<button onclick={oncards} type="button">
 						{t({ locale: $localeStore, key: 'landing.footer.cards' })}
 					</button>
-				</div>
-			{/if}
+				{/if}
+				<a href={resolve(PublicPath.SignIn)}>{t({ locale: $localeStore, key: 'nav.signin' })}</a>
+			</div>
 			<div>
 				<b>{t({ locale: $localeStore, key: 'landing.footer.company' })}</b>
 				<a href={mailtoHref(INFO_EMAIL)}
