@@ -1,5 +1,5 @@
 import { E2E_ADMIN_EMAIL, E2E_LEGACY_PENDING } from '../backend/e2e/fixtures';
-import { AppPage, uniqueEmail } from './pages/web2-app.page';
+import { AppPage, uniqueEmail } from './pages/app.page';
 import { expect, test } from './support/fixtures';
 
 /**

@@ -1,5 +1,5 @@
 import type { CallSide } from '#lib/types/market.ts';
-import { claimCalibrationReward as claimCalibrationRewardApi } from '#lib/web2/client.ts';
+import { claimCalibrationReward as claimCalibrationRewardApi } from '#lib/api-client/client.ts';
 
 /**
  * Client wrappers around the VXP-awards routes.

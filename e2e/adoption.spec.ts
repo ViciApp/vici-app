@@ -1,5 +1,5 @@
 import { E2E_LEGACY_ADOPT } from '../backend/e2e/fixtures';
-import { AppPage } from './pages/web2-app.page';
+import { AppPage } from './pages/app.page';
 import { apiUrl, expect, test, type MeBody } from './support/fixtures';
 
 /**

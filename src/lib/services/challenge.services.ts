@@ -16,7 +16,7 @@ import {
 	redeemChallenge as redeemChallengeApi,
 	revokeChallenge as revokeChallengeApi,
 	setChallengeConsent as setChallengeConsentApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { isNullish } from '@dfinity/utils';
 
 /** Whether challenge links exist in this build: always, since the API serves them. */

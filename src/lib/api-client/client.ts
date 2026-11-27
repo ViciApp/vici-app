@@ -17,7 +17,7 @@ import {
 	type ApiWalletAssetSchema,
 	type ApiWalletBalanceSchema,
 	type ApiWalletWithdrawalSchema
-} from '#lib/schema/web2-api.schema.ts';
+} from '#lib/schema/api.schema.ts';
 import type {
 	AffiliationChampionship,
 	AffiliationMemberCount,
@@ -80,7 +80,7 @@ import {
 	type ApiSeriesTradedVolumeWire,
 	type ApiSeriesWire,
 	type ApiSettlementStatusWire
-} from '#lib/web2/engine-wire.ts';
+} from '#lib/api-client/engine-wire.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type * as z from 'zod';
 

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_API_URL, E2E_APP_URL } from './e2e-web2/support/urls';
+import { E2E_API_URL, E2E_APP_URL } from './e2e/support/urls';
 
 /**
  * End-to-end suite: the production bundle, served by `vite preview`, talking to the real API
@@ -24,7 +24,7 @@ const APP_PORT = new URL(E2E_APP_URL).port;
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 export default defineConfig({
-	testDir: 'e2e-web2',
+	testDir: 'e2e',
 	testMatch: ['**/*.spec.ts'],
 	outputDir: 'test-results-web2',
 	timeout: 2 * 60 * 1000,

@@ -8,7 +8,7 @@ import {
 	rejectFriendRequest as rejectFriendRequestApi,
 	sendFriendRequest as sendFriendRequestApi,
 	unfriendUser as unfriendUserApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 

@@ -5,7 +5,7 @@ import type {
 	ClientAnalyticsEventName,
 	TrackEventInput
 } from '#lib/types/analytics-event.ts';
-import { postEvents } from '#lib/web2/client.ts';
+import { postEvents } from '#lib/api-client/client.ts';
 import { browser } from '$app/env';
 import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';

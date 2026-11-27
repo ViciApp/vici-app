@@ -19,8 +19,8 @@ import {
 	listEngineOrders as listEngineOrdersApi,
 	submitEngineLimitOrder as submitEngineLimitOrderApi,
 	submitEngineMarketOrder as submitEngineMarketOrderApi
-} from '#lib/web2/client.ts';
-import { getSessionUser } from '#lib/web2/session.ts';
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { fromNullable, isNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { nanoid } from 'nanoid';

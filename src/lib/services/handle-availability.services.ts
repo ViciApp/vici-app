@@ -17,7 +17,7 @@ import {
 	ApiError,
 	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicApi,
 	issueNicknameCheckProof
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { nonNullish } from '@dfinity/utils';
 
 export type PublicHandleAvailability =

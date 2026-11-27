@@ -11,7 +11,7 @@ import {
 	listWorldsMemberCounts as listWorldsMemberCountsApi,
 	removeAffiliation as removeAffiliationApi,
 	setAffiliation as setAffiliationApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 /**
  * Hard timeout for the affiliation write path, so the picker's

@@ -1,4 +1,4 @@
-import { AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/app.page';
 import { apiUrl, expect, test, type MeBody } from './support/fixtures';
 
 /**

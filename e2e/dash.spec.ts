@@ -1,6 +1,6 @@
 import { E2E_LIVE_SERIES } from '../backend/e2e/fixtures';
 import { enMessages } from '../src/lib/constants/messages/en';
-import { AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/app.page';
 import { apiUrl, expect, test } from './support/fixtures';
 
 interface AccountBody {

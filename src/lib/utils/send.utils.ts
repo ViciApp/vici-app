@@ -1,5 +1,5 @@
 import type { Token } from '#lib/types/token.ts';
-import type { ApiWalletAsset } from '#lib/web2/client.ts';
+import type { ApiWalletAsset } from '#lib/api-client/client.ts';
 import { nonNullish } from '@dfinity/utils';
 
 /**

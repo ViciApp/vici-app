@@ -29,7 +29,7 @@ import { withTimeout } from '#lib/utils/async.utils.ts';
 import {
 	submitSchool as submitSchoolApi,
 	verifySchoolCode as verifySchoolCodeApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 /** Hard timeout for either verification round-trip. */
 const SCHOOL_VERIFY_TIMEOUT_MS = 15_000;

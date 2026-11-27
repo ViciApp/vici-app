@@ -53,8 +53,8 @@ import {
 	settleFounderAwards as settleFounderAwardsApi,
 	transferLeagueOwnership as transferLeagueOwnershipApi,
 	updateLeague as updateLeagueApi
-} from '#lib/web2/client.ts';
-import { getSessionUser } from '#lib/web2/session.ts';
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';

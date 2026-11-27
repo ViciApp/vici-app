@@ -41,8 +41,8 @@ import {
 	getEngineSettlementStatus as getEngineSettlementStatusApi,
 	listEngineSeries as listEngineSeriesApi,
 	listEngineSeriesVolumes as listEngineSeriesVolumesApi
-} from '#lib/web2/client.ts';
-import { getSessionUser } from '#lib/web2/session.ts';
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

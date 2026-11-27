@@ -3,7 +3,7 @@ import type { Activity } from '#lib/types/social.ts';
 import {
 	createActivity as createActivityApi,
 	listActivities as listActivitiesApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 export const logActivity = async (activity: Omit<Activity, 'timestamp'>): Promise<void> => {
 	// The HTTP route stamps the author from the session (the passed `user` is

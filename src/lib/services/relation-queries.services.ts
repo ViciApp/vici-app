@@ -7,7 +7,7 @@ import {
 	listFriendResolvedResults as listFriendResolvedResultsApi,
 	listFriends as listFriendsApi,
 	listSentFriendRequests as listSentFriendRequestsApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /** Wrap a relation as the `Doc` shape the friend-request stores read, keyed by

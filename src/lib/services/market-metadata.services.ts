@@ -2,7 +2,7 @@ import type { MarketMetadata, MarketMetadataInput } from '#lib/types/market-meta
 import {
 	getMarketMetadata as getMarketMetadataApi,
 	upsertMarketMetadata as upsertMarketMetadataApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 export const getMarketMetadata = async (seriesId: string): Promise<MarketMetadata | undefined> =>
 	await getMarketMetadataApi(seriesId);

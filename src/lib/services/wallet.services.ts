@@ -10,8 +10,8 @@ import {
 	getEngineAccountState as getEngineAccountStateApi,
 	getWalletBalances as getWalletBalancesApi,
 	getWalletDepositAddress as getWalletDepositAddressApi
-} from '#lib/web2/client.ts';
-import { getSessionUser } from '#lib/web2/session.ts';
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

@@ -10,7 +10,7 @@ import {
 	getCurrentTournament as getCurrentTournamentApi,
 	resolveTournamentRound as resolveTournamentRoundApi,
 	triggerTournamentDraw as triggerTournamentDrawApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 /**
  * Monthly tournament FE wrappers.

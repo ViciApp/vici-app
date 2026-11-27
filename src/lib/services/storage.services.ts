@@ -3,7 +3,7 @@ import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
 import {
 	deleteLeagueImage as deleteLeagueImageApi,
 	uploadLeagueImage as uploadLeagueImageApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

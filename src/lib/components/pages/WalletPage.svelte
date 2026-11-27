@@ -51,7 +51,7 @@
 		type SendIntent
 	} from '#lib/utils/send.utils.ts';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
-	import type { ApiWalletAsset } from '#lib/web2/client.ts';
+	import type { ApiWalletAsset } from '#lib/api-client/client.ts';
 	import { goto } from '$app/navigation';
 
 	/**

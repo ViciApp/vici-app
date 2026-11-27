@@ -1,4 +1,4 @@
-import { clearSession, getSessionUser } from '#lib/web2/session.ts';
+import { clearSession, getSessionUser } from '#lib/api-client/session.ts';
 import { nonNullish } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 

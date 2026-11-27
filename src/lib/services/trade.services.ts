@@ -14,8 +14,8 @@ import {
 	getEnginePriceHistory as getEnginePriceHistoryApi,
 	listEngineSeriesTrades as listEngineSeriesTradesApi,
 	listEngineTradeHistory as listEngineTradeHistoryApi
-} from '#lib/web2/client.ts';
-import { getSessionUser } from '#lib/web2/session.ts';
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 
 /**

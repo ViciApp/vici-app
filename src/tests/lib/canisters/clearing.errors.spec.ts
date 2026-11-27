@@ -5,7 +5,7 @@ import {
 	tradeErrorMessage,
 	TradeExecutionError
 } from '#lib/canisters/clearing.errors.ts';
-import { ApiError, type ApiErrorAmounts } from '#lib/web2/client.ts';
+import { ApiError, type ApiErrorAmounts } from '#lib/api-client/client.ts';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';

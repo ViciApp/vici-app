@@ -5,7 +5,7 @@ import {
 	pendingSendFor,
 	type SendIntent
 } from '#lib/utils/send.utils.ts';
-import type { ApiWalletAsset } from '#lib/web2/client.ts';
+import type { ApiWalletAsset } from '#lib/api-client/client.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 

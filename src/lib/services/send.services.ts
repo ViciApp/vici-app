@@ -5,7 +5,7 @@ import {
 	listWalletAssets,
 	requestWalletWithdrawal,
 	type ApiWalletAsset
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { isNullish } from '@dfinity/utils';
 
 /** Localizable send failure: the UI translates `messageKey` (with `params`)

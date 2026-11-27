@@ -7,7 +7,7 @@ import {
 	getWalletBalances,
 	listEngineSettlementStatuses,
 	requestWalletWithdrawal
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 

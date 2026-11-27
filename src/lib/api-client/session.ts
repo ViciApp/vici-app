@@ -4,7 +4,7 @@ import {
 	getMe,
 	setSessionLostHandler,
 	type ApiMe
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 import { nonNullish } from '@dfinity/utils';
 import { get, readonly, writable, type Readable } from 'svelte/store';
 

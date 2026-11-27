@@ -5,7 +5,7 @@ import {
 } from '#lib/services/send.services.ts';
 import type { Token } from '#lib/types/token.ts';
 import { pendingSendFor, type PendingSend, type SendIntent } from '#lib/utils/send.utils.ts';
-import { ApiError, type ApiWalletAsset } from '#lib/web2/client.ts';
+import { ApiError, type ApiWalletAsset } from '#lib/api-client/client.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 

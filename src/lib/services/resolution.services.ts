@@ -4,7 +4,7 @@ import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/pay
 import {
 	listEngineSettledSeries as listEngineSettledSeriesApi,
 	listEngineSettlementStatuses as listEngineSettlementStatusesApi
-} from '#lib/web2/client.ts';
+} from '#lib/api-client/client.ts';
 
 /**
  * Fetches the authoritative set of settled (resolved) series ids from

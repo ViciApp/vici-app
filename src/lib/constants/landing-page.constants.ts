@@ -53,7 +53,7 @@ export const LANDING_HEADLINE_FONT_SRC = '/fonts/bricolage-grotesque-variable-la
  * The landing's link preview: the card under `static/` and its headline. A
  * link preview is read from the built shell, before the app or a locale
  * exists, so the headline is English and lives here, not in the catalogs.
- * Written into the shell by `scripts/build/generate-web2-head.ts`.
+ * Written into the shell by `scripts/build/generate-shell-head.ts`.
  */
 export const LANDING_SHARE_IMAGE_PATH = '/branding/landing-share.jpg';
 export const LANDING_SHARE_IMAGE_TYPE = 'image/jpeg';

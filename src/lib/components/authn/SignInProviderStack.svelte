@@ -19,8 +19,8 @@
 		verifyOtp,
 		ApiError,
 		type ApiProviders
-	} from '#lib/web2/client.ts';
-	import { adoptSession } from '#lib/web2/session.ts';
+	} from '#lib/api-client/client.ts';
+	import { adoptSession } from '#lib/api-client/session.ts';
 
 	interface Props {
 		onSuccess?: () => void;
