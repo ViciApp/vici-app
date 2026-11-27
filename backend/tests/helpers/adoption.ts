@@ -1,10 +1,12 @@
-// Fixtures for the provisional-account adoption suites: run the real ETL
-// importers so the provisional account, its 'etl' link and its imported rows
-// look exactly like production data after a bulk import.
+// Fixtures for the provisional-account adoption suites: a provisional
+// claim_pending account linked to its legacy principal with matched_via =
+// 'etl', holding a profile and some activity rows, the shape the adoption
+// code reads.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { importDocs } from '../../scripts/etl/transforms';
 import { query } from '../../src/db/client';
+import { nicknameUniqueKey } from '../../src/profiles/nickname';
+import { activityKey } from '../../src/social/activities';
 import { uniqueNickname } from './profiles';
 
 const BASE_TS_MS = 1_750_000_000_000;
@@ -15,7 +17,52 @@ export interface ImportedAccount {
 	nickname: string;
 }
 
-/** Import a profile plus `activities` trade rows for `principal`, and
+/** The provisional account of `principal` with its profile, created on the
+ * first call and returned as is on a later one. */
+export const seedProvisionalAccount = async ({
+	principal,
+	nickname,
+	points = 250,
+	level = 1
+}: {
+	principal: string;
+	nickname: string;
+	points?: number;
+	level?: number;
+}): Promise<string> => {
+	const existing = await query<{ user_id: string }>(
+		`select user_id from legacy_principals where principal = $1`,
+		[principal]
+	);
+	const existingUserId = existing[0]?.user_id;
+
+	if (nonNullish(existingUserId)) {
+		return existingUserId;
+	}
+
+	const created = await query<{ id: string }>(
+		`insert into users (claim_pending) values (true) returning id`
+	);
+	const userId = created[0]?.id;
+
+	if (isNullish(userId)) {
+		throw new Error('provisional user insert returned no row');
+	}
+
+	await query(
+		`insert into legacy_principals (principal, user_id, matched_via) values ($1, $2, 'etl')`,
+		[principal, userId]
+	);
+	await query(
+		`insert into profiles (user_id, nickname, nickname_key, visibility, points, level)
+		 values ($1, $2, $3, 'public', $4, $5)`,
+		[userId, nickname, nicknameUniqueKey(nickname), points, level]
+	);
+
+	return userId;
+};
+
+/** A provisional account for `principal` with `activities` trade rows, and
  * optionally the exported legacy identity carrying its email(s). */
 export const seedImportedAccount = async ({
 	principal,
@@ -29,29 +76,16 @@ export const seedImportedAccount = async ({
 	activities?: number;
 }): Promise<ImportedAccount> => {
 	const nickname = uniqueNickname();
+	const userId = await seedProvisionalAccount({ principal, nickname });
 
-	await importDocs({
-		collection: 'profiles',
-		docs: [
-			{
-				key: principal,
-				data: { owner: principal, nickname, visibility: 'public', points: 250 },
-				createdAtNs: '1700000000000000000',
-				updatedAtNs: '1710000000000000000'
-			}
-		]
-	});
+	for (let i = 0; i < activities; i++) {
+		const timestamp = BASE_TS_MS + i;
 
-	if (activities > 0) {
-		await importDocs({
-			collection: 'activities',
-			docs: Array.from({ length: activities }, (_, i) => ({
-				key: `${principal}#${BASE_TS_MS + i}#trade`,
-				data: { type: 'trade', user: principal, title: 'Called YES', timestamp: BASE_TS_MS + i },
-				createdAtNs: '1700000000000000000',
-				updatedAtNs: '1710000000000000000'
-			}))
-		});
+		await query(
+			`insert into activities (key, user_id, type, title, timestamp_ms)
+			 values ($1, $2, 'trade', 'Called YES', $3)`,
+			[activityKey({ userId, timestamp, type: 'trade' }), userId, timestamp]
+		);
 	}
 
 	if (nonNullish(openidEmail) || nonNullish(profileEmail)) {
@@ -60,16 +94,6 @@ export const seedImportedAccount = async ({
 			 values ($1, 'google', $2, $3)`,
 			[principal, openidEmail, profileEmail]
 		);
-	}
-
-	const rows = await query<{ user_id: string }>(
-		`select user_id from legacy_principals where principal = $1`,
-		[principal]
-	);
-	const userId = rows[0]?.user_id;
-
-	if (isNullish(userId)) {
-		throw new Error('import created no link');
 	}
 
 	return { principal, userId, nickname };

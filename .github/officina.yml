@@ -148,8 +148,7 @@ lanes:
       - 'backend/src/lib/email.ts'
       - 'backend/src/lib/ic-agent.ts'
       - 'backend/src/declarations/**'
-      # Legacy data migration and the test-only server with its fake engine and seed
-      - 'backend/scripts/etl/**'
+      # The test-only server with its fake engine and seed
       - 'backend/e2e/**'
       # 2. Red only (docs/ai/officina.md#lanes): editable by other agents on an ordinary ask, but
       # never built by an Officina agent.

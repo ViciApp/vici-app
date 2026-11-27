@@ -173,9 +173,8 @@ suite below is untouched and keeps covering the web3 build.
   writes included, rejects), and email lands in an in-memory outbox. Both
   servers boot from Playwright's
   `webServer` (migrate, seed, serve; then build, preview).
-- **Seed:** `backend/e2e/seed.ts` imports two legacy accounts through the
-  real ETL importer (provisional, `matched_via = 'etl'`) with their exported
-  legacy identities, and an admin account. Fixture values live in
+- **Seed:** `backend/e2e/seed.ts` writes two legacy accounts (provisional,
+  `matched_via = 'etl'`) with their legacy identities, and an admin account. Fixture values live in
   `backend/e2e/fixtures.ts`, import-free so the specs read the same data.
 - **Sign-in:** the email one-time code, as a user does it. The specs read the
   code from `GET /__e2e/otp/:email`; the admin drives the beta gate through
