@@ -31,7 +31,7 @@ import { t } from '#lib/utils/i18n.utils.ts';
  *   is left to CSS so the localized casing is preserved where the design
  *   doesn't shout.
  */
-export type CategoryLabelVariant = 'short' | 'full';
+type CategoryLabelVariant = 'short' | 'full';
 
 /**
  * Single source of truth for rendering a market category label. `category`

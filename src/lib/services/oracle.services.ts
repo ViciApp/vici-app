@@ -110,7 +110,7 @@ const SETTLER_ROLES: ReadonlySet<UserRole> = new Set([UserRole.ADMIN, UserRole.S
 /**
  * Summary returned by {@link reconcileOracleSettlersFromRoles}.
  */
-export interface OracleSettlerReconcileResult {
+interface OracleSettlerReconcileResult {
 	added: PrincipalText[];
 	removed: PrincipalText[];
 }
