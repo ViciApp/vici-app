@@ -6,7 +6,7 @@ import { query } from '../src/db/client';
 import { app } from '../src/index';
 import { checkNicknameAvailability } from '../src/profiles/nickname';
 import { upsertMyProfile } from '../src/profiles/profile-write';
-import { createTestUser, uniqueEmail, uniquePrincipal } from './helpers/auth';
+import { createTestUser, uniqueEmail } from './helpers/auth';
 import { createTestProfile } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 import {
@@ -21,8 +21,8 @@ import {
 	useWaitlistHarness
 } from './helpers/waitlist';
 
-// Reserving a handle: the code, the hold against profiles and other
-// mailboxes, one handle per mailbox, and the same answer for known mailboxes.
+// Reserving a handle: the code, the hold against other mailboxes, one handle
+// per mailbox, and the profile write respecting a reservation.
 
 describe.if(dbAvailable)('handle waitlist: reserving', () => {
 	const { sent, clearSent, lastCodeTo, join } = useWaitlistHarness();
@@ -83,7 +83,7 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 		expect(await count('sessions')).toBe(sessionsBefore);
 
 		const identities = await query<{ count: number }>(
-			`select count(*)::int as count from auth_identities where email_mailbox_key = $1`,
+			`select count(*)::int as count from auth_identities where lower(email) = $1`,
 			[email]
 		);
 
@@ -184,35 +184,15 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 		await query(`delete from otp_codes where lower(email) = $1`, [email]);
 	});
 
-	test('a handle held by a profile, a lookalike, a reservation or a live pending hold is taken', async () => {
-		const { profile } = await createTestProfile();
-
-		expect(
-			await errorOf(await requestCode({ handle: profile.nickname, email: uniqueEmail() }))
-		).toBe('handle_taken');
-
-		// A legacy handle outside the rule keeps its lookalike key.
-		const legacy = await createTestProfile();
-		const base = uniqueHandle();
-
-		await query(`update profiles set nickname = $2, handle_key = $3 where user_id = $1`, [
-			legacy.userId,
-			`${base.slice(0, 3)}.${base.slice(3)}`,
-			base
-		]);
-
-		const lookalike = await requestCode({ handle: base, email: uniqueEmail() });
-
-		expect(lookalike.status).toBe(409);
-		expect(await errorOf(lookalike)).toBe('handle_taken');
-
+	test('a handle held by a reservation or a live pending hold is taken', async () => {
 		const held = uniqueHandle();
 
 		await join({ handle: held, email: uniqueEmail() });
 
-		expect(await errorOf(await requestCode({ handle: held, email: uniqueEmail() }))).toBe(
-			'handle_taken'
-		);
+		const taken = await requestCode({ handle: held, email: uniqueEmail() });
+
+		expect(taken.status).toBe(409);
+		expect(await errorOf(taken)).toBe('handle_taken');
 
 		const pending = uniqueHandle();
 
@@ -221,6 +201,24 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 		expect(await errorOf(await requestCode({ handle: pending, email: uniqueEmail() }))).toBe(
 			'handle_taken'
 		);
+	});
+
+	test('profiles are not consulted: a mailbox is only a waitlist entry', async () => {
+		const { profile } = await createTestProfile();
+
+		expect((await requestCode({ handle: profile.nickname, email: uniqueEmail() })).status).toBe(
+			200
+		);
+
+		const email = uniqueEmail();
+
+		await query(
+			`insert into auth_identities (user_id, provider, subject, email) values ($1, 'email', $2, $2)`,
+			[await createTestUser(), email]
+		);
+
+		expect((await requestCode({ handle: uniqueHandle(), email })).status).toBe(200);
+		expect(await reservationOf(email)).toBeDefined();
 	});
 
 	test('a held handle is refused by both probes and the profile write', async () => {
@@ -327,59 +325,5 @@ describe.if(dbAvailable)('handle waitlist: reserving', () => {
 		expect(rows[0]?.count).toBe(1);
 
 		await query(`delete from waitlist_reservations where email_key = $1`, [`${local}@gmail.com`]);
-	});
-
-	test('a mailbox with an account gets the same answer, no row, and the private email in its language', async () => {
-		const email = uniqueEmail();
-		const userId = await createTestUser();
-		const tagged = email.replace('@', '+vici@');
-
-		await query(
-			`insert into auth_identities (user_id, provider, subject, email) values ($1, 'email', $2, $2)`,
-			[userId, tagged]
-		);
-
-		const handle = uniqueHandle();
-		const response = await requestCode({ handle, email, locale: 'it' });
-
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({ ok: true, codeTtlMs: CODE_TTL_MS });
-		expect(await reservationOf(email)).toBeUndefined();
-		expect(await checkNicknameAvailability({ nickname: handle })).toEqual({ available: true });
-		expect(sent()).toHaveLength(1);
-		expect(sent()[0]?.subject).toBe('Hai già un account VICI');
-		expect(sent()[0]?.text).not.toMatch(/\b\d{6}\b/);
-	});
-
-	test('a legacy mailbox gets the same answer, no row, and the legacy email', async () => {
-		const email = uniqueEmail();
-
-		await query(
-			`insert into legacy_auth_identities (principal, provider, profile_email) values ($1, 'ii', $2)`,
-			[uniquePrincipal(), email.toUpperCase()]
-		);
-
-		const response = await requestCode({ handle: uniqueHandle(), email, locale: 'de' });
-
-		expect(response.status).toBe(200);
-		expect(await reservationOf(email)).toBeUndefined();
-		expect(sent()).toHaveLength(1);
-		expect(sent()[0]?.subject).toBe('Dein VICI-Konto zieht auf vici.app um');
-	});
-
-	test('a taken handle answers handle_taken for a known mailbox too', async () => {
-		const email = uniqueEmail();
-
-		await query(
-			`insert into auth_identities (user_id, provider, subject, email) values ($1, 'email', $2, $2)`,
-			[await createTestUser(), email]
-		);
-
-		const { profile } = await createTestProfile();
-
-		expect(await errorOf(await requestCode({ handle: profile.nickname, email }))).toBe(
-			'handle_taken'
-		);
-		expect(sent()).toHaveLength(0);
 	});
 });

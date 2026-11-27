@@ -37,9 +37,6 @@ export const waitlistEmailCopy = (locale: string): WaitlistEmailCopy => {
 /** The public page a remove link opens; only its button deletes. */
 export const WAITLIST_REMOVE_PATH = '/waitlist/remove';
 
-/** The app's sign-in screen, linked from the already-a-member email. */
-const SIGN_IN_PATH = '/signin';
-
 export const waitlistRemoveUrl = ({ id, token }: { id: string; token: string }): string => {
 	const url = new URL(WAITLIST_REMOVE_PATH, env.publicAppUrl);
 
@@ -135,44 +132,6 @@ export const waitlistReceiptEmail = ({
 		subject: copy.receipt.subject(handle),
 		text: [...lines, footer.text].join('\n\n'),
 		html: `${lines.map(paragraph).join('')}${footer.html}`
-	};
-};
-
-/** 4.3: the mailbox already signs in to an account. No code, no remove link:
- * nothing is stored for it. */
-export const waitlistAlreadyMemberEmail = ({
-	to,
-	locale
-}: {
-	to: string;
-	locale: string;
-}): EmailMessage => {
-	const copy = waitlistEmailCopy(locale);
-	const signInUrl = new URL(SIGN_IN_PATH, env.publicAppUrl).toString();
-
-	return {
-		to,
-		subject: copy.alreadyMember.subject,
-		text: [copy.alreadyMember.body, signInUrl].join('\n\n'),
-		html: `${paragraph(copy.alreadyMember.body)}${link({ href: signInUrl, label: copy.alreadyMember.signIn })}`
-	};
-};
-
-/** 4.4: the mailbox belongs to a legacy account that moves on its own. */
-export const waitlistLegacyAccountEmail = ({
-	to,
-	locale
-}: {
-	to: string;
-	locale: string;
-}): EmailMessage => {
-	const copy = waitlistEmailCopy(locale);
-
-	return {
-		to,
-		subject: copy.legacyAccount.subject,
-		text: copy.legacyAccount.body,
-		html: paragraph(copy.legacyAccount.body)
 	};
 };
 

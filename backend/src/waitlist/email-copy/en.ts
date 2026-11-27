@@ -21,15 +21,6 @@ export const en = {
 		hold: (months: number) =>
 			`The hold lasts ${months} months; before it ends we ask you to confirm you still want it.`
 	},
-	alreadyMember: {
-		subject: 'You already have a VICI account',
-		body: 'You already have a VICI account with this address, so there is nothing to join. Sign in here:',
-		signIn: 'Sign in to VICI'
-	},
-	legacyAccount: {
-		subject: 'Your VICI account is moving to vici.app',
-		body: 'Your VICI account moves to vici.app automatically, with your handle. Keep playing on vici.market meanwhile.'
-	},
 	removed: {
 		subject: "You're off the VICI waitlist",
 		body: (handle: string | undefined) =>

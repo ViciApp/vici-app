@@ -287,6 +287,36 @@ export const handleRuleRefusal = (
 };
 
 /**
+ * Whether a waitlist reservation holds `handle`: confirmed with its hold not
+ * ended, or pending behind another mailbox's live code. A handle within the
+ * rule is its own key. `excludeReservationKey` is a reservation's own
+ * mailbox key, so it never conflicts with itself.
+ */
+export const waitlistHoldsHandle = async ({
+	handle,
+	excludeReservationKey,
+	q = query
+}: {
+	handle: string;
+	excludeReservationKey?: string;
+	q?: TxQuery;
+}): Promise<boolean> => {
+	const rows = await q<{ exists: boolean }>(
+		`select exists (
+		   select 1 from waitlist_reservations
+		   where ($2::text is null or email_key <> $2::text)
+		     and (
+		       (handle = $1 and hold_ended_at is null)
+		       or (pending_handle = $1 and code_expires_at > now())
+		     )
+		 ) as exists`,
+		[handle, excludeReservationKey ?? null]
+	);
+
+	return rows[0]?.exists === true;
+};
+
+/**
  * The handle validator, shared by the profile write guard, both
  * availability probes and the waitlist, so the UI and the server always
  * agree. A handle is taken when a profile holds its key, when a waitlist
@@ -318,18 +348,15 @@ export const checkNicknameAvailability = async ({
 		`select exists (
 		   select 1 from profiles
 		   where handle_key = $1 and ($2::uuid is null or user_id <> $2::uuid)
-		 ) or exists (
-		   select 1 from waitlist_reservations
-		   where ($3::text is null or email_key <> $3::text)
-		     and (
-		       (handle = $1 and hold_ended_at is null)
-		       or (pending_handle = $1 and code_expires_at > now())
-		     )
 		 ) as exists`,
-		[nickname, excludeUserId ?? null, excludeReservationKey ?? null]
+		[nickname, excludeUserId ?? null]
 	);
 
 	if (rows[0]?.exists === true) {
+		return { available: false, reason: 'taken' };
+	}
+
+	if (await waitlistHoldsHandle({ handle: nickname, excludeReservationKey, q })) {
 		return { available: false, reason: 'taken' };
 	}
 

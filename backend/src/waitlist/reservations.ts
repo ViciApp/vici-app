@@ -6,19 +6,17 @@
 // a sign-in code), and its hash is domain-separated, so a waitlist code can
 // never sign anyone in and a sign-in code can never confirm a reservation.
 //
-// A code request answers the same for every mailbox: one that already signs
-// in to an account, or belongs to a legacy account, gets a private email
-// instead of a reservation, and nothing on the wire tells the cases apart.
+// vici.app starts as a new product: a mailbox is only a waitlist entry, and
+// a handle is free unless the rule refuses it (reserved names included) or
+// another entry holds it. Profiles are not consulted; the profile write does
+// consult reservations (`checkNicknameAvailability`), so an account can never
+// take a reserved handle.
 //
-// Lock order, the same as every login path (src/auth/adoption.ts): the
-// per-email login locks first (the typed address and the mailbox key), then
-// the handle key's lock (`lockHandleKey`), which every profile write of a
-// handle takes too, so a reservation and a profile can never both take one
-// handle.
+// Lock order: the mailbox's lock first, then the handle key's lock
+// (`lockHandleKey`), the one every profile write of a handle takes too.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
-import { lockLoginEmails } from '../auth/adoption';
 import { normalizeEmail } from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
 import { constantTimeEqual, generateOtp, peppered, randomToken } from '../lib/crypto';
@@ -27,15 +25,13 @@ import { logger } from '../lib/logger';
 import { DAY_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
 import type { AppLocale } from '../markets/locales';
 import {
-	checkNicknameAvailability,
 	handleRuleRefusal,
 	handleUniqueKey,
-	lockHandleKey
+	lockHandleKey,
+	waitlistHoldsHandle
 } from '../profiles/nickname';
 import {
-	waitlistAlreadyMemberEmail,
 	waitlistCodeEmail,
-	waitlistLegacyAccountEmail,
 	waitlistReceiptEmail,
 	waitlistRemovedEmail,
 	waitlistRemoveUrl
@@ -99,10 +95,8 @@ export class WaitlistError extends Error {
 }
 
 /** Why a request or confirmation was refused, as `waitlist_join_refused`
- * records it: the wire refusals, a bot check or limit, and the two private
- * outcomes the visitor is never told. */
-export type WaitlistRefusalLabel =
-	WaitlistErrorCode | 'bot_check_failed' | 'rate_limited' | 'already_registered' | 'legacy_account';
+ * records it: the wire refusals, a bot check or a limit. */
+export type WaitlistRefusalLabel = WaitlistErrorCode | 'bot_check_failed' | 'rate_limited';
 
 /** Records one waitlist event with no user, email, handle or IP; a failed
  * capture is logged and never changes the answer. */
@@ -115,9 +109,6 @@ export const captureWaitlistEvent = async (
 		logger.error(`waitlist analytics capture failed (${event.name}):`, err);
 	}
 };
-
-/** What became of a code request; only the server and its analytics know. */
-export type WaitlistCodeOutcome = 'code_sent' | 'already_registered' | 'legacy_account';
 
 const codeHash = ({ mailboxKey, code }: { mailboxKey: string; code: string }): string =>
 	peppered(`waitlist\n${mailboxKey}\n${code}`);
@@ -152,16 +143,17 @@ export const assertWaitlistHandle = (handle: string): void => {
 	}
 };
 
+/** Serialises every write to one mailbox's reservation for the rest of the transaction. */
 const lockMailbox = async ({
 	q,
-	email,
 	mailboxKey
 }: {
 	q: TxQuery;
-	email: string;
 	mailboxKey: string;
 }): Promise<void> => {
-	await lockLoginEmails({ q, emails: [email, mailboxKey] });
+	await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+		`waitlist-mailbox:${mailboxKey}`
+	]);
 };
 
 const assertHandleAvailable = async ({
@@ -173,47 +165,11 @@ const assertHandleAvailable = async ({
 	handle: string;
 	mailboxKey: string;
 }): Promise<void> => {
+	assertWaitlistHandle(handle);
 	await lockHandleKey({ key: handleUniqueKey(handle), q });
 
-	const result = await checkNicknameAvailability({
-		nickname: handle,
-		excludeReservationKey: mailboxKey,
-		q
-	});
-
-	if (!result.available) {
-		throw new WaitlistError(result.reason === 'taken' ? 'handle_taken' : 'handle_invalid');
-	}
-};
-
-/** Whether the mailbox signs in to a live account, or belongs to a legacy one. */
-const knownMailbox = async ({
-	q,
-	mailboxKey
-}: {
-	q: TxQuery;
-	mailboxKey: string;
-}): Promise<'already_registered' | 'legacy_account' | undefined> => {
-	const [row] = await q<{ member: boolean; legacy: boolean }>(
-		`select
-		   exists (
-		     select 1 from auth_identities ai
-		     join users u on u.id = ai.user_id
-		     where ai.email_mailbox_key = $1 and u.hard_deleted_at is null
-		   ) as member,
-		   exists (
-		     select 1 from legacy_auth_identities
-		     where openid_email_mailbox_key = $1 or profile_email_mailbox_key = $1
-		   ) as legacy`,
-		[mailboxKey]
-	);
-
-	if (row?.member === true) {
-		return 'already_registered';
-	}
-
-	if (row?.legacy === true) {
-		return 'legacy_account';
+	if (await waitlistHoldsHandle({ handle, excludeReservationKey: mailboxKey, q })) {
+		throw new WaitlistError('handle_taken');
 	}
 };
 
@@ -239,28 +195,17 @@ export interface WaitlistCodeRequest {
 
 /**
  * Stores a fresh code for the mailbox, holding `handle` pending while it
- * lives, and emails it; or, for a mailbox with an account or a legacy
- * account, emails the matching private notice and stores nothing. The
- * handle is checked the same way in all three cases, and only the third
- * holds it. Throws `handle_taken` or `handle_invalid`.
+ * lives, and emails it. Throws `handle_taken` or `handle_invalid`.
  */
-export const requestWaitlistCode = async (
-	request: WaitlistCodeRequest
-): Promise<WaitlistCodeOutcome> => {
+export const requestWaitlistCode = async (request: WaitlistCodeRequest): Promise<void> => {
 	const { handle, privacyVersion, source, locale, referralCode, challengeId } = request;
 	const email = parseWaitlistEmail(request.email);
 	const mailboxKey = emailMailboxKey(email);
 	const code = generateOtp();
 
-	const result = await tx(async (q) => {
-		await lockMailbox({ q, email, mailboxKey });
+	const id = await tx(async (q) => {
+		await lockMailbox({ q, mailboxKey });
 		await assertHandleAvailable({ q, handle, mailboxKey });
-
-		const known = await knownMailbox({ q, mailboxKey });
-
-		if (nonNullish(known)) {
-			return { outcome: known };
-		}
 
 		// One live code per mailbox: a fresh request replaces any earlier one
 		// with its attempts. A new invite or challenge link replaces the stored
@@ -310,31 +255,19 @@ export const requestWaitlistCode = async (
 			throw new Error('waitlist reservation upsert returned no row');
 		}
 
-		return { outcome: 'code_sent' as const, id: row.id };
+		return row.id;
 	});
 
-	if (result.outcome === 'code_sent') {
-		await sendQuietly(
-			waitlistCodeEmail({
-				to: email,
-				locale,
-				handle,
-				code,
-				ttlMs: WAITLIST_CODE_TTL_MS,
-				removeUrl: waitlistRemoveUrl({ id: result.id, token: waitlistRemoveToken(result.id) })
-			})
-		);
-
-		return result.outcome;
-	}
-
 	await sendQuietly(
-		result.outcome === 'already_registered'
-			? waitlistAlreadyMemberEmail({ to: email, locale })
-			: waitlistLegacyAccountEmail({ to: email, locale })
+		waitlistCodeEmail({
+			to: email,
+			locale,
+			handle,
+			code,
+			ttlMs: WAITLIST_CODE_TTL_MS,
+			removeUrl: waitlistRemoveUrl({ id, token: waitlistRemoveToken(id) })
+		})
 	);
-
-	return result.outcome;
 };
 
 interface ReservationRow {
@@ -387,16 +320,14 @@ const isHeldHandleViolation = (err: unknown): boolean =>
 
 const confirmStep = async ({
 	q,
-	email,
 	mailboxKey,
 	code
 }: {
 	q: TxQuery;
-	email: string;
 	mailboxKey: string;
 	code: string;
 }): Promise<ConfirmStep> => {
-	await lockMailbox({ q, email, mailboxKey });
+	await lockMailbox({ q, mailboxKey });
 
 	const [row] = await q<ReservationRow>(
 		`select id, email, handle, pending_handle, code_hash, code_attempts, confirmed_at, locale,
@@ -500,7 +431,7 @@ export const confirmWaitlistCode = async ({
 	let step: ConfirmStep;
 
 	try {
-		step = await tx((q) => confirmStep({ q, email, mailboxKey, code }));
+		step = await tx((q) => confirmStep({ q, mailboxKey, code }));
 	} catch (err) {
 		// The partial unique index is the last resort if the hold ever failed.
 		if (isHeldHandleViolation(err)) {

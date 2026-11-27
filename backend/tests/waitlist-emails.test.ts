@@ -5,10 +5,8 @@ import { es } from '../src/waitlist/email-copy/es';
 import { pt } from '../src/waitlist/email-copy/pt';
 import {
 	WAITLIST_EMAIL_COPY,
-	waitlistAlreadyMemberEmail,
 	waitlistCodeEmail,
 	waitlistEmailCopy,
-	waitlistLegacyAccountEmail,
 	waitlistReceiptEmail,
 	waitlistRemovedEmail
 } from '../src/waitlist/emails';
@@ -78,15 +76,6 @@ describe('waitlist email builders', () => {
 			expect(receipt.text).toContain('12');
 			expect(receipt.text).toContain(REMOVE_URL);
 
-			for (const notice of [
-				waitlistAlreadyMemberEmail({ to: 'a@example.com', locale }),
-				waitlistLegacyAccountEmail({ to: 'a@example.com', locale })
-			]) {
-				expect(notice.text).not.toContain('/waitlist/remove');
-				expect(notice.text).not.toMatch(/\d{6}/);
-			}
-
-			expect(waitlistAlreadyMemberEmail({ to: 'a@example.com', locale }).text).toContain('/signin');
 			expect(waitlistRemovedEmail({ to: 'a@example.com', locale, handle: 'ada' }).text).toContain(
 				'@ada'
 			);

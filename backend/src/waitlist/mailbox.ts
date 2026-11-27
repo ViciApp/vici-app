@@ -17,8 +17,7 @@ import { otpMailboxKey } from '../auth/otp';
  * The inbox an address delivers to: lowercased, without a `+tag`, and for
  * Gmail without dots and on gmail.com, so `Jo.Smith+vici@googlemail.com` and
  * `josmith@gmail.com` are one mailbox. The sign-in code limit already keys on
- * exactly this, so it is the same function; its SQL twin is
- * `email_mailbox_key` (migration 0030).
+ * exactly this, so it is the same function.
  */
 export const emailMailboxKey = otpMailboxKey;
 

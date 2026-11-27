@@ -102,11 +102,6 @@ describe.if(dbAvailable)('handle waitlist: guards and upkeep', () => {
 	test('the send cap counts every mail to one mailbox', async () => {
 		const email = uniqueEmail();
 
-		await query(
-			`insert into auth_identities (user_id, provider, subject, email) values ($1, 'email', $2, $2)`,
-			[await createTestUser(), email]
-		);
-
 		for (let i = 0; i < SENDS_PER_DAY; i++) {
 			expect((await requestCode({ handle: uniqueHandle(), email })).status).toBe(200);
 		}
