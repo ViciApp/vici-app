@@ -12,6 +12,7 @@
 		"dev": "vite dev --force",
 		"build": "tsc --noEmit && vite build",
 		"seo:assets": "tsx scripts/build/generate-seo-assets.ts",
+		"seo:web2-head": "tsx scripts/build/generate-web2-head.ts",
 		"prepare": "svelte-kit sync",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/satellite/tsconfig.json && tsc -p tsconfig.tools.json",
