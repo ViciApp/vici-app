@@ -37,7 +37,7 @@ export const NICKNAME_PATTERN = buildNicknamePattern();
  * (client passes raw, satellite trimmed) so both agree on "the same handle".
  * Used for collisions AND handle-change detection, client + satellite.
  */
-const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
+export const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
 export const nicknameUniqueKey = (raw: string): string =>
 	raw.trim().normalize('NFKD').replace(COMBINING_DIACRITICAL_MARKS, '').toLowerCase();
 
