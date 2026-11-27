@@ -158,12 +158,12 @@
 				<Vibrate size={18} strokeWidth={1.8} />
 			</span>
 			<span class="flex-1">
-				<span class="text-foreground block text-sm font-semibold"
-					>{t({ locale: $localeStore, key: 'admin.haptics.title' })}</span
-				>
-				<span class="text-muted-foreground block text-xs"
-					>{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}</span
-				>
+				<span class="text-foreground block text-sm font-semibold">
+					{t({ locale: $localeStore, key: 'admin.haptics.title' })}
+				</span>
+				<span class="text-muted-foreground block text-xs">
+					{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}
+				</span>
 			</span>
 			<ChevronRight class="text-muted-foreground" aria-hidden="true" size={18} strokeWidth={1.8} />
 		</button>

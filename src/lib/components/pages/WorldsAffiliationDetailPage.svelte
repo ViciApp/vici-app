@@ -400,9 +400,9 @@
 			<ul class="worlds-detail-champions-list">
 				{#each championships as cup (cup.monthAnchor)}
 					<li class="row-between worlds-detail-champions-row">
-						<span class="worlds-detail-champions-month"
-							>{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}</span
-						>
+						<span class="worlds-detail-champions-month">
+							{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}
+						</span>
 						<span class="num worlds-detail-champions-acc worlds-detail-acc">
 							{formatAccuracyPercent(cup.accuracy)}
 						</span>

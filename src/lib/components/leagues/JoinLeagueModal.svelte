@@ -198,8 +198,9 @@
 				</button>
 			</div>
 			<p>
-				{subParts[0]}<code class="league-code-example num">{LEAGUE_INVITE_CODE_EXAMPLE}</code
-				>{subParts[1] ?? ''}
+				{subParts[0]}<code class="league-code-example num">
+					{LEAGUE_INVITE_CODE_EXAMPLE}
+				</code>{subParts[1] ?? ''}
 			</p>
 		</header>
 

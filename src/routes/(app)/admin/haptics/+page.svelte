@@ -94,35 +94,35 @@
 
 			<section class="border-border bg-card space-y-2 rounded-2xl border p-5 text-sm">
 				<div class="flex items-center justify-between">
-					<span class="text-muted-foreground"
-						>{t({ locale: $localeStore, key: 'admin.haptics.probe.supported' })}</span
-					>
-					<span class="font-mono"
-						>{supported
+					<span class="text-muted-foreground">
+						{t({ locale: $localeStore, key: 'admin.haptics.probe.supported' })}
+					</span>
+					<span class="font-mono">
+						{supported
 							? t({ locale: $localeStore, key: 'admin.haptics.yes' })
-							: t({ locale: $localeStore, key: 'admin.haptics.no' })}</span
-					>
+							: t({ locale: $localeStore, key: 'admin.haptics.no' })}
+					</span>
 				</div>
 				<div class="flex items-center justify-between">
-					<span class="text-muted-foreground"
-						>{t({ locale: $localeStore, key: 'admin.haptics.probe.android' })}</span
-					>
-					<span class="font-mono"
-						>{android
+					<span class="text-muted-foreground">
+						{t({ locale: $localeStore, key: 'admin.haptics.probe.android' })}
+					</span>
+					<span class="font-mono">
+						{android
 							? t({ locale: $localeStore, key: 'admin.haptics.android_floored' })
-							: t({ locale: $localeStore, key: 'admin.haptics.android_raw' })}</span
-					>
+							: t({ locale: $localeStore, key: 'admin.haptics.android_raw' })}
+					</span>
 				</div>
 				<div class="flex items-center justify-between">
-					<span class="text-muted-foreground"
-						>{t({ locale: $localeStore, key: 'admin.haptics.probe.floor' })}</span
-					>
+					<span class="text-muted-foreground">
+						{t({ locale: $localeStore, key: 'admin.haptics.probe.floor' })}
+					</span>
 					<span class="font-mono">{ANDROID_BUZZ_FLOOR_MS}ms</span>
 				</div>
 				<div class="flex items-center justify-between gap-3">
-					<span class="text-muted-foreground"
-						>{t({ locale: $localeStore, key: 'admin.haptics.probe.preference' })}</span
-					>
+					<span class="text-muted-foreground">
+						{t({ locale: $localeStore, key: 'admin.haptics.probe.preference' })}
+					</span>
 					<button
 						class="border-border hover:bg-foreground/5 rounded-full border px-3 py-1 font-mono text-xs"
 						onclick={toggleHaptics}
@@ -190,10 +190,10 @@
 									{t({ locale: $localeStore, key: 'admin.haptics.raw_label' })}
 									{fmt(raw)}
 									{#if changed}
-										<span class="text-primary"
-											>→ {t({ locale: $localeStore, key: 'admin.haptics.android_label' })}
-											{fmt(floored)}</span
-										>
+										<span class="text-primary">
+											→ {t({ locale: $localeStore, key: 'admin.haptics.android_label' })}
+											{fmt(floored)}
+										</span>
 									{/if}
 								</div>
 							</div>

@@ -1720,9 +1720,9 @@
 					<span class="eyebrow league-detail-member-stat-label">
 						{t({ locale: $localeStore, key: 'leagues.detail.member_stat_accuracy' })}
 					</span>
-					<span class="num league-detail-member-stat-value"
-						>{formatAccuracy(openMember.member)}</span
-					>
+					<span class="num league-detail-member-stat-value">
+						{formatAccuracy(openMember.member)}
+					</span>
 				</div>
 				<div class="league-detail-member-stat">
 					<span class="eyebrow league-detail-member-stat-label">

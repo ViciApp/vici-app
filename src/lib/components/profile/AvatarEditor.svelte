@@ -238,9 +238,9 @@
 				<h2 class="avatar-editor-title">
 					{t({ locale: $localeStore, key: 'profile.avatar.title' })}
 				</h2>
-				<span class="avatar-editor-sub"
-					>{t({ locale: $localeStore, key: 'profile.avatar.subtitle' })}</span
-				>
+				<span class="avatar-editor-sub">
+					{t({ locale: $localeStore, key: 'profile.avatar.subtitle' })}
+				</span>
 			</div>
 			<button
 				class="avatar-editor-close"
