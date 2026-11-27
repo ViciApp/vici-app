@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#1778)
 
 Part **A4** of the challenge links work; the parts and how they stack are listed in [`2026-11-26-feat-challenge-links-api.md`](./2026-11-26-feat-challenge-links-api.md). **Stacks on A1** (the public read, redeem, answer and the client transport) **and on the landing page PR** (the deck). Independent of A2, A3 and B, and buildable in parallel with them. Ships with the landing go-live.
 
@@ -82,7 +82,7 @@ The handle is shown exactly when the server sends one (the challenger consented 
 
 ## Linked issues
 
-GitHub issue search was not possible from the authoring session (no access to the repository's issues). No issue is linked. The implementer searches open issues for "challenge", "landing" and "share link" before flipping the status and records the result here.
+Searched on 2026-11-27 for open issues matching "challenge", "landing" and "share link": none covers this work (the hits, #1142 on market clause authoring and #543 on gating referral payouts on an authoritative trade, are unrelated). No issue is linked.
 
 ## Analytics
 
@@ -153,4 +153,5 @@ Instrument. `challenge_opened` is already in the taxonomy once A1 is merged; thi
 - **Client analytics for the receiving end land in this PR** (owner).
 - **The plain question link needs no server verification** (owner): it carries a market and asserts nothing about a person. The deck PR adds the button; this spec owns the receiving side.
 - **Last touch wins between invite and challenge links.** It is what the existing stash already does between invite links, and the server's one-row-per-referee rule makes any race harmless.
+- **Signed-out receiving end only, for now** (owner, 2026-11-27): vici.app is a new product with no migrated users and no public sign-in yet, so every visitor is signed out and a call on the challenged card goes to the waitlist capsule with the call kept. #1778 ships the route, the lead card, the line and `challenge_opened`; a signed-in session is sent to Flow as from `/`. The `isOwner` marker (#1770, held as a draft), the market detail banner, the sign-up credit (section 4) and the answer after `placeOrder` (section 5) wait for sign-in.
 - **`/?m=` rather than reusing `/m/{slug}`.** `/m/` resolves to the market detail behind the app gate; the question link must open the landing deck.

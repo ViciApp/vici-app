@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import LandingDeck from '#lib/components/landing/LandingDeck.svelte';
+	import LandingDeckChallengeLine from '#lib/components/landing/LandingDeckChallengeLine.svelte';
 	import LandingFooter from '#lib/components/landing/LandingFooter.svelte';
 	import LandingMarkets from '#lib/components/landing/LandingMarkets.svelte';
 	import LandingNav from '#lib/components/landing/LandingNav.svelte';
@@ -20,11 +21,23 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingCall } from '#lib/types/landing-call.ts';
 	import type { LandingView } from '#lib/types/landing-claim.ts';
+	import type { LandingOpening } from '#lib/types/landing.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { landLandingCard, liftLandingCard } from '#lib/utils/landing-float.utils.ts';
 	import { prefersReducedMotion } from '#lib/utils/reduced-motion.utils.ts';
 	import { has as hasStored, set as setStored } from '#lib/utils/storage.utils.ts';
 	import { page } from '$app/state';
+
+	interface Props {
+		/**
+		 * What the page opens on, decided by a route that resolved it from the
+		 * server (a challenge link). When set, nothing is read from the URL: a
+		 * `?m=` or any other parameter changes nothing.
+		 */
+		opening?: LandingOpening;
+	}
+
+	const { opening }: Props = $props();
 
 	/**
 	 * The signed-out landing page: the card deck first, the Markets view
@@ -53,8 +66,17 @@
 	let sharedTimer: ReturnType<typeof setTimeout> | undefined;
 	let ackTimer: ReturnType<typeof setTimeout> | undefined;
 
+	const challenge = $derived(opening?.challenge);
+
 	onMount(() => {
-		void resolveLandingLinkSeriesId(page.url.search).then((seriesId) => {
+		// The deck reads its lead once, when it starts: so does the page.
+		const lead = untrack(() => opening);
+
+		void (
+			nonNullish(lead)
+				? Promise.resolve(lead.leadSeriesId)
+				: resolveLandingLinkSeriesId(page.url.search)
+		).then((seriesId) => {
 			leadSeriesId = seriesId;
 			deckReady = true;
 		});
@@ -133,12 +155,14 @@
 		});
 	};
 
+	// A link's market that cannot be a card leads Markets instead.
 	const onDeckEmpty = (): void => {
 		deckEmpty = true;
-		void openMarkets();
+		void openMarkets({ seriesId: leadSeriesId });
 	};
 
-	const onMarketsCall = (call: LandingCall): void => {
+	/** The call is kept and the claim capsule opens on it: the signed-out funnel. */
+	const keepAndClaim = (call: LandingCall): void => {
 		landingCallsStore.add(call);
 
 		const ack = t({
@@ -149,6 +173,20 @@
 
 		clearTimeout(ackTimer);
 		ackTimer = setTimeout(() => landingClaimStore.open({ ack }), LANDING_MARKETS_ACK_DELAY_MS);
+	};
+
+	const onMarketsCall = keepAndClaim;
+
+	// The answer to a challenge goes straight to the claim, with the call kept
+	// for it; every other card plays on as the deck does.
+	const onDeckCall = (call: LandingCall): void => {
+		if (nonNullish(challenge) && call.seriesId === leadSeriesId) {
+			keepAndClaim(call);
+
+			return;
+		}
+
+		landingCallsStore.add(call);
 	};
 
 	const onMarketsClose = (): void => {
@@ -193,7 +231,7 @@
 				active={view === 'cards'}
 				{attract}
 				{leadSeriesId}
-				oncall={landingCallsStore.add}
+				oncall={onDeckCall}
 				ondone={onDeckDone}
 				onempty={onDeckEmpty}
 				onengage={() => setStored({ key: LANDING_DECK_SEEN_STORAGE_KEY, value: true })}
@@ -202,6 +240,10 @@
 					<LandingPriceChart {seriesId} variant="card" />
 				{/snippet}
 			</LandingDeck>
+		{/if}
+
+		{#if nonNullish(challenge)}
+			<LandingDeckChallengeLine active={view === 'cards'} {challenge} />
 		{/if}
 
 		<div

@@ -354,6 +354,40 @@ const accountState = ({
 	};
 };
 
+/** Executed fills per engine principal, written by the E2E server's
+ * `POST /__e2e/fill`: the trade history a challenge link is issued from and
+ * answered with. Nothing else in the stack trades. */
+const fills = new Map<string, ClearingDid.Event[]>();
+
+let nextFillId = 1;
+
+export const recordE2eFill = ({
+	owner,
+	seriesId,
+	qty,
+	priceCents
+}: {
+	owner: string;
+	seriesId: string;
+	/** Positive buys Yes, negative buys No. */
+	qty: number;
+	priceCents: number;
+}): void => {
+	const event: ClearingDid.Event = {
+		event_id: BigInt(nextFillId),
+		series_id: seriesId,
+		user: Principal.fromText(owner),
+		clearing_id: Principal.anonymous(),
+		qty: BigInt(qty),
+		timestamp: BigInt(Date.now()) * NS_PER_MS,
+		price: { timestamp: [], oracle_id: [], decimal: { value: BigInt(priceCents), decimals: 2 } },
+		event_type: { Executed: null }
+	};
+
+	nextFillId += 1;
+	fills.set(owner, [...(fills.get(owner) ?? []), event]);
+};
+
 const accountMethods = (caller: Principal): Partial<Record<keyof ClearingService, unknown>> => {
 	const read = (domain: ClearingDid.BalanceDomain): ClearingDid.GetAccountStateResult => {
 		const held = collateral.get(caller.toText());
@@ -365,7 +399,8 @@ const accountMethods = (caller: Principal): Partial<Record<keyof ClearingService
 		deposit_collateral: depositCollateral(caller),
 		get_account_state: ({ domain }: ClearingDid.GetAccountStateParams) =>
 			Promise.resolve(read(fromNullable(domain) ?? { Settlement: null })),
-		get_account_state_query: () => Promise.resolve(read({ Settlement: null }))
+		get_account_state_query: () => Promise.resolve(read({ Settlement: null })),
+		get_trade_history: () => Promise.resolve(fills.get(caller.toText()) ?? [])
 	};
 };
 

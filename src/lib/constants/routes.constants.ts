@@ -28,6 +28,15 @@ export enum AppPath {
 }
 
 /**
+ * The receiving page of a challenge link, `/c/<id>`: public, and the id is all it reads from the
+ * URL. Kept beside {@link PublicPath} because it carries a parameter.
+ */
+export const CHALLENGE_PATH = '/c';
+
+/** The receiving page of one challenge link. */
+export const challengePagePath = (id: string): string => `${CHALLENGE_PATH}/${id}`;
+
+/**
  * Public surfaces: accessible without an authenticated session.
  * The (app) layout gate redirects unauthenticated users to `/signin`
  * unless they're already on a path in this set.

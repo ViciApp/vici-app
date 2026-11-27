@@ -1,4 +1,5 @@
 import type { MacroId, MicroId } from '#lib/constants/market-taxonomy.constants.ts';
+import type { ChallengeView } from '#lib/types/challenge.ts';
 import type { Market } from '#lib/types/market.ts';
 
 /** The side a landing visitor calls: lower-case, as the landing callbacks carry it. */
@@ -64,6 +65,17 @@ export interface LandingDeckCard {
 }
 
 /** A call made on the landing deck, handed to the page that mounts it. */
+/**
+ * What the landing opens on when a route has already resolved it from the server (a challenge
+ * link), in place of anything in the URL.
+ */
+export interface LandingOpening {
+	/** The lead card; `undefined` opens the standard deck (a closed market is not a card). */
+	leadSeriesId?: string;
+	/** The link behind it, whose line the page shows over the deck. */
+	challenge?: ChallengeView;
+}
+
 export interface LandingDeckCall {
 	seriesId: string;
 	side: LandingDeckSide;
