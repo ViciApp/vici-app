@@ -769,12 +769,9 @@ export const deMessages = {
 	'card.back.rules_body':
 		'Die Auflösung ist mit Schluss der Vorhersagen endgültig. Grenzfälle folgen dem offiziellen Wortlaut der Quelle.',
 	'card.back.settles_date': 'Wird abgerechnet am {date}',
-	'card.back.sharp_diff_ahead': '+{count} Pkt voraus',
-	'card.back.sharp_diff_behind': '−{count} Pkt zurück',
 	'card.back.show_rules': 'Vollständige Regeln zeigen',
 	'card.back.source_official': 'Quelle: offizielles Register',
 	'card.back.this_week': 'diese Woche',
-	'card.back.top_accuracy': 'Top-10%-Genauigkeit',
 	'card.back.who_calling': 'Wer ruft was',
 	'card.call_size': 'CALL-GRÖSSE',
 	'card.call_size_cap': 'CALL-GRÖSSE · MAX',

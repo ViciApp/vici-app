@@ -761,12 +761,9 @@ export const itMessages = {
 	'card.back.rules_body':
 		'La risoluzione è definitiva alla chiusura delle previsioni. I casi limite seguono la formulazione ufficiale della fonte.',
 	'card.back.settles_date': 'Si chiude il {date}',
-	'card.back.sharp_diff_ahead': '+{count} pts in vantaggio',
-	'card.back.sharp_diff_behind': '−{count} pts in ritardo',
 	'card.back.show_rules': 'Mostra regole complete',
 	'card.back.source_official': 'Fonte: registro ufficiale',
 	'card.back.this_week': 'questa settimana',
-	'card.back.top_accuracy': 'Precisione top 10%',
 	'card.back.who_calling': 'Chi prevede cosa',
 	'card.call_size': 'TAGLIA DELLA CALL',
 	'card.call_size_cap': 'TAGLIA DELLA CALL · MAX',

@@ -762,12 +762,9 @@ export const esMessages = {
 	'card.back.rules_body':
 		'La resolución es final al cierre de las predicciones. Los casos límite siguen la redacción oficial de la fuente.',
 	'card.back.settles_date': 'Se resuelve {date}',
-	'card.back.sharp_diff_ahead': '+{count} pts por delante',
-	'card.back.sharp_diff_behind': '−{count} pts por detrás',
 	'card.back.show_rules': 'Ver reglas completas',
 	'card.back.source_official': 'Fuente: registro oficial',
 	'card.back.this_week': 'esta semana',
-	'card.back.top_accuracy': 'Precisión top 10%',
 	'card.back.who_calling': 'Quién predice qué',
 	'card.call_size': 'TAMAÑO DE LA CALL',
 	'card.call_size_cap': 'TAMAÑO DE LA CALL · TOPE',
