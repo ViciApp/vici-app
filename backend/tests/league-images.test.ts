@@ -45,7 +45,7 @@ describe.if(dbAvailable)('league images (local-disk fallback)', () => {
 
 		expect(updated.imageUrl).toContain(`/api/v1/leagues/${league.id}/image`);
 
-		const location = locateLeagueImage(league.id);
+		const location = await locateLeagueImage(league.id);
 
 		expect(location.kind).toBe('file');
 
@@ -100,10 +100,10 @@ describe.if(dbAvailable)('league images (local-disk fallback)', () => {
 
 		expect(cleared.imageUrl).toBeUndefined();
 		expect((await getLeague(league.id))?.imageUrl).toBeUndefined();
-		expect(locateLeagueImage(league.id).kind).toBe('missing');
+		expect((await locateLeagueImage(league.id)).kind).toBe('missing');
 	});
 
-	test('an unsafe league id never reaches the disk backend', () => {
-		expect(locateLeagueImage('../../etc/passwd').kind).toBe('missing');
+	test('an unsafe league id never reaches the disk backend', async () => {
+		expect((await locateLeagueImage('../../etc/passwd')).kind).toBe('missing');
 	});
 });

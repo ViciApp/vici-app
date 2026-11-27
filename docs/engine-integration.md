@@ -125,7 +125,8 @@ The mappings live in `ROLE_TO_ENGINE_ROLES` and `shouldBeOracleSettler` inside
 ## Engine admins
 
 The engine's `admins` vec is the list of principals that can call `grant_engine_role` /
-`revoke_engine_role` / `update_engine_*` on the Vici engine. It contains:
+`revoke_engine_role` / `update_engine` on the Vici engine (`update_engine_allowed_roles` is
+registry controllers only). It contains:
 
 1. **The Juno satellite canister principal**, so the `syncRoleToEngine` hook can call
    `grant_engine_role` as the caller. This is the hot path.

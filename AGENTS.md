@@ -17,6 +17,7 @@ What `ls` and `package.json` cannot tell you:
 
 - **Generated, never hand-edited:** `src/declarations/**` and the vendored `backend/src/declarations/**` (`npm run did`; the hand-written wiring `src/declarations/{index,_factory,_types}.ts` is the exception), `src/satellite/satellite.did`, `satellite_extension.did` and `api-schemas.ts` (`npm run juno:functions:build`), `static/workers/**` (synced from `@junobuild/core` on `postinstall`).
 - **The Rust risk engine is in [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core)**, with its own `AGENTS.md`. Never modify it from here.
+- **Juno is deprecated, so the satellite takes fixes only.** New product work goes to `backend/` and the web2 mode; what is still allowed on the satellite is in [the satellite README](./docs/ai/satellite/README.md#the-satellite-takes-fixes-only).
 - **The local replica is the Juno emulator** (`juno emulator start`). Never run `dfx start`.
 - **The app runs on two backends.** The default build talks to the satellite and canisters; `VITE_BACKEND=web2` routes every app domain to the HTTP API in `backend/` (vici.app). Read [`web2-backend-mode.md`](./docs/ai/frontend/web2-backend-mode.md) before touching a service that branches on `isWeb2Backend()`.
 

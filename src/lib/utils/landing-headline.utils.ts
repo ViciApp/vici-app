@@ -10,7 +10,7 @@
 const QUOTE_OPEN = '“„«"‘‚';
 const QUOTE_CLOSE = '”»"’';
 
-export interface HeadlineParts {
+interface HeadlineParts {
 	/** Text before the quoted idiom. */
 	readonly before: string;
 	/** The quoted idiom (including its quote glyphs), or `''` if none. */
