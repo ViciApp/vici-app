@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
@@ -82,15 +83,15 @@
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
 
-	// When the market carries outcome data we surface the real headcount:
-	// including a genuine 0 ("0 predicting"). Only when no outcome data is
-	// present at all do we fall back to a representative figure, so the
-	// meta row still reads as a complete editorial line.
-	const hasOutcomeData = $derived((market.outcomes?.length ?? 0) > 0);
+	// The real headcount, including a genuine 0, when an outcome carries a
+	// `totalPredictions` figure. No data path fills it today, so the segment
+	// stays hidden rather than reading as a sample figure or a false 0.
+	const hasOutcomeData = $derived(
+		market.outcomes?.some(({ totalPredictions }) => nonNullish(totalPredictions)) ?? false
+	);
 	const predictorsCount = $derived(
 		market.outcomes?.reduce((acc, outcome) => acc + (outcome.totalPredictions ?? 0), 0) ?? 0
 	);
-	const predicting = $derived(hasOutcomeData ? predictorsCount : 1240);
 </script>
 
 <h3 class="flow-back-title">{title}</h3>
@@ -109,14 +110,16 @@
 	{#if countdownUrgent}
 		<span class="flow-back-countdown-pulse" aria-hidden="true"></span>
 	{/if}
-	<span class="flow-meta-dot" aria-hidden="true">·</span>
-	<span>
-		{t({
-			locale: $localeStore,
-			key: 'card.predicting_count',
-			params: { count: predicting.toLocaleString() }
-		})}
-	</span>
+	{#if hasOutcomeData}
+		<span class="flow-meta-dot" aria-hidden="true">·</span>
+		<span>
+			{t({
+				locale: $localeStore,
+				key: 'card.predicting_count',
+				params: { count: predictorsCount.toLocaleString() }
+			})}
+		</span>
+	{/if}
 </div>
 
 <style lang="postcss">
