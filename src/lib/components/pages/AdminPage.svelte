@@ -122,7 +122,7 @@
 
 					<div class="flex w-full items-center justify-between">
 						<span
-							class="bg-foreground/5 text-foreground/80 rounded-full px-3 py-1 font-data text-xs font-semibold tabular-nums"
+							class="bg-foreground/5 text-foreground/80 font-data rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
 						>
 							{t({
 								locale: $localeStore,
@@ -158,12 +158,12 @@
 				<Vibrate size={18} strokeWidth={1.8} />
 			</span>
 			<span class="flex-1">
-				<span class="text-foreground block text-sm font-semibold"
-					>{t({ locale: $localeStore, key: 'admin.haptics.title' })}</span
-				>
-				<span class="text-muted-foreground block text-xs"
-					>{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}</span
-				>
+				<span class="text-foreground block text-sm font-semibold">
+					{t({ locale: $localeStore, key: 'admin.haptics.title' })}
+				</span>
+				<span class="text-muted-foreground block text-xs">
+					{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}
+				</span>
 			</span>
 			<ChevronRight class="text-muted-foreground" aria-hidden="true" size={18} strokeWidth={1.8} />
 		</button>

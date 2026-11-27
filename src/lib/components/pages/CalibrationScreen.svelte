@@ -383,9 +383,10 @@
 				<div class="calib-card-outcomes">
 					<span>
 						{t({ locale: $localeStore, key: 'calibration.card.if_right' })}
-						<b class="is-yes"
-							>+{calibrationRewardVxp} {t({ locale: $localeStore, key: 'calibration.vxp' })}</b
-						>
+						<b class="is-yes">
+							+{calibrationRewardVxp}
+							{t({ locale: $localeStore, key: 'calibration.vxp' })}
+						</b>
 					</span>
 					<span>
 						{t({ locale: $localeStore, key: 'calibration.card.if_wrong' })}

@@ -83,14 +83,14 @@
 				status={canPrev ? 'enabled' : 'disabled'}
 			>
 				<ChevronLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-				<span class="hidden sm:inline"
-					>{t({ locale: $localeStore, key: 'ui.pagination.previous' })}</span
-				>
+				<span class="hidden sm:inline">
+					{t({ locale: $localeStore, key: 'ui.pagination.previous' })}
+				</span>
 			</BaseButton>
 
 			<!-- Compact page indicator below sm -->
 			<span
-				class="text-muted-foreground px-2 font-data text-[11px] font-bold tracking-wider tabular-nums sm:hidden"
+				class="text-muted-foreground font-data px-2 text-[11px] font-bold tracking-wider tabular-nums sm:hidden"
 			>
 				{t({
 					locale: $localeStore,
@@ -104,7 +104,7 @@
 				{#each pageSlots as slot, idx (idx)}
 					{#if slot === 'ellipsis'}
 						<li
-							class="text-muted-foreground px-1.5 font-data text-[11px] font-bold tabular-nums select-none"
+							class="text-muted-foreground font-data px-1.5 text-[11px] font-bold tabular-nums select-none"
 							aria-hidden="true"
 						>
 							…
@@ -113,7 +113,7 @@
 						<li>
 							<BaseButton
 								class={[
-									'inline-flex h-7 min-w-7 items-center justify-center rounded-md px-2 font-data text-[11px] font-bold tabular-nums transition-colors',
+									'font-data inline-flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-[11px] font-bold tabular-nums transition-colors',
 									slot === safePage
 										? 'bg-primary text-primary-foreground'
 										: 'text-foreground hover:bg-foreground/5'
@@ -139,9 +139,9 @@
 				onclick={() => goTo(safePage + 1)}
 				status={canNext ? 'enabled' : 'disabled'}
 			>
-				<span class="hidden sm:inline"
-					>{t({ locale: $localeStore, key: 'ui.pagination.next' })}</span
-				>
+				<span class="hidden sm:inline">
+					{t({ locale: $localeStore, key: 'ui.pagination.next' })}
+				</span>
 				<ChevronRight aria-hidden="true" size={14} strokeWidth={2.25} />
 			</BaseButton>
 		</div>

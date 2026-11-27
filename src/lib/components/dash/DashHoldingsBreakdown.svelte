@@ -49,8 +49,9 @@
 </script>
 
 <div class="db-sheet-h">
-	<span class="db-sheet-title">{t({ locale: $localeStore, key: 'dash.build.sheet_your_vxp' })}</span
-	>
+	<span class="db-sheet-title">
+		{t({ locale: $localeStore, key: 'dash.build.sheet_your_vxp' })}
+	</span>
 	<span class="db-sheet-bal num">{holdingsDisplay} <em>VXP</em></span>
 </div>
 

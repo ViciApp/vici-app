@@ -256,9 +256,9 @@
 	{:else if savedMarkets.length === 0}
 		<div style="margin: 4px 20px 20px;" class="card-empty">
 			<span class="c-eyebrow">{t({ locale: $localeStore, key: 'markets.section.saved' })}</span>
-			<span style="line-height: 1.25;" class="c-title"
-				>{t({ locale: $localeStore, key: 'markets.saved_empty.title' })}</span
-			>
+			<span style="line-height: 1.25;" class="c-title">
+				{t({ locale: $localeStore, key: 'markets.saved_empty.title' })}
+			</span>
 			<p class="c-body">
 				{t({ locale: $localeStore, key: 'markets.saved_empty.body' })}
 			</p>

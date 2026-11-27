@@ -458,9 +458,9 @@
 		{#if provisionalRows.length > 0}
 			<div class="leaderboard-provisional">
 				<div class="leaderboard-provisional-head">
-					<span class="allcaps"
-						>{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}</span
-					>
+					<span class="allcaps">
+						{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}
+					</span>
 					<span class="num allcaps leaderboard-provisional-min">
 						{t({
 							locale: $localeStore,

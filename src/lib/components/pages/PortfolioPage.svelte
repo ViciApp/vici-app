@@ -432,8 +432,8 @@
 											<MarketProbabilitySkeleton variant={probabilityVariant} />
 										{:else}
 											{formatRowPnl(pnl)}{#if nonNullish(move)}<span class="portfolio-row-move">
-													· {move}</span
-												>{/if}
+													· {move}
+												</span>{/if}
 										{/if}
 									</span>
 								</div>

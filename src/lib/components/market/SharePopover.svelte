@@ -566,13 +566,13 @@
 			</span>
 		{:else}
 			<span>
-				<b
-					>{t({
+				<b>
+					{t({
 						locale: $localeStore,
 						key: 'flow.share.referral_capped_amount',
 						params: { amount: formatVxpBalance({ value: REFERRAL_VXP_BONUS_BASE_UNITS }) }
-					})}</b
-				>
+					})}
+				</b>
 				{t({ locale: $localeStore, key: 'flow.share.referral_capped_tail' })}
 			</span>
 		{/if}

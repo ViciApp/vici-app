@@ -649,12 +649,12 @@
 			</ul>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'reason')} variant="ghost"
-					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
-				>
-				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger"
-					>{t({ locale: $localeStore, key: 'settings.delete.understand' })}</Button
-				>
+				<Button onclick={() => (step = 'reason')} variant="ghost">
+					{t({ locale: $localeStore, key: 'settings.delete.back' })}
+				</Button>
+				<Button class="del-danger-btn" onclick={advanceFromDisclosure} variant="danger">
+					{t({ locale: $localeStore, key: 'settings.delete.understand' })}
+				</Button>
 			</div>
 		</div>
 	{:else if step === 'leagues'}
@@ -789,9 +789,9 @@
 			</div>
 
 			<div class="del-actions">
-				<Button onclick={() => (step = 'what-happens')} variant="ghost"
-					>{t({ locale: $localeStore, key: 'settings.delete.back' })}</Button
-				>
+				<Button onclick={() => (step = 'what-happens')} variant="ghost">
+					{t({ locale: $localeStore, key: 'settings.delete.back' })}
+				</Button>
 
 				<Button
 					class="del-danger-btn"

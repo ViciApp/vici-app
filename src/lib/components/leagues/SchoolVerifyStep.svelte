@@ -31,9 +31,9 @@
 <div class="affil-picker-summary">
 	<span class="affil-picker-glyph" aria-hidden="true">{target.glyph}</span>
 	<span class="affil-picker-summary-body">
-		<span class="affil-picker-summary-eyebrow num allcaps"
-			>{tr('worlds.picker.school.verify_eyebrow')}</span
-		>
+		<span class="affil-picker-summary-eyebrow num allcaps">
+			{tr('worlds.picker.school.verify_eyebrow')}
+		</span>
 		<span class="affil-picker-summary-name">{target.name}</span>
 	</span>
 </div>

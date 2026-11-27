@@ -76,9 +76,9 @@
 
 			{#if nonNullish(title) && variant === 'editorial'}
 				<h1 class="screen-header-title is-editorial">
-					<span class="serif-italic">{title}</span>{#if accent}<span class="screen-header-accent"
-							>{accent}</span
-						>{/if}
+					<span class="serif-italic">{title}</span>{#if accent}<span class="screen-header-accent">
+							{accent}
+						</span>{/if}
 				</h1>
 			{:else if nonNullish(title)}
 				<h1 class="screen-header-title is-section">{title}</h1>

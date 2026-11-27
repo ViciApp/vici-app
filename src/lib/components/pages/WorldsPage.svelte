@@ -446,9 +446,9 @@
 								})}
 							</span>
 						</div>
-						<span class="num worlds-row-pct"
-							>{formatAccuracyPercent(accForScope({ row, scope }))}</span
-						>
+						<span class="num worlds-row-pct">
+							{formatAccuracyPercent(accForScope({ row, scope }))}
+						</span>
 					</button>
 				{/each}
 			{/if}

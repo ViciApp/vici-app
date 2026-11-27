@@ -1235,10 +1235,10 @@
 								</span>
 								<span class="feed-copy">
 									<span class="feed-line">
-										<b class="feed-handle"
-											>@{digest.profile?.nickname ??
-												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}</b
-										>
+										<b class="feed-handle">
+											@{digest.profile?.nickname ??
+												t({ locale: $localeStore, key: 'arena.friends.unknown_nickname' })}
+										</b>
 										<span class="feed-action">
 											{t({
 												locale: $localeStore,
@@ -1249,21 +1249,21 @@
 												params: { count: digest.total }
 											})}
 										</span>
-										<span class="num feed-record"
-											>· <span class="feed-record-win"
-												>{t({
+										<span class="num feed-record">
+											· <span class="feed-record-win">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_won',
 													params: { count: digest.won }
-												})}</span
-											>–<span class="feed-record-loss"
-												>{t({
+												})}
+											</span>–<span class="feed-record-loss">
+												{t({
 													locale: $localeStore,
 													key: 'arena.friends.feed.record_lost',
 													params: { count: digest.lost }
-												})}</span
-											></span
-										>
+												})}
+											</span>
+										</span>
 									</span>
 									<span class="feed-meta">
 										{#if nonNullish(digest.windowLabel)}

@@ -397,9 +397,9 @@
 									</div>
 									<div class="tournament-match-meta num">
 										{#if concluded}
-											<span class="tournament-match-date"
-												>{formatIsoDateUtc({ timestampMs: match.endMs })}</span
-											>
+											<span class="tournament-match-date">
+												{formatIsoDateUtc({ timestampMs: match.endMs })}
+											</span>
 											<span class="tournament-match-winner">
 												{match.winnerLeagueId} →
 											</span>
