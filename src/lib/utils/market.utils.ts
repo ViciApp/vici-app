@@ -120,7 +120,7 @@ export const mapMarketData = ({
  * is empty**: there is no price to show. Callers must treat `undefined` as
  * "unknown" (skeleton / no-liquidity), never substitute a 0.5 placeholder.
  */
-export const calculateProbability = ({
+const calculateProbability = ({
 	bids,
 	asks
 }: {
@@ -145,7 +145,7 @@ export const calculateProbability = ({
 	return asks[0].price;
 };
 
-export interface ConsensusLean {
+interface ConsensusLean {
 	/** The crowd leans YES; an even 50/50 split counts as YES. */
 	isYes: boolean;
 	/** Needle rotation in degrees from straight up: -90 (all YES), 0 (50/50), 90 (all NO). */

@@ -70,7 +70,7 @@ export const TOURNAMENT_BRACKET_SIZE = 16;
  * Round duration: one 7-day window ("DAY 3 OF 7") for every round, so
  * the four rounds (28 days) fit inside any calendar month.
  */
-export const TOURNAMENT_ROUND_DURATION_DAYS = 7;
+const TOURNAMENT_ROUND_DURATION_DAYS = 7;
 export const TOURNAMENT_ROUND_DURATION_MS = TOURNAMENT_ROUND_DURATION_DAYS * DAY_IN_MS;
 
 /**
@@ -108,7 +108,7 @@ export interface TournamentDoc {
 	monthStartMs: number;
 	/** UTC ms timestamp of `monthStartMs + 4 × 7 days`. */
 	monthEndMs: number;
-	/** Number of leagues seeded. Always {@link TOURNAMENT_BRACKET_SIZE} in v1. */
+	/** Number of leagues seeded. Always {@link TOURNAMENT_BRACKET_SIZE}. */
 	bracketSize: number;
 	/** Lifecycle state. `in_flight` until the final match resolves; then `concluded`. */
 	state: TournamentState;

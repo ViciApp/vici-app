@@ -36,6 +36,7 @@ import {
 	HANDLE_COOLDOWN_DAYS,
 	MAX_NICKNAME_LENGTH,
 	MIN_NICKNAME_LENGTH,
+	NICKNAME_CHECK_TURNSTILE_ACTION,
 	NICKNAME_PATTERN
 } from '../../src/profiles/nickname';
 import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
@@ -46,6 +47,11 @@ import {
 	SCHOOL_VERIFIED_PUBLIC_THRESHOLD,
 	SCHOOL_VERIFY_DAILY_CAP
 } from '../../src/school/verification';
+import {
+	CHALLENGE_ID_ALPHABET,
+	CHALLENGE_ID_LENGTH,
+	CHALLENGE_ID_REGEX
+} from '../../src/social/challenges';
 import { FRIEND_REQUEST_REJECTED_COOLDOWN_MS } from '../../src/social/relations';
 import { RESOLVED_RESULTS_RETENTION_MS } from '../../src/social/resolved-results';
 import {
@@ -83,6 +89,7 @@ const appSource = {
 	affiliation: readRepoSource('src/lib/types/affiliation.ts'),
 	affiliationStats: readRepoSource('src/lib/types/affiliation-stats.ts'),
 	battle: readRepoSource('src/lib/types/battle.ts'),
+	challenge: readRepoSource('src/lib/constants/challenge.constants.ts'),
 	exitSignal: readRepoSource('src/lib/types/exit-signal.ts'),
 	flowRewards: readRepoSource('src/lib/constants/flow-rewards.constants.ts'),
 	icdc: readRepoSource('src/lib/constants/icdc.constants.ts'),
@@ -94,6 +101,7 @@ const appSource = {
 	relation: readRepoSource('src/lib/constants/relation.constants.ts'),
 	school: readRepoSource('src/lib/types/school.ts'),
 	schoolPicker: readRepoSource('src/lib/constants/school-picker.constants.ts'),
+	turnstile: readRepoSource('src/lib/constants/turnstile.constants.ts'),
 	userStats: readRepoSource('src/lib/types/user-stats.ts')
 };
 
@@ -154,6 +162,15 @@ describe('shared drift: profiles', () => {
 			source: app.source,
 			flags: app.flags
 		});
+	});
+
+	test('the Turnstile action of the anonymous handle probe', () => {
+		expect(NICKNAME_CHECK_TURNSTILE_ACTION).toBe(
+			extractStringConst({
+				source: appSource.turnstile,
+				constName: 'TURNSTILE_ACTION_HANDLE_CHECK'
+			})
+		);
 	});
 
 	test('Flow daily hard cap', () => {
@@ -363,6 +380,46 @@ describe('shared drift: referral codes', () => {
 		expect(REFERRAL_EXISTING_USER_REASON).toBe(
 			extractStringConst({ source: appSource.referral, constName: 'REFERRAL_EXISTING_USER_REASON' })
 		);
+	});
+});
+
+describe('shared drift: challenge links', () => {
+	test('id length, alphabet and format', () => {
+		const length = extractIntConst({
+			source: appSource.challenge,
+			constName: 'CHALLENGE_ID_LENGTH'
+		});
+		const alphabet = extractStringConst({
+			source: appSource.challenge,
+			constName: 'CHALLENGE_ID_ALPHABET'
+		});
+
+		expect(CHALLENGE_ID_LENGTH).toBe(length);
+		expect(CHALLENGE_ID_ALPHABET).toBe(alphabet);
+
+		// Same evaluation as the referral code format: the app derives the
+		// pattern from its alphabet and length.
+		const args = extractBlock({
+			source: appSource.challenge,
+			marker: 'export const CHALLENGE_ID_REGEX = new RegExp',
+			open: '(',
+			close: ')'
+		})
+			.trim()
+			.match(/^`([^`]*)`\s*(?:,\s*'([a-z]*)')?\s*,?$/);
+
+		expect(args).not.toBeNull();
+
+		const [, rawTemplate = '', flags = ''] = args ?? [];
+		const appRegex = new RegExp(
+			rawTemplate
+				.replace('${CHALLENGE_ID_ALPHABET}', alphabet)
+				.replace('${CHALLENGE_ID_LENGTH}', String(length)),
+			flags
+		);
+
+		expect(CHALLENGE_ID_REGEX.source).toBe(appRegex.source);
+		expect(CHALLENGE_ID_REGEX.flags).toBe(appRegex.flags);
 	});
 });
 

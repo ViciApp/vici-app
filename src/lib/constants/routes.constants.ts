@@ -1,18 +1,10 @@
 export enum AppPath {
 	/**
-	 * Canonical signed-in entry. Cold-load on `/` redirects here once the
-	 * auth handshake resolves a session; in-app nav links to "Home"
-	 * (Markets tab) target this path directly to avoid a `/ → /app`
-	 * double-bounce flicker.
+	 * Canonical signed-in entry, the markets listing. Cold-load on `/`
+	 * redirects here once the auth handshake resolves a session; in-app nav
+	 * links to "Home" (Markets tab) target this path directly to avoid a
+	 * `/ → /app` double-bounce flicker.
 	 */
-	App = '/app',
-	/**
-	 * Alias for the home-tab destination. Currently routes to `/app`
-	 * (which renders the markets listing). Kept distinct from
-	 * `AppPath.App` so we can re-aim the home tab without churning every
-	 * call-site.
-	 */
-	// eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
 	Home = '/app',
 	Markets = '/markets',
 	Profile = '/profile',
