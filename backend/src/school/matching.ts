@@ -21,6 +21,9 @@ export const spNormalize = (value: string | undefined): string =>
 		.replace(/\s+(university|college|school|institute|institut|polytechnic)$/, '')
 		.replace(/[^a-z0-9]/g, '');
 
+/** A `local@host` email, capturing the host. */
+const SP_EMAIL_HOST_RE = /^[^@\s]+@([^\s@]+)$/;
+
 /**
  * Consumer mailbox providers that never count as a school address. Checked
  * AFTER the directory match, so a listed school's own subdomain is never
@@ -43,10 +46,7 @@ export type SchoolEmailMatch =
 /** Classify a school email against the directory. Null when the string is
  * not a parseable `local@host` email at all. */
 export const spMatchEmail = (email: string): SchoolEmailMatch | null => {
-	const parsed = email
-		.toLowerCase()
-		.trim()
-		.match(/^[^@\s]+@([^\s@]+)$/);
+	const parsed = email.toLowerCase().trim().match(SP_EMAIL_HOST_RE);
 
 	if (isNullish(parsed)) {
 		return null;
