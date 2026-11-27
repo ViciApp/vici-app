@@ -14,7 +14,6 @@
 		checkHandleAvailability,
 		handleProbeFailureOf
 	} from '#lib/services/handle-availability.services.ts';
-	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
@@ -303,7 +302,7 @@
 		isClaiming = true;
 
 		try {
-			const res = await checkNicknameAvailability({ nickname: selectedName });
+			const res = await checkHandleAvailability({ handle: selectedName });
 
 			if (!res.available) {
 				sessionTaken.add(selectedName);

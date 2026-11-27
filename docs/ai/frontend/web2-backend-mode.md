@@ -307,7 +307,8 @@ the on-chain call untouched on the default side:
   refusal for the rest of the page without contacting Cloudflare or the API
   (`latchesPublicProbe` in `handle-probe.utils.ts`); the default backend
   keeps the satellite's anonymous query. A picker that serves both signed-in
-  users and visitors (the onboarding handle field) probes through
+  users and visitors (the onboarding handle field and its claim-time
+  re-check) probes through
   `checkHandleAvailability`, which takes the public probe only in web2 mode
   with no session (`handleProbeRoute` in `handle-probe.utils.ts`) and the
   session probe otherwise; the handle editor and the post-sign-in drain stay
