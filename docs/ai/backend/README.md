@@ -8,7 +8,7 @@ If you are about to touch anything under `backend/`, this is your starting point
 
 A Bun + Elysia + Postgres HTTP API under `/api/v1/...`, deployed on Fly (`backend/fly.toml`) as two processes: the app (`src/index.ts`) and the worker loop (`src/worker.ts`). The frontend reaches it through the typed client in `src/lib/api-client/client.ts` (see [`frontend/api-client.md`](../frontend/api-client.md)). It talks to the icdc-core canisters through `@icp-sdk` actors and holds custody of user funds on four chains.
 
-The operator-facing facts (local setup, every env var, auth, custody, engine bridge, ETL, deploy, layout) live in [`backend/README.md`](../../../backend/README.md). This folder does not restate them; it adds what an agent needs to write code that fits.
+The operator-facing facts (local setup, every env var, auth, custody, engine bridge, deploy, layout) live in [`backend/README.md`](../../../backend/README.md). This folder does not restate them; it adds what an agent needs to write code that fits.
 
 ## Pages
 

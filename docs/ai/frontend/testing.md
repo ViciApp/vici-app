@@ -156,9 +156,7 @@ on a throwaway Postgres. Specs live under
   writes included, rejects), and email lands in an in-memory outbox. Both
   servers boot from Playwright's
   `webServer` (migrate, seed, serve; then build, preview).
-- **Seed:** `backend/e2e/seed.ts` imports two legacy accounts through the
-  real ETL importer (provisional, `matched_via = 'etl'`) with their exported
-  legacy identities, and an admin account. Fixture values live in
+- **Seed:** `backend/e2e/seed.ts` writes an admin account. Fixture values live in
   `backend/e2e/fixtures.ts`, import-free so the specs read the same data.
 - **Sign-in:** the email one-time code, as a user does it. The specs read the
   code from `GET /__e2e/otp/:email`; the admin drives the beta gate through
@@ -183,8 +181,7 @@ e2e/
 ├── pages/app.page.ts       # sign-in / sign-up / sign-out, shell locators
 ├── support/fixtures.ts     # network seal, stack health, backend + admin helpers
 ├── support/urls.ts         # the two local origins
-├── adoption.spec.ts        # legacy email adopts the imported account
-├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers, legacy hold, ?e=legacy
+├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers admits a new email
 ├── dash.spec.ts            # empty engine account renders, no failing reads
 ├── markets.spec.ts         # list + detail from the fake engine, settled outcome
 ├── sign-out.spec.ts        # session revoked server-side, app gated again
@@ -195,8 +192,8 @@ e2e/
 
 - **Assertions, no screenshots.** The suite pins behaviour, not pixels.
 - **Fresh identities per test** (`uniqueEmail`, `uniqueHandle`): runs share
-  one database, locally re-runs included. Seeded accounts are written so a
-  re-run converges (an adopted account stays adopted).
+  one database, locally re-runs included. The seeded admin account is
+  written so a re-run converges.
 - **Wait on the onboarding handoff** (`AppPage.signUp` does) before a
   full page load after sign-up: the claimed handle is written by an async
   drain, and reloading mid-write re-hydrates a profile-less account.

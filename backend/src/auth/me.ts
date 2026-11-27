@@ -17,7 +17,7 @@ interface MeUser {
 }
 
 /** The signed-in user as `GET /auth/me` answers it: the user row, its linked
- * sign-in identities and its adopted legacy principals; null when the user row
+ * sign-in identities and its linked legacy principals; null when the user row
  * is gone. */
 export const loadMe = async (userId: string): Promise<Record<string, unknown> | null> => {
 	const users = await query<{

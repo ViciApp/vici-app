@@ -13,7 +13,6 @@
 	import IconApple from '#lib/components/icons/IconApple.svelte';
 	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
 	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
-	import { LEGACY_APP_URL } from '#lib/constants/auth.constants.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import {
 		requestEmailSignInCode,
@@ -53,8 +52,7 @@
 		| 'signin.otp.bot_check_failed'
 		| 'signin.otp.bot_check_unavailable'
 		| 'signin.otp.rate_limited'
-		| 'signin.beta_closed'
-		| 'signin.legacy_pending.body';
+		| 'signin.beta_closed';
 	let errorKey = $state<ErrorKey | null>(null);
 
 	const CODE_REQUEST_ERROR_KEYS: Record<EmailSignInCodeRefusal, ErrorKey> = {
@@ -62,14 +60,11 @@
 		bot_check_unavailable: 'signin.otp.bot_check_unavailable',
 		rate_limited: 'signin.otp.rate_limited',
 		beta_closed: 'signin.beta_closed',
-		legacy_account_pending: 'signin.legacy_pending.body',
 		failed: 'signin.otp.error'
 	};
 
-	// The API refuses gated sign-ins with stable codes: `beta_closed` for the
-	// private beta, `legacy_account_pending` for an address that already has an
-	// account on the legacy app (held there until the move). Map each to its
-	// own message instead of the generic retry copy.
+	// The API refuses a gated sign-in with the stable `beta_closed` code; it
+	// gets its own message instead of the generic retry copy.
 	const errorKeyFor = (err: unknown): ErrorKey => {
 		if (!(err instanceof ApiError)) {
 			return 'signin.otp.error';
@@ -77,10 +72,6 @@
 
 		if (err.code === 'beta_closed') {
 			return 'signin.beta_closed';
-		}
-
-		if (err.code === 'legacy_account_pending') {
-			return 'signin.legacy_pending.body';
 		}
 
 		return 'signin.otp.error';
@@ -93,14 +84,8 @@
 			return 'signin.beta_closed';
 		}
 
-		if (marker === 'legacy') {
-			return 'signin.legacy_pending.body';
-		}
-
 		return null;
 	};
-
-	const legacyPending = $derived(errorKey === 'signin.legacy_pending.body');
 
 	const emailValid = $derived(/\S+@\S+\.\S+/.test(email));
 	const codeValid = $derived(code.trim().length > 0);
@@ -252,11 +237,6 @@
 			</button>
 			{#if nonNullish(errorKey)}
 				<p class="signin-otp-error">{t({ locale: $localeStore, key: errorKey })}</p>
-				{#if legacyPending}
-					<a class="signin-legacy-link" href={LEGACY_APP_URL}>
-						{t({ locale: $localeStore, key: 'signin.legacy_pending.cta' })}
-					</a>
-				{/if}
 			{/if}
 		</form>
 	{:else}
@@ -290,11 +270,6 @@
 			</button>
 			{#if nonNullish(errorKey)}
 				<p class="signin-otp-error">{t({ locale: $localeStore, key: errorKey })}</p>
-				{#if legacyPending}
-					<a class="signin-legacy-link" href={LEGACY_APP_URL}>
-						{t({ locale: $localeStore, key: 'signin.legacy_pending.cta' })}
-					</a>
-				{/if}
 			{/if}
 			<button class="signin-otp-back" disabled={busy} onclick={onBack} type="button">
 				{t({ locale: $localeStore, key: 'signin.otp.back' })}
@@ -340,15 +315,6 @@
 		margin: 0.25rem 0 0;
 		font-size: 0.8125rem;
 		color: var(--color-destructive);
-	}
-
-	.signin-legacy-link {
-		align-self: flex-start;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--color-foreground);
-		text-decoration: underline;
-		text-underline-offset: 2px;
 	}
 
 	.signin-otp-back {

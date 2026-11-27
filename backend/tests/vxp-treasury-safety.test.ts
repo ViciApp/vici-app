@@ -4,13 +4,11 @@
 // arrived with, a dry treasury defers instead of failing for good, and the
 // origin backfill of migration 0012 tells imported rows from live ones.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 import { IcrcTransferError } from '@icp-sdk/canisters/ledger/icrc';
 import { afterEach, beforeAll, describe, expect, setSystemTime, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ExportedDoc } from '../scripts/etl/lib';
-import { importDocs } from '../scripts/etl/transforms';
 import { createSession } from '../src/auth/sessions';
 import { encodeTransferMemo, MAX_TRANSFER_MEMO_BYTES } from '../src/chains/ic/icrc';
 import { query } from '../src/db/client';
@@ -27,7 +25,7 @@ import {
 	type GrantAwardOutcome
 } from '../src/vxp/awards';
 import { parseVxp } from '../src/vxp/constants';
-import { createTestUser, ensureMigrated, uniquePrincipal } from './helpers/auth';
+import { createTestUser, ensureMigrated } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 import { readAwardRow, stubVxpLedger, type LedgerStub } from './helpers/vxp';
 
@@ -41,25 +39,38 @@ afterEach(() => {
 	restoreMode = undefined;
 });
 
-const legacyDoc = ({ key, data }: { key: string; data: unknown }): ExportedDoc => ({
-	key,
-	data,
-	createdAtNs: '1700000000000000000',
-	updatedAtNs: '1710000000000000000'
-});
-
-const userIdForPrincipal = async (principal: string): Promise<string> => {
-	const rows = await query<{ user_id: string }>(
-		`select user_id from legacy_principals where principal = $1`,
-		[principal]
+/** An award row as the legacy import left it: origin 'etl', which this
+ * backend never pays. */
+const seedImportedAward = async ({
+	userId,
+	awardType,
+	awardKey,
+	amount,
+	status = 'pending',
+	paidAtMs,
+	blockIndex
+}: {
+	userId: string;
+	awardType: string;
+	awardKey: string;
+	amount: number;
+	status?: 'pending' | 'paid';
+	paidAtMs?: number;
+	blockIndex?: string;
+}): Promise<void> => {
+	await query(
+		`insert into vxp_awards (user_id, award_type, award_key, amount_base_units, status, earned_at_ms, paid_at_ms, block_index, origin)
+		 values ($1, $2, $3, $4, $5, 1716000000000, $6, $7, 'etl')`,
+		[
+			userId,
+			awardType,
+			awardKey,
+			parseVxp(amount).toString(),
+			status,
+			paidAtMs ?? null,
+			blockIndex ?? null
+		]
 	);
-	const userId = rows[0]?.user_id;
-
-	if (isNullish(userId)) {
-		throw new Error(`no user for ${principal}`);
-	}
-
-	return userId;
 };
 
 const awardRows = async (
@@ -106,76 +117,35 @@ describe.if(dbAvailable)('treasury safety', () => {
 	});
 
 	describe('imported awards are never paid', () => {
-		test('legacy pending, owed and processing states import as etl and every sweep skips them', async () => {
-			const recipient = uniquePrincipal();
-			const referrer = uniquePrincipal();
+		test('imported pending, paid and processing rows are skipped by every sweep', async () => {
+			const userId = await createTestUser();
+			const referrerId = await createTestUser();
 
-			await importDocs({
-				collection: 'vxp_awards',
-				docs: [
-					legacyDoc({
-						key: `${recipient}/achievement/oracle`,
-						data: {
-							recipient,
-							awardType: 'achievement',
-							awardKey: 'oracle',
-							amountBaseUnits: parseVxp(500).toString(),
-							status: 'pending',
-							earnedAtMs: 1716000000000
-						}
-					}),
-					legacyDoc({
-						key: `${recipient}/streak/streak_3`,
-						data: {
-							recipient,
-							awardType: 'streak',
-							awardKey: 'streak_3',
-							amountBaseUnits: parseVxp(50).toString(),
-							status: 'paid',
-							earnedAtMs: 1716000000000,
-							paidAtMs: 1716000001000,
-							blockIndex: '12'
-						}
-					})
-				]
+			await seedImportedAward({
+				userId,
+				awardType: 'achievement',
+				awardKey: 'oracle',
+				amount: 500
 			});
-			await importDocs({
-				collection: 'vxp_onboarding',
-				docs: [
-					legacyDoc({
-						key: recipient,
-						data: {
-							version: 1,
-							tradeCount: 1,
-							milestones: {
-								m1: { status: 'processing', amountBaseUnits: parseVxp(1500).toString() },
-								m2: { status: 'owed', amountBaseUnits: parseVxp(4000).toString() },
-								m3: { status: 'none', amountBaseUnits: '0' }
-							}
-						}
-					})
-				]
+			await seedImportedAward({
+				userId,
+				awardType: 'streak',
+				awardKey: 'streak_3',
+				amount: 50,
+				status: 'paid',
+				paidAtMs: 1716000001000,
+				blockIndex: '12'
 			});
-			await importDocs({
-				collection: 'referrals',
-				docs: [
-					legacyDoc({
-						key: recipient,
-						data: {
-							version: 1,
-							referrer,
-							code: 'ABCD2345',
-							redeemedAtMs: 1718000000000,
-							withinReferrerCap: true,
-							refereePayout: { status: 'owed', amountBaseUnits: parseVxp(500).toString() },
-							referrerPayout: { status: 'owed', amountBaseUnits: parseVxp(500).toString() }
-						}
-					})
-				]
+			await seedImportedAward({ userId, awardType: 'onboarding', awardKey: 'm1', amount: 1500 });
+			await seedImportedAward({ userId, awardType: 'onboarding', awardKey: 'm2', amount: 4000 });
+			await seedImportedAward({ userId, awardType: 'referral', awardKey: userId, amount: 500 });
+			await seedImportedAward({
+				userId: referrerId,
+				awardType: 'referral',
+				awardKey: userId,
+				amount: 500
 			});
 
-			const userId = await userIdForPrincipal(recipient);
-			const referrerId = await userIdForPrincipal(referrer);
 			const imported = [...(await awardRows(userId)), ...(await awardRows(referrerId))];
 
 			expect(imported.length).toBe(6);
@@ -207,27 +177,9 @@ describe.if(dbAvailable)('treasury safety', () => {
 		});
 
 		test('a live trigger for an imported award collides instead of paying again', async () => {
-			const recipient = uniquePrincipal();
+			const userId = await createTestUser();
 
-			await importDocs({
-				collection: 'vxp_onboarding',
-				docs: [
-					legacyDoc({
-						key: recipient,
-						data: {
-							version: 1,
-							tradeCount: 0,
-							milestones: {
-								m1: { status: 'owed', amountBaseUnits: parseVxp(1500).toString() },
-								m2: { status: 'none', amountBaseUnits: '0' },
-								m3: { status: 'none', amountBaseUnits: '0' }
-							}
-						}
-					})
-				]
-			});
-
-			const userId = await userIdForPrincipal(recipient);
+			await seedImportedAward({ userId, awardType: 'onboarding', awardKey: 'm1', amount: 1500 });
 
 			stub = stubVxpLedger();
 			restoreMode = setVxpTreasuryDisabled(false);
@@ -242,79 +194,6 @@ describe.if(dbAvailable)('treasury safety', () => {
 
 			expect(outcome.outcome).toBe('already');
 			expect(stub.transfers).toHaveLength(0);
-		});
-
-		test('a pending live row that a legacy doc also covers is taken over by the import', async () => {
-			const recipient = uniquePrincipal();
-
-			// Map the principal first so the live grant and the import share a user.
-			await importDocs({
-				collection: 'vxp_awards',
-				docs: [
-					legacyDoc({
-						key: `${recipient}/streak/streak_7`,
-						data: {
-							recipient,
-							awardType: 'streak',
-							awardKey: 'streak_7',
-							amountBaseUnits: parseVxp(150).toString(),
-							status: 'paid',
-							earnedAtMs: 1716000000000,
-							paidAtMs: 1716000001000,
-							blockIndex: '5'
-						}
-					})
-				]
-			});
-
-			const userId = await userIdForPrincipal(recipient);
-
-			stub = stubVxpLedger();
-			restoreMode = setVxpTreasuryDisabled(true);
-
-			expect(
-				(
-					await grantAward({
-						userId,
-						awardType: 'flow_milestone',
-						awardKey: '10',
-						amountBaseUnits: parseVxp(50)
-					})
-				).outcome
-			).toBe('recorded');
-
-			await importDocs({
-				collection: 'vxp_awards',
-				docs: [
-					legacyDoc({
-						key: `${recipient}/flow_milestone/10`,
-						data: {
-							recipient,
-							awardType: 'flow_milestone',
-							awardKey: '10',
-							amountBaseUnits: parseVxp(50).toString(),
-							status: 'pending',
-							earnedAtMs: 1716000000000
-						}
-					})
-				]
-			});
-
-			restoreMode();
-			restoreMode = setVxpTreasuryDisabled(false);
-			await reconcileUntilIdle();
-
-			const row = (await awardRows(userId)).find(
-				({ award_type }) => award_type === 'flow_milestone'
-			);
-
-			expect(row).toEqual({
-				award_type: 'flow_milestone',
-				award_key: '10',
-				status: 'pending',
-				origin: 'etl'
-			});
-			expect(stub.transfers.filter(({ memo }) => memo === 'vxp:flow_milestone:10')).toHaveLength(0);
 		});
 	});
 
@@ -634,23 +513,11 @@ describe.if(dbAvailable)('treasury safety', () => {
 				amountBaseUnits: parseVxp(1000)
 			});
 
-			const principal = uniquePrincipal();
-
-			await importDocs({
-				collection: 'vxp_awards',
-				docs: [
-					legacyDoc({
-						key: `${principal}/comeback/restore`,
-						data: {
-							recipient: principal,
-							awardType: 'comeback',
-							awardKey: 'restore',
-							amountBaseUnits: parseVxp(250).toString(),
-							status: 'pending',
-							earnedAtMs: 1716000000000
-						}
-					})
-				]
+			await seedImportedAward({
+				userId: await createTestUser(),
+				awardType: 'comeback',
+				awardKey: 'restore',
+				amount: 250
 			});
 
 			const after = await getTreasuryBacklog();

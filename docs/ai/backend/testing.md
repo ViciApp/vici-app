@@ -16,7 +16,6 @@ Paths are under `backend/`.
 | `setup.ts`       | `dbAvailable` (preloaded)                                                                                                                                                                    |
 | `auth.ts`        | `ensureMigrated`, `uniqueEmail`, `uniquePrincipal`, `createTestUser(role?)`                                                                                                                  |
 | `profiles.ts`    | `createTestProfile`, `softDeleteProfile`, `hibernateProfile`, `uniqueNickname`                                                                                                               |
-| `adoption.ts`    | `seedImportedAccount`, `linkOf`, `claimPendingOf`, `userCount`                                                                                                                               |
 | `vxp.ts`         | `stubVxpLedger`, `readAwardRow`, `accountStateWithEquity` (a clearing account-state answer for the holdings gates)                                                                           |
 | `settlements.ts` | `stubSettledHistory`: a clearing stub answering `aggregate_settlement_accuracy` from recorded settlements, honouring the members and the window                                              |
 | `challenges.ts`  | `installChallengeEngine` (fake engine and VXP ledger, with `settledSeries` and the `settlementReads` it answered), `fill`, `newSeries`, `player`, `call`, `create`, `readBody`, `relationOf` |

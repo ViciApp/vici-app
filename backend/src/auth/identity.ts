@@ -2,12 +2,6 @@
 // provisioning on first sign-in and linking new providers to an existing
 // account by verified email. Every caller must only pass identities whose
 // email ownership has been proven (OTP-verified or provider-asserted).
-//
-// A first sign-in whose email matches an exported legacy identity adopts the
-// provisional account the data migration created for that principal (see
-// adoption.ts) instead of provisioning an empty one. The legacy auto-match
-// then links any still-unlinked legacy principal carrying the same email, so
-// on-chain history follows the user to this stack without a manual claim.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
@@ -15,7 +9,6 @@ import { query, tx, type TxQuery } from '../db/client';
 import { settledTotalsByPrincipal, type SettledTotals } from '../engine/clearing';
 import { userIcPrincipalText } from '../lib/keys';
 import { logger } from '../lib/logger';
-import { adoptOnFirstLogin, lockLoginEmails } from './adoption';
 
 export type Provider = 'google' | 'apple' | 'email';
 
@@ -28,67 +21,19 @@ export interface VerifiedIdentity {
 
 export const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
-/** Link every legacy principal carrying this email that no account holds
- * yet. Provider-asserted addresses first: an openid email was verified by
- * the legacy identity provider, a profile email was merely self-reported.
- * `on conflict do nothing` keeps a principal already held by another account
- * (or by the openid pass) untouched. */
-const linkUnheldPrincipals = async ({
-	q,
-	userId,
-	email
-}: {
-	q: TxQuery;
-	userId: string;
-	email: string;
-}): Promise<void> => {
-	await q(
-		`insert into legacy_principals (principal, user_id, matched_via)
-		 select principal, $1, 'openid_email'
-		 from legacy_auth_identities
-		 where lower(openid_email) = $2
-		 on conflict (principal) do nothing`,
-		[userId, email]
-	);
-
-	await q(
-		`insert into legacy_principals (principal, user_id, matched_via)
-		 select principal, $1, 'profile_email'
-		 from legacy_auth_identities
-		 where lower(profile_email) = $2
-		 on conflict (principal) do nothing`,
-		[userId, email]
-	);
-};
-
-/** The auto-match for an account that has no legacy link yet; once the link
- * set is non-empty it is settled and later logins leave it alone. */
-const linkLegacyPrincipals = async ({
-	q,
-	userId,
-	email
-}: {
-	q: TxQuery;
-	userId: string;
-	email: string;
-}): Promise<void> => {
-	const linked = await q<{ principal: string }>(
-		`select principal from legacy_principals where user_id = $1 limit 1`,
-		[userId]
-	);
-
-	if (nonNullish(linked[0])) {
-		return;
+/** Serialize with every other login touching these addresses for the rest
+ * of the transaction. Sorted so two holders of overlapping sets cannot
+ * deadlock. */
+const lockLoginEmails = async ({ q, emails }: { q: TxQuery; emails: string[] }): Promise<void> => {
+	for (const email of [...new Set(emails)].sort()) {
+		await q(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [`login-email:${email}`]);
 	}
-
-	await linkUnheldPrincipals({ q, userId, email });
 };
 
-/** Resolve (or provision, or adopt) the user behind a verified identity; the
- * user id. One transaction under the per-email login lock, so concurrent
- * first logins for one address (and claims moving an identity with that
- * address) run one after the other: the later one finds the identity the
- * earlier one attached instead of provisioning or adopting again. */
+/** Resolve (or provision) the user behind a verified identity; the user id.
+ * One transaction under the per-email login lock, so concurrent first logins
+ * for one address run one after the other: the later one finds the identity
+ * the earlier one attached instead of provisioning again. */
 export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => {
 	const email = normalizeEmail(identity.email);
 	const displayName = identity.displayName?.trim() ?? '';
@@ -108,8 +53,6 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 		const knownUserId = bySubject[0]?.user_id;
 
 		if (nonNullish(knownUserId)) {
-			await linkLegacyPrincipals({ q, userId: knownUserId, email });
-
 			return knownUserId;
 		}
 
@@ -122,16 +65,6 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 			[email]
 		);
 		let userId = byEmail[0]?.user_id;
-		let adopted = false;
-
-		if (isNullish(userId)) {
-			userId = await adoptOnFirstLogin({
-				q,
-				email,
-				displayName: displayName === '' ? null : displayName
-			});
-			adopted = nonNullish(userId);
-		}
 
 		if (isNullish(userId)) {
 			const inserted = await q<{ id: string }>(
@@ -153,23 +86,15 @@ export const resolveIdentity = (identity: VerifiedIdentity): Promise<string> => 
 			[userId, identity.provider, identity.subject, email]
 		);
 
-		// An adopted account already holds its importer link, which would
-		// short-circuit the "no link yet" gate; its unheld siblings still link.
-		if (adopted) {
-			await linkUnheldPrincipals({ q, userId, email });
-		} else {
-			await linkLegacyPrincipals({ q, userId, email });
-		}
-
 		return userId;
 	});
 };
 
 /** Remove every way to sign in to `userId`: its provider identities and any
  * one-time code still pending for their addresses. Runs inside the caller's
- * transaction and takes the per-email login locks first (the lock order in
- * adoption.ts), so a concurrent first login for one of these addresses runs
- * after the purge and provisions a new account. Idempotent. */
+ * transaction and takes the per-email login locks first, so a concurrent
+ * first login for one of these addresses runs after the purge and provisions
+ * a new account. Idempotent. */
 export const deleteSignInIdentities = async ({
 	q,
 	userId

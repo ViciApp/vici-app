@@ -126,7 +126,8 @@ The bound that protects each surface today:
   - **`p_win` floor.** A preview only (`vxpNetWin`):
     settlement pays the raw `amount · (1/price − 1)` cashflow with no floor.
   - The fix for both is an engine rule in icdc-core, written up in the
-    [call-size spec's follow-up](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md#icdc-core-follow-up).
+    [call-size spec's follow-up](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md#icdc-core-follow-up)
+    and filed as [icdc-core#179](https://github.com/AntonioVentilii/icdc-core/issues/179).
 - **Referrer reward**: diminishing curve **and** a hard lifetime cap
   to zero; the count comes from the API's own records, so the client
   cannot inflate it. It counts every earlier redemption of the
