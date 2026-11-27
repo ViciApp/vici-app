@@ -2146,8 +2146,12 @@ export const esMessages = {
 	'signin.loading.passkey': 'Abriendo Passkey…',
 	'signin.otp.aria': 'Código de verificación',
 	'signin.otp.back': 'Usar otro correo',
+	'signin.otp.bot_check_failed': 'La verificación de seguridad falló. Inténtalo de nuevo.',
+	'signin.otp.bot_check_unavailable':
+		'Verificación de seguridad no disponible. Inténtalo en un minuto.',
 	'signin.otp.error': 'Ese código no funcionó. Inténtalo de nuevo.',
 	'signin.otp.placeholder': 'Código de verificación',
+	'signin.otp.rate_limited': 'Demasiadas solicitudes de código. Inténtalo más tarde.',
 	'signin.otp.sent': 'Introduce el código que enviamos a {email}.',
 	'signin.otp.verify_cta': 'Verificar',
 	'signin.provider.apple': 'Continuar con Apple',

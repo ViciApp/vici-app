@@ -163,8 +163,10 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   `(app)` gate reads as signed out (releasing it early bounced every cold
   load of an app route to `/signin`).
 - **Sign-in: `SignInProviderStack.svelte`.** In web2 mode it renders
-  `SignInProviderStackWeb2.svelte`: email one-time code (request then verify
-  via `requestOtp` / `verifyOtp`), Google as a full-page redirect to
+  `SignInProviderStackWeb2.svelte`: email one-time code (request through
+  `requestEmailSignInCode` in `email-sign-in.services.ts`, which solves a
+  Turnstile token for the `email_code` action on every request, then
+  `verifyOtp`, which needs none), Google as a full-page redirect to
   `googleSignInUrl()` (the API drives the OAuth dance and lands back on the
   app root, where `Authn` picks up the session), and Apple + Passkey shown
   disabled ("coming soon") since neither is wired on this transport yet. The
@@ -173,7 +175,11 @@ derives from `GET /api/v1/me` succeeding, not from an on-chain delegation.
   marker: `beta_closed` / `e=beta` render `signin.beta_closed`, and
   `legacy_account_pending` / `e=legacy` render `signin.legacy_pending.*`
   with a link to `LEGACY_APP_URL`. Gate semantics live in
-  [`backend/README.md`](../../../backend/README.md#beta-access-gate).
+  [`backend/README.md`](../../../backend/README.md#beta-access-gate). A
+  refused or unsolvable bot check renders `signin.otp.bot_check_failed`, an
+  API that cannot check it `signin.otp.bot_check_unavailable`, and either
+  rate limit (per network, per inbox) `signin.otp.rate_limited`; see
+  [Email sign-in code](../../../backend/README.md#email-sign-in-code).
 - **Sign-out: the dual-mode `signOut` in `identity.services.ts`.** web2
   revokes the cookie session; on-chain calls Juno `signOut()`.
 

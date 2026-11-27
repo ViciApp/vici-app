@@ -7,7 +7,9 @@
 //     hands the latest sign-in code back to the specs;
 //   - `POST /__e2e/reset-rate-limits` clears the per-IP auth limiter, which
 //     keys every local request on the same "unknown" IP and would otherwise
-//     throttle a suite that signs in more than five times in ten minutes.
+//     throttle a suite that signs in more than five times in ten minutes, and
+//     the shared windows in Postgres, where the seeded admin's inbox would
+//     run out after six sign-ins an hour.
 //
 // These routes exist only on this entrypoint: src/index.ts never registers
 // them, and guard.ts refuses to start this server outside a disposable local
@@ -20,7 +22,7 @@ import { env } from '../src/env';
 import { app } from '../src/index';
 import { setEmailTransport } from '../src/lib/email';
 import { logger } from '../src/lib/logger';
-import { resetRateLimits } from '../src/lib/rate-limit';
+import { resetRateLimits, resetSharedRateLimits } from '../src/lib/rate-limit';
 import { setVxpLedgerProvider } from '../src/vxp/payout';
 import { fakeEngineActorProvider, fakeVxpLedgerProvider } from './fake-engine';
 import { assertE2eEnvironment } from './guard';
@@ -62,8 +64,9 @@ if (import.meta.main) {
 
 			return { code };
 		})
-		.post('/__e2e/reset-rate-limits', () => {
+		.post('/__e2e/reset-rate-limits', async () => {
 			resetRateLimits();
+			await resetSharedRateLimits();
 
 			return { ok: true };
 		})

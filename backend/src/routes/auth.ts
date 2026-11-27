@@ -1,7 +1,8 @@
-// Auth surface: email OTP, Google OAuth (redirect + callback with a signed
-// state cookie), env-gated Apple Sign In, logout, provider discovery, and the
-// session-derived /me read. Sessions live in Postgres behind the HttpOnly
-// vici_session cookie; login always rotates the token.
+// Auth surface: email OTP (the code request behind a bot check), Google OAuth
+// (redirect + callback with a signed state cookie), env-gated Apple Sign In,
+// logout, provider discovery, and the session-derived /me read. Sessions live
+// in Postgres behind the HttpOnly vici_session cookie; login always rotates the
+// token.
 
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
@@ -16,7 +17,7 @@ import { requireUser, unauthenticated } from '../auth/guard';
 import { resolveIdentity } from '../auth/identity';
 import { loadMe } from '../auth/me';
 import { decodeOauthState, encodeOauthState, sanitizeReturnTo } from '../auth/oauth-state';
-import { requestOtp, verifyOtp } from '../auth/otp';
+import { OTP_REQUEST_TURNSTILE_ACTION, otpMailboxKey, requestOtp, verifyOtp } from '../auth/otp';
 import { revokeToken, rotateSession } from '../auth/sessions';
 import { env } from '../env';
 import {
@@ -33,10 +34,19 @@ import {
 } from '../lib/cookie';
 import { constantTimeEqual, randomToken, signState, verifySignedState } from '../lib/crypto';
 import { clientIp, serviceUnavailable, type StatusContext } from '../lib/http';
-import { enforceLimit } from '../lib/rate-limit';
-import { TEN_MINUTES_IN_MS } from '../lib/time';
+import { enforceLimit, enforceSharedLimit } from '../lib/rate-limit';
+import { HOUR_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
+import {
+	MAX_TURNSTILE_TOKEN_LENGTH,
+	turnstileRefusal,
+	verifyTurnstileToken
+} from '../lib/turnstile';
 
 const OTP_REQUEST_LIMIT_PER_TEN_MINUTES = 5;
+// Per inbox, across every IP: a person rarely needs more than a resend or two
+// an hour, and a bot that solves challenges from many networks still cannot
+// flood one inbox. Under it, OTP_MAX_LIVE_CODES caps the codes held at once.
+const OTP_REQUEST_MAILBOX_LIMIT_PER_HOUR = 6;
 const OTP_VERIFY_LIMIT_PER_TEN_MINUTES = 15;
 const OAUTH_START_LIMIT_PER_TEN_MINUTES = 20;
 
@@ -140,10 +150,11 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 	.post(
 		'/auth/otp/request',
 		async ({ body, request, set }) => {
+			const ip = clientIp(request);
 			const limited = enforceLimit({
 				set,
 				name: 'otp_request',
-				ip: clientIp(request),
+				ip,
 				limit: OTP_REQUEST_LIMIT_PER_TEN_MINUTES,
 				windowMs: TEN_MINUTES_IN_MS
 			});
@@ -160,6 +171,22 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return { error: 'invalid_email' };
 			}
 
+			// Every request sends an email to an address the caller typed, so each
+			// one costs a solve; the code verification needs none, since only the
+			// inbox holder has the code.
+			const refused = turnstileRefusal({
+				set,
+				verdict: await verifyTurnstileToken({
+					token: body.turnstileToken,
+					ip,
+					action: OTP_REQUEST_TURNSTILE_ACTION
+				})
+			});
+
+			if (refused) {
+				return refused;
+			}
+
 			// Checked before any code is issued: a refused address never
 			// receives an email.
 			const verdict = await betaGateVerdict({ email });
@@ -168,12 +195,32 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return gateRefused({ set, verdict });
 			}
 
+			// Counted only once the caller has solved a challenge, so nobody can
+			// spend someone else's inbox budget for free. Shared across machines:
+			// a per-machine window would hand an attacker one budget per machine.
+			const mailboxLimited = await enforceSharedLimit({
+				set,
+				name: 'otp_request_mailbox',
+				key: otpMailboxKey(email),
+				limit: OTP_REQUEST_MAILBOX_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (mailboxLimited) {
+				return mailboxLimited;
+			}
+
 			await requestOtp(email);
 			set.headers['cache-control'] = 'no-store';
 
 			return { ok: true };
 		},
-		{ body: t.Object({ email: t.String() }) }
+		{
+			body: t.Object({
+				email: t.String(),
+				turnstileToken: t.String({ maxLength: MAX_TURNSTILE_TOKEN_LENGTH })
+			})
+		}
 	)
 
 	.post(

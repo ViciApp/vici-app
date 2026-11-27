@@ -2149,8 +2149,12 @@ export const frMessages = {
 	'signin.loading.passkey': 'Ouverture du Passkey…',
 	'signin.otp.aria': 'Code de vérification',
 	'signin.otp.back': 'Utiliser une autre adresse e-mail',
+	'signin.otp.bot_check_failed': 'Échec de la vérification de sécurité. Réessayez.',
+	'signin.otp.bot_check_unavailable':
+		'Vérification de sécurité indisponible. Réessayez dans une minute.',
 	'signin.otp.error': 'Ce code est incorrect. Réessayez.',
 	'signin.otp.placeholder': 'Code de vérification',
+	'signin.otp.rate_limited': 'Trop de demandes de code. Réessayez plus tard.',
 	'signin.otp.sent': 'Saisissez le code envoyé à {email}.',
 	'signin.otp.verify_cta': 'Vérifier',
 	'signin.provider.apple': 'Continuer avec Apple',

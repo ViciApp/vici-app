@@ -2137,8 +2137,12 @@ export const ptMessages = {
 	'signin.loading.passkey': 'A abrir Passkey…',
 	'signin.otp.aria': 'Código de verificação',
 	'signin.otp.back': 'Usar outro email',
+	'signin.otp.bot_check_failed': 'A verificação de segurança falhou. Tenta novamente.',
+	'signin.otp.bot_check_unavailable':
+		'Verificação de segurança indisponível. Tenta novamente daqui a um minuto.',
 	'signin.otp.error': 'Esse código não funcionou. Tenta novamente.',
 	'signin.otp.placeholder': 'Código de verificação',
+	'signin.otp.rate_limited': 'Demasiados pedidos de código. Tenta mais tarde.',
 	'signin.otp.sent': 'Introduz o código que enviámos para {email}.',
 	'signin.otp.verify_cta': 'Verificar',
 	'signin.provider.apple': 'Continuar com Apple',
