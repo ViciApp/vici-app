@@ -48,9 +48,9 @@
 			</div>
 			<div>
 				<b>{t({ locale: $localeStore, key: 'landing.footer.company' })}</b>
-				<a href={mailtoHref(INFO_EMAIL)}
-					>{t({ locale: $localeStore, key: 'landing.footer.contact' })}</a
-				>
+				<a href={mailtoHref(INFO_EMAIL)}>
+					{t({ locale: $localeStore, key: 'landing.footer.contact' })}
+				</a>
 			</div>
 			<div>
 				<b>{t({ locale: $localeStore, key: 'landing.footer.legal' })}</b>
