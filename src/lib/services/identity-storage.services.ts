@@ -64,7 +64,8 @@ export const reconcileIdentityScopedStorage = ({
 	// don't import `inbox.store` (it starts a long-lived toast subscription
 	// at import, and <Authn> is in the root layout that also wraps the
 	// signed-out/marketing path). The in-memory inbox stores re-read these
-	// keys on their next load, which is when the next identity opens the app.
+	// keys when `initInboxProgress` sees the new owner, which also covers a
+	// web2 account switch that never reloads the tab.
 	del({ key: INBOX_SETTLED_READ_STORAGE_KEY });
 	del({ key: INBOX_READ_STORAGE_KEY });
 	del({ key: INBOX_DISMISSED_STORAGE_KEY });

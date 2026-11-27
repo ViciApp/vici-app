@@ -1,5 +1,6 @@
 import { Collection } from '#lib/constants/collections.constants.ts';
 import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { LeagueMemberDoc } from '#lib/types/league-member.ts';
 import {
 	roundWindow,
 	TOURNAMENT_BRACKET_SIZE,
@@ -14,6 +15,7 @@ import {
 	deleteContext,
 	installSatelliteHost,
 	setContext,
+	type MockSettlement,
 	type SatelliteHost
 } from '#root/src/tests/mocks/satellite-host.mock.ts';
 import { assertSetDoc } from '#satellite/index.ts';
@@ -21,10 +23,13 @@ import {
 	assertDeleteTournamentDoc,
 	assertSetTournament,
 	assertSetTournamentMatch,
+	claimTournamentPrizeFn,
+	getCurrentTournamentFn,
 	triggerTournamentDrawFn
 } from '#satellite/services/tournament.services.ts';
 import { Principal } from '@icp-sdk/core/principal';
-import type { AssertSetDocContext } from '@junobuild/functions';
+import type { AssertSetDocContext, Doc, ListParams, ListResults } from '@junobuild/functions';
+import { IcrcLedgerIdl } from '@junobuild/functions/canisters/ledger/icrc';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -335,5 +340,128 @@ describe('triggerTournamentDrawFn', () => {
 			availableLeagues: 0
 		});
 		assert.equal(bracketDocs(), 0);
+	});
+});
+
+describe('tournament reads', () => {
+	const member = Principal.fromUint8Array(new Uint8Array([6, 6, 6]));
+	const other = Principal.fromUint8Array(new Uint8Array([7, 7, 7]));
+	const winner = 'league-w';
+	const previousMonth = '2026-10';
+	const previousFinalKey = tournamentMatchKey({
+		tournamentId: previousMonth,
+		round: 'final',
+		index: 0
+	});
+	const memberRowKey = `${winner}/${member.toText()}`;
+
+	let host: SatelliteHost;
+	let listedKeys: Map<string, string[]>;
+
+	type ListDocs = (reader: Uint8Array, name: string, params: ListParams) => ListResults<Doc>;
+
+	/** Records every key a `listDocsStore` call returned, by collection. */
+	const recordListedKeys = (): void => {
+		const name = '__juno_satellite_datastore_list_docs_store';
+		const listDocs: ListDocs = Reflect.get(globalThis, name);
+
+		const spy = (...args: Parameters<ListDocs>): ListResults<Doc> => {
+			const [, collection] = args;
+			const result = listDocs(...args);
+			const keys = result.items.map(([key]) => key);
+
+			listedKeys.set(collection, [...(listedKeys.get(collection) ?? []), ...keys]);
+
+			return result;
+		};
+
+		Reflect.set(globalThis, name, spy);
+	};
+
+	const put = ({ collection, key, data }: { collection: string; key: string; data: object }) =>
+		host.putDoc({ collection, key, data, owner: controller, createdAtMs: tournament.createdAtMs });
+
+	beforeEach(() => {
+		const settlements: MockSettlement[] = [
+			{ principal: member, atMs: tournament.monthEndMs - 1, calls: 1, wins: 0 }
+		];
+
+		host = installSatelliteHost();
+		host.setCaller(member);
+		host.setNowMs(tournament.monthEndMs + DAY_IN_MS);
+		answerSettlementAccuracy({ host, settlements });
+		host.onCall({
+			method: 'icrc1_transfer',
+			argTypes: [IcrcLedgerIdl.TransferArg],
+			result: IcrcLedgerIdl.TransferResult,
+			handler: () => ({ Ok: BigInt(7) })
+		});
+
+		for (const id of [previousMonth, monthAnchor]) {
+			put({
+				collection: Collection.TOURNAMENTS,
+				key: id,
+				data: { ...tournament, id, state: 'concluded' }
+			});
+		}
+
+		put({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: finalMatchKey,
+			data: { ...finalMatch, fromLeagueId: winner, winnerLeagueId: winner }
+		});
+		put({
+			collection: Collection.TOURNAMENT_MATCHES,
+			key: previousFinalKey,
+			data: { ...finalMatch, tournamentId: previousMonth, winnerLeagueId: 'league-1' }
+		});
+
+		for (const [leagueId, principal] of [
+			[winner, member],
+			[winner, other],
+			['league-1', other]
+		] as const) {
+			const doc: LeagueMemberDoc = {
+				leagueId,
+				member: principal.toText(),
+				role: 'member',
+				joinedAtMs: tournament.createdAtMs - 1
+			};
+
+			host.putDoc({
+				collection: Collection.LEAGUE_MEMBERS,
+				key: `${leagueId}/${principal.toText()}`,
+				data: doc,
+				owner: principal,
+				createdAtMs: tournament.createdAtMs - 1
+			});
+		}
+
+		listedKeys = new Map();
+		recordListedKeys();
+	});
+
+	afterEach(() => host.restore());
+
+	it("claims the prize from the caller's memberships and this tournament's matches alone", async () => {
+		assert.deepEqual(await claimTournamentPrizeFn({ tournamentId: monthAnchor }), {
+			ok: true,
+			awardsCreated: 1,
+			awardsAlreadyClaimed: 0,
+			totalVxpCredited: 5000
+		});
+		assert.deepEqual(listedKeys.get(Collection.LEAGUE_MEMBERS), [memberRowKey, memberRowKey]);
+		assert.deepEqual(listedKeys.get(Collection.TOURNAMENT_MATCHES), [finalMatchKey]);
+	});
+
+	it("returns the latest tournament's matches, listing no other month's", () => {
+		const { tournament: latest, matches } = getCurrentTournamentFn();
+
+		assert.equal(latest?.id, monthAnchor);
+		assert.deepEqual(
+			matches.map(({ tournamentId, round }) => `${tournamentId}/${round}`),
+			[`${monthAnchor}/final`]
+		);
+		assert.deepEqual(listedKeys.get(Collection.TOURNAMENT_MATCHES), [finalMatchKey]);
 	});
 });

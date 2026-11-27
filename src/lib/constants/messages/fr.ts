@@ -1785,6 +1785,7 @@ export const frMessages = {
 	'onboarding.avail.too_long': 'Trop long : 16 caractères maximum',
 	'onboarding.avail.reserved': 'Réservé, choisissez-en un autre',
 	'onboarding.avail.check_failed': 'Vérification impossible, essayez de réserver',
+	'onboarding.avail.rate_limited': 'Trop de vérifications, essayez de réserver',
 	'onboarding.reward_title': 'Pack de départ de {amount} VXP',
 	'onboarding.reward_sub': 'Pronostiquez {event}',
 	'onboarding.lock_ready': 'Réservation de @{handle}',

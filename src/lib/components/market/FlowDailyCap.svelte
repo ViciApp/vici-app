@@ -5,6 +5,7 @@
 	import Button from '#lib/components/ui/Button.svelte';
 	import { getMyReferralCode } from '#lib/services/referral.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { writeToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { appOrigin } from '#lib/utils/nav.utils.ts';
@@ -46,13 +47,31 @@
 
 				return;
 			} catch (e: unknown) {
-				if (e instanceof Error && e.name === 'AbortError') {
+				// The cancel rejection is a DOMException that isn't reliably
+				// `instanceof Error`, so read its `name` defensively.
+				if ((e as { name?: string } | null)?.name === 'AbortError') {
 					return;
 				}
 			}
 		}
 
-		await writeToClipboard(`${text} ${inviteUrl}`);
+		const copied = await writeToClipboard(`${text} ${inviteUrl}`);
+
+		notificationsStore.add(
+			copied
+				? {
+						title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
+						message: t({ locale: $localeStore, key: 'flow.end.invite_copied' }),
+						type: 'success',
+						duration: 2000
+					}
+				: {
+						title: t({ locale: $localeStore, key: 'flow.invite.toast_copy_failed' }),
+						message: t({ locale: $localeStore, key: 'common.error.generic' }),
+						type: 'error',
+						duration: 2000
+					}
+		);
 	};
 </script>
 

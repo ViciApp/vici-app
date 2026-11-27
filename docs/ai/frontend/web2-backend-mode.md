@@ -312,8 +312,17 @@ the on-chain call untouched on the default side:
   session, so a visitor before sign-up goes through
   `/public-nickname-availability` with a Turnstile-backed proof instead
   (one solve per window, see the "Anonymous handle probe" section of
-  [`backend/README.md`](../../../backend/README.md)); the default backend
-  keeps the satellite's anonymous query.
+  [`backend/README.md`](../../../backend/README.md)). Once the API answers
+  `turnstile_unconfigured` (no secret in production), the probe replays that
+  refusal for the rest of the page without contacting Cloudflare or the API
+  (`latchesPublicProbe` in `handle-probe.utils.ts`); the default backend
+  keeps the satellite's anonymous query. A picker that serves both signed-in
+  users and visitors (the onboarding handle field and its claim-time
+  re-check) probes through
+  `checkHandleAvailability`, which takes the public probe only in web2 mode
+  with no session (`handleProbeRoute` in `handle-probe.utils.ts`) and the
+  session probe otherwise; the handle editor and the post-sign-in drain stay
+  on the session probe, the authoritative re-check.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
   settled history, never `points` (see the global leaderboard section of

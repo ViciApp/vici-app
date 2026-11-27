@@ -277,33 +277,28 @@ Mixing within a line is on-brand: _"You were"_ early. _"By"_ 4 hours.
 All three are self-hosted under `static/fonts/`; see the `@font-face`
 block at the top of [`src/app.css`](../../../src/app.css).
 
-### 5.2 Landing display faces
+### 5.2 Landing display face
 
-The triad governs the product. The signed-out landing adds two display
-faces for marketing headlines only; nothing inside the signed-in app
-uses them.
+The triad governs the product. The signed-out landing adds one display
+face for marketing headlines only; nothing inside the signed-in app
+uses it.
 
 | Role             | Family                | Weights                      | Where it lives in CSS  |
 | ---------------- | --------------------- | ---------------------------- | ---------------------- |
 | Headline display | `Bricolage Grotesque` | 500 / 700 / 800, opsz 12..96 | `var(--font-headline)` |
-| Poster (allcaps) | `Anton`               | 400                          | `var(--font-poster)`   |
 
 - **Headline display** sets landing and marketing headings. The file is
   variable on weight (200..800) and optical size; browsers pick the
   optical cut from the rendered size, so a 96px heading and a 14px
   supporting line both read as drawn for their size. Use 500 for
   supporting lines, 700 / 800 for headlines.
-- **Poster** is the condensed allcaps face for the single uppercase
-  "street" headline. It ships one weight; never fake bold or italic it,
-  and never set sentence-case copy in it.
-- Both tokens live in `@theme` in [`src/app.css`](../../../src/app.css),
-  so Tailwind also generates `font-headline` / `font-poster` utilities.
-  The fallbacks keep the layout close while the file swaps in:
-  `--font-headline` falls back to Hanken Grotesk, `--font-poster` to
-  Impact.
-- Both are self-hosted Latin-subset woff2 under `static/fonts/`, SIL
+- The token lives in `@theme` in [`src/app.css`](../../../src/app.css),
+  so Tailwind also generates a `font-headline` utility. The fallback
+  keeps the layout close while the file swaps in: `--font-headline`
+  falls back to Hanken Grotesk.
+- It is a self-hosted Latin-subset woff2 under `static/fonts/`, SIL
   Open Font License 1.1 like the triad, and deliberately **not**
-  preloaded in `src/app.html`: signed-in loads never fetch them.
+  preloaded in `src/app.html`: signed-in loads never fetch it.
 
 ### 5.3 Type roles
 
