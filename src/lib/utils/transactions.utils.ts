@@ -295,7 +295,15 @@ export const mapIcrcTransaction = ({
  * `OrderPlaced` we use `qty` directly so the order's full notional shows up
  * regardless of execution status; the row is informational and does not
  * itself move VXP on the ICRC ledger.
+ *
+ * A `Settled` event's signed `qty` is already the realized cashflow, net of
+ * the stake and fees, in VXP base units (see `settledEventToResolvedPosition`),
+ * and its `price` is what the series resolved to (`1.0` for an outcome market),
+ * not a multiplier. The row keeps the cashflow's magnitude as `amount` and
+ * its sign in `qty` (read back with {@link isSettlementLoss}).
  */
+const absolute = (value: bigint): bigint => (value < ZERO ? -value : value);
+
 export const mapClearingEventToTransaction = ({
 	event,
 	token,
@@ -324,7 +332,8 @@ export const mapClearingEventToTransaction = ({
 					? 'Settlement'
 					: 'Liquidation';
 
-	const amount = type === 'OrderPlaced' ? event.qty : notional;
+	const amount =
+		type === 'OrderPlaced' ? event.qty : type === 'Settlement' ? absolute(event.qty) : notional;
 
 	return {
 		id: `clearing-${event.event_id.toString()}-${eventKey}`,
@@ -390,10 +399,19 @@ export const mergeWalletFeed = ({
 };
 
 /**
- * Weekly VXP delta: sums signed amounts on VXP-denominated rows from the last
- * 7 days. Settlements / receives / mints / rewards credit; trades / sends /
- * burns / liquidations debit (the entry amount is never refunded). Result is in VXP
- * base units; format at display only.
+ * Whether a row is a settlement that lost VXP: its `amount` is a magnitude,
+ * so the realized cashflow's sign rides on `qty`.
+ */
+export const isSettlementLoss = ({ type, qty }: Transaction): boolean =>
+	type === 'Settlement' && nonNullish(qty) && qty < ZERO;
+
+/**
+ * Weekly VXP delta: the change in what the user owns over VXP-denominated
+ * rows from the last 7 days. Receives / mints / rewards credit; sends / burns
+ * / liquidations debit; a settlement adds its signed realized cashflow. A
+ * trade only reserves the stake, and the settlement cashflow is already net
+ * of it, so trades count for nothing. Result is in VXP base units; format at
+ * display only.
  */
 export const weeklyVxpDeltaBaseUnits = (transactions: Transaction[]): bigint => {
 	const cutoffNs = BigInt(Date.now() - 7 * DAY_IN_MS) * MILLISECOND_IN_NANOSECONDS;
@@ -406,12 +424,13 @@ export const weeklyVxpDeltaBaseUnits = (transactions: Transaction[]): bigint => 
 	for (const tx of recentVxpTx) {
 		switch (tx.type) {
 			case 'Settlement':
+				delta += isSettlementLoss(tx) ? -tx.amount : tx.amount;
+				break;
 			case 'Receive':
 			case 'Mint':
 			case 'Reward':
 				delta += tx.amount;
 				break;
-			case 'Trade':
 			case 'Send':
 			case 'Burn':
 			case 'Liquidation':

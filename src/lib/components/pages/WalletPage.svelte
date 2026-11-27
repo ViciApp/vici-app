@@ -50,7 +50,11 @@
 		type PendingSend,
 		type SendIntent
 	} from '#lib/utils/send.utils.ts';
-	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
+	import {
+		isSettlementLoss,
+		mergeWalletFeed,
+		weeklyVxpDeltaBaseUnits
+	} from '#lib/utils/transactions.utils.ts';
 	import type { Web2WalletAsset } from '#lib/web2/client.ts';
 	import { goto } from '$app/navigation';
 
@@ -150,8 +154,8 @@
 		})
 	);
 
-	// Weekly VXP delta over the unified feed: signed settlement / trade flows
-	// on VXP-denominated rows from the last 7 days (in base units).
+	// Weekly VXP delta over the unified feed: ledger flows plus realized
+	// settlement cashflow on VXP-denominated rows from the last 7 days (in base units).
 	const weeklyVxpDelta = $derived(weeklyVxpDeltaBaseUnits(filteredTransactions));
 
 	const weeklyDeltaDirection = $derived.by((): 'positive' | 'negative' | 'flat' => {
@@ -340,6 +344,10 @@
 	};
 
 	const recentRowDirection = (tx: Transaction): 'in' | 'out' | 'neutral' => {
+		if (isSettlementLoss(tx)) {
+			return 'out';
+		}
+
 		switch (tx.type) {
 			case 'Receive':
 			case 'Mint':
