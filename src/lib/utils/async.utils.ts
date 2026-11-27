@@ -147,3 +147,13 @@ export const createLoadEpoch = (): LoadEpoch => {
 		}
 	};
 };
+
+/**
+ * Run every task and wait for all of them, whatever each one does: a task
+ * that rejects, or throws before it returns its promise, is settled like the
+ * rest and never cuts the others short. For fail-open reads whose caller
+ * must always learn that the read is over.
+ */
+export const settleAll = async (tasks: readonly (() => Promise<unknown>)[]): Promise<void> => {
+	await Promise.allSettled(tasks.map(async (task) => await task()));
+};
