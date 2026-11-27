@@ -1,8 +1,8 @@
 import type {
 	ChallengeAnswer,
 	ChallengeAnswerItem,
+	ChallengeReadView,
 	ChallengeRedeemOutcome,
-	ChallengeView,
 	OwnChallenge
 } from '#lib/types/challenge.ts';
 import { parseChallengeId } from '#lib/utils/challenge.utils.ts';
@@ -66,7 +66,7 @@ export const createChallenge = async (params: {
 
 /** The public read of a link, or `undefined` when it cannot be read (malformed, unknown, revoked,
  * pruned or its challenger hidden: one outcome for all). */
-export const getChallenge = async (rawId: string): Promise<ChallengeView | undefined> => {
+export const getChallenge = async (rawId: string): Promise<ChallengeReadView | undefined> => {
 	assertEnabled();
 
 	const id = parseChallengeId(rawId);
