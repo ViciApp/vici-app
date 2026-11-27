@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress (#PR)
+Status: In progress (#1776)
 
 Part **A3** of the challenge links work; the parts and how they stack are listed in [`2026-11-26-feat-challenge-links-api.md`](./2026-11-26-feat-challenge-links-api.md). **Stacks on A1** (routes and the client transport). Independent of A2, A4 and B, and buildable in parallel with them. Ships with the landing go-live.
 
