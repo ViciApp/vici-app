@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#1778)
 
 Part **A4** of the challenge links work; the parts and how they stack are listed in [`2026-11-26-feat-challenge-links-api.md`](./2026-11-26-feat-challenge-links-api.md). **Stacks on A1** (the public read, redeem, answer and the client transport) **and on the landing page PR** (the deck). Independent of A2, A3 and B, and buildable in parallel with them. Ships with the landing go-live.
 
