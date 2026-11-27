@@ -8,6 +8,7 @@ export const zhHansMessages = {
 	'trade.error.generic': '无法提交你的预测，请稍后重试。',
 	'trade.error.insufficient_margin':
 		'可用余额不足：此预测需要 {required}，但你只有 {available}。随着你未结的预测结算，余额会逐渐释放。',
+	'trade.error.invalid_call_size': '该预测金额不可用。请在滑块上选择金额后重试。',
 	'trade.error.market_closed': '此市场刚刚关闭，预测已不再开放。',
 	'trade.error.not_authorized_to_trade': '你无权访问此市场。',
 	'trade.error.not_order_creator': '你只能取消自己的订单。',
@@ -719,6 +720,7 @@ export const zhHansMessages = {
 	'card.back.who_calling': '谁在预测什么',
 	'card.call_size': '预测金额',
 	'card.call_size_cap': '预测金额 · 上限',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '剩余 {days} 天',
 	'card.favorite': '热门',
 	'card.followed_friend_plural': '位好友',

@@ -1,6 +1,6 @@
 import type { ClearingDid } from '#declarations';
 import { ZERO } from '#lib/constants/app.constants.ts';
-import { levelShareCostUsd, walkMarketOrder } from '#lib/utils/market-order.utils.ts';
+import { levelShareCostUsd, shareCostUsd, walkMarketOrder } from '#lib/utils/market-order.utils.ts';
 import { nonNullish } from '@dfinity/utils';
 import { Principal } from '@icp-sdk/core/principal';
 import assert from 'node:assert/strict';
@@ -53,6 +53,18 @@ const bookOf = (levels: ClearingDid.LimitOrder[]) => {
 };
 
 describe('market-order.utils', () => {
+	describe('shareCostUsd', () => {
+		it('costs a resting buy its price and a resting sell the complement', () => {
+			// A NO call at 0.70 rests as a YES sell at 0.30 and costs 0.70 a share.
+			assert.equal(shareCostUsd({ price: { value: 30n, decimals: 2 }, side: 'SELL' }), 7_000n);
+			assert.equal(shareCostUsd({ price: { value: 30n, decimals: 2 }, side: 'BUY' }), 3_000n);
+		});
+
+		it('rounds a finer price up to the clearing USD scale', () => {
+			assert.equal(shareCostUsd({ price: { value: 123_456n, decimals: 6 }, side: 'BUY' }), 1_235n);
+		});
+	});
+
 	describe('levelShareCostUsd', () => {
 		it('costs the level price when buying from an ask', () => {
 			assert.equal(

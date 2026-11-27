@@ -19,7 +19,7 @@ import {
 import { recordActivity } from '#lib/services/profile.services.ts';
 import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import type { MarketId, Outcome } from '#lib/types/market.ts';
-import type { OrderSide, OrderType } from '#lib/types/order.ts';
+import type { CallSource, OrderSide, OrderType } from '#lib/types/order.ts';
 import { filterByPlaygroundExpandedDomain } from '#lib/utils/balance-domain.utils.ts';
 import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { walkMarketOrder } from '#lib/utils/market-order.utils.ts';
@@ -115,19 +115,25 @@ export const placeOrder = async ({
 	price,
 	qty,
 	maxSpendUsd,
+	callSize,
 	outcome,
-	expiryDate
+	expiryDate,
+	source
 }: {
 	marketId: MarketId;
 	marketTitle: string;
 	side: OrderSide;
 	type: OrderType;
+	/** The engine price: YES-framed for a binary NO, which the book takes as a YES sell. */
 	price: number;
 	qty: bigint;
 	/** The call size in clearing USD base units: a market order never spends more. */
 	maxSpendUsd: bigint;
+	/** The ViciXp call size in whole VXP, declared to the web2 API so it can check the order against it. */
+	callSize?: number;
 	outcome: Outcome;
 	expiryDate: bigint;
+	source: CallSource;
 }): Promise<void> => {
 	// Stopgap expiry gate. The deck/catalog is filtered `only_unexpired` at
 	// fetch time, but the clearing engine has no expiry check (its `TradeError`
@@ -158,6 +164,8 @@ export const placeOrder = async ({
 				: 'BUY'
 			: side
 		: side;
+	// The chosen outcome's own price, what one share costs the caller. The engine is sent `price`:
+	// a binary NO limit order rests as a YES sell at the complement, so it costs the call size.
 	const normalizedPrice = isBinary && outcome === 'NO' ? 1 - price : price;
 	const outcomeId: Nullable<string> = isBinary ? toNullable() : toNullable(outcome);
 
@@ -179,9 +187,10 @@ export const placeOrder = async ({
 					seriesId: marketId,
 					side: normalizedSide === 'BUY' ? 'buy' : 'sell',
 					outcomeId: fromNullable(outcomeId),
-					priceValue: parseLimitOrderPriceValue(normalizedPrice),
+					priceValue: parseLimitOrderPriceValue(price),
 					priceDecimals: PRICE_DECIMALS,
-					qty
+					qty,
+					callSize
 				});
 			} catch (err: unknown) {
 				rethrowWeb2Unauthenticated(err);
@@ -196,7 +205,7 @@ export const placeOrder = async ({
 					outcome_id: outcomeId,
 					price: {
 						decimal: {
-							value: parseLimitOrderPriceValue(normalizedPrice),
+							value: parseLimitOrderPriceValue(price),
 							decimals: PRICE_DECIMALS
 						},
 						timestamp: toNullable(),
@@ -258,8 +267,10 @@ export const placeOrder = async ({
 					try {
 						await submitEngineMarketOrderWeb2({
 							tradeId: `TRD_${nanoid(8)}`,
+							seriesId: marketId,
 							matchingOrderId: level.order_id,
-							qty: take
+							qty: take,
+							callSize
 						});
 					} catch (err: unknown) {
 						rethrowWeb2Unauthenticated(err);
@@ -296,6 +307,7 @@ export const placeOrder = async ({
 		track({
 			name:
 				type === 'LIMIT' ? 'order_placed' : side === 'BUY' ? 'position_taken' : 'position_closed',
+			source,
 			marketId,
 			label: outcome,
 			count: Number(filledQty),

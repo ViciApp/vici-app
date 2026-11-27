@@ -46,6 +46,7 @@ export const AnalyticsEventNameSchema = j.enum([
 	'prediction_created',
 	'order_placed',
 	'order_cancelled',
+	'call_size_set',
 	// Resolution & payout
 	'resolution_proposed',
 	'resolution_confirmed',
