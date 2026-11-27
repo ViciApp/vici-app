@@ -12,26 +12,6 @@ export interface StatusContext {
 	status?: number | string;
 }
 
-/** The part of Elysia's `set` that carries response headers. */
-export interface HeadersContext {
-	headers: Record<string, string | number>;
-}
-
-/** Adds `name` to the response's `Vary` header unless it is already there,
- * keeping what a plugin or an earlier hook put in it. */
-export const addVary = (set: HeadersContext, name: string): void => {
-	const vary = String(set.headers['vary'] ?? '');
-	const present = vary
-		.toLowerCase()
-		.split(',')
-		.map((token) => token.trim())
-		.includes(name.toLowerCase());
-
-	if (!present) {
-		set.headers['vary'] = vary === '' ? name : `${vary}, ${name}`;
-	}
-};
-
 /** Standard 400 body; `set.status` is mutated as a side effect. */
 export const badRequest = (set: StatusContext, error: string): { error: string } => {
 	set.status = 400;

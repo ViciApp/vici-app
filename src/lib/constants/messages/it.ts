@@ -1377,8 +1377,6 @@ export const itMessages = {
 	'challenge.line.named_closed_no_position': '@{handle} ti ha sfidato su questa. Ora è chiusa.',
 	'challenge.line.anonymous_closed_no_position': 'Un amico ti ha sfidato su questa. Ora è chiusa.',
 	'landing.deck.challenge.eyebrow': 'Una sfida per te',
-	'market.detail.challenge.predict_in_flow': 'Prevedi in Flow',
-	'market.detail.challenge.region_aria': 'Sfida',
 	'landing.deck.back.crowd_says': 'Il pubblico dice',
 	'landing.deck.back.flip_back': 'Tocca per girare',
 	'landing.deck.back.returns':

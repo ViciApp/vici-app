@@ -1353,8 +1353,6 @@ export const enMessages = {
 	'challenge.line.anonymous_closed_no_position':
 		'A friend challenged you on this one. It has closed.',
 	'landing.deck.challenge.eyebrow': 'A challenge for you',
-	'market.detail.challenge.predict_in_flow': 'Predict in Flow',
-	'market.detail.challenge.region_aria': 'Challenge',
 	'landing.deck.back.crowd_says': 'The crowd says',
 	'landing.deck.back.flip_back': 'Tap to flip back',
 	'landing.deck.back.returns':

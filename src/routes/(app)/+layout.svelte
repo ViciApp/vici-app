@@ -32,7 +32,6 @@
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
-	import { stashInviterForSignup } from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -140,15 +139,39 @@
 	//
 	// Idempotency / guard rails:
 	//   - Stash only when no `referralCode` is already pending (a user already
-	//     attributed to a referrer is never overwritten); a pending challenge
-	//     link is replaced, last touch wins. The server enforces
+	//     attributed to a referrer is never overwritten). The satellite enforces
 	//     one-redemption-per-referee and self-referral rejection.
 	//   - The share URL falls back to the sharer's handle when their referral
 	//     code hasn't loaded yet (`refToken = referralCode ?? handle`); a handle
 	//     fails `REFERRAL_CODE_REGEX`, so malformed / non-code `?ref=` values are
 	//     ignored here gracefully.
-	const captureSharedReferral = (code: string): void =>
-		stashInviterForSignup({ inviter: { referralCode: code }, keepExisting: true });
+	const captureSharedReferral = (code: string): void => {
+		try {
+			const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
+			const parsed: Record<string, unknown> = nonNullish(raw)
+				? ((): Record<string, unknown> => {
+						try {
+							const v: unknown = JSON.parse(raw);
+
+							return typeof v === 'object' && nonNullish(v) ? (v as Record<string, unknown>) : {};
+						} catch {
+							return {};
+						}
+					})()
+				: {};
+
+			// Never overwrite an existing attribution: first referrer wins.
+			if (typeof parsed.referralCode === 'string' && parsed.referralCode.length > 0) {
+				return;
+			}
+
+			parsed.referralCode = code;
+			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
+		} catch {
+			// Best-effort: attribution is cosmetic relative to the rest of the
+			// visit and must never break navigation if storage is unavailable.
+		}
+	};
 
 	$effect(() => {
 		if (!browser) {

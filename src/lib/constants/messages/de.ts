@@ -1398,8 +1398,6 @@ export const deMessages = {
 	'challenge.line.anonymous_closed_no_position':
 		'Ein Freund hat dich hier herausgefordert. Die Frage ist geschlossen.',
 	'landing.deck.challenge.eyebrow': 'Eine Herausforderung für dich',
-	'market.detail.challenge.predict_in_flow': 'In Flow vorhersagen',
-	'market.detail.challenge.region_aria': 'Herausforderung',
 	'landing.deck.back.crowd_says': 'Die Crowd sagt',
 	'landing.deck.back.flip_back': 'Tippen zum Umdrehen',
 	'landing.deck.back.returns':

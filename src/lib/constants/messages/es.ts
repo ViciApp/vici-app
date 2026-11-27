@@ -1378,8 +1378,6 @@ export const esMessages = {
 	'challenge.line.named_closed_no_position': '@{handle} te retó con esta. Ya ha cerrado.',
 	'challenge.line.anonymous_closed_no_position': 'Un amigo te retó con esta. Ya ha cerrado.',
 	'landing.deck.challenge.eyebrow': 'Un reto para ti',
-	'market.detail.challenge.predict_in_flow': 'Predecir en Flow',
-	'market.detail.challenge.region_aria': 'Reto',
 	'landing.deck.back.crowd_says': 'La gente dice',
 	'landing.deck.back.flip_back': 'Toca para girar',
 	'landing.deck.back.returns':

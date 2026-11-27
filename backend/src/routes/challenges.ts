@@ -5,10 +5,10 @@
 // session (and, to create or answer, a real engine position), and the public
 // read is addressed by an 80-bit random id behind a per-IP limit.
 
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
-import { addVary, badRequest, clientIp, type StatusContext } from '../lib/http';
+import { badRequest, clientIp, type StatusContext } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS } from '../lib/time';
 import {
@@ -116,12 +116,8 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 		return { items: await listChallengeAnswers(user.id) };
 	})
 	// Public: the receiving page and the link preview read it before anyone
-	// signs in. A session, when present, only decides `isOwner`; the answer
-	// then belongs to that viewer, so no shared cache may keep it.
+	// signs in.
 	.get('/:id', async ({ request, set, params }) => {
-		// Before any early answer, so every response of the route carries it.
-		addVary(set, 'Cookie');
-
 		const limited = enforceLimit({
 			set,
 			name: 'challenge_read',
@@ -134,14 +130,8 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 			return limited;
 		}
 
-		const viewer = await requireUser(request);
-
-		if (nonNullish(viewer)) {
-			set.headers['cache-control'] = 'private';
-		}
-
 		try {
-			return { challenge: await getChallengeView({ id: params.id, viewerUserId: viewer?.id }) };
+			return { challenge: await getChallengeView(params.id) };
 		} catch (err) {
 			return refused({ set, err });
 		}

@@ -1293,8 +1293,6 @@ export const zhHansMessages = {
 	'challenge.line.named_closed_no_position': '@{handle} 在这题上向你发起过挑战。本题已关闭。',
 	'challenge.line.anonymous_closed_no_position': '一位朋友在这题上向你发起过挑战。本题已关闭。',
 	'landing.deck.challenge.eyebrow': '给你的挑战',
-	'market.detail.challenge.predict_in_flow': '在 Flow 中预测',
-	'market.detail.challenge.region_aria': '挑战',
 	'landing.deck.back.crowd_says': '大家认为',
 	'landing.deck.back.flip_back': '点击翻回',
 	'landing.deck.back.returns': '预测 {size} VXP：猜对“是”赚 {yes} VXP，猜对“否”赚 {no} VXP。',

@@ -124,13 +124,6 @@ export interface ChallengeView {
 	marketOpen: boolean;
 }
 
-/** The public read as one viewer sees it: the view plus whether that viewer
- * is the link's challenger, so the receiving page can stay quiet for them.
- * Without a session it is always `false`; consent does not change it. */
-export interface ChallengeReadView extends ChallengeView {
-	isOwner: boolean;
-}
-
 /** The owner's read of their own link: the public view plus what only the
  * owner may see about it. */
 export interface OwnChallenge extends ChallengeView {
@@ -473,30 +466,20 @@ export const createChallenge = async ({
 
 /** The public read of a link. No engine call beyond the cached settlement
  * read, and none at all once the market is past expiry. */
-export const getChallengeView = async ({
-	id: rawId,
-	viewerUserId
-}: {
-	id: string;
-	/** The account of the session reading the link, `undefined` signed out. */
-	viewerUserId?: string;
-}): Promise<ChallengeReadView> => {
+export const getChallengeView = async (rawId: string): Promise<ChallengeView> => {
 	const row = await findPublicLink(requireChallengeId(rawId));
 
 	if (isNullish(row)) {
 		throw new ChallengeNotFoundError();
 	}
 
-	return {
-		...toView({
-			row,
-			marketOpen: await isMarketOpen({
-				seriesId: row.series_id,
-				expiryMs: Number(row.series_expiry_ms)
-			})
-		}),
-		isOwner: nonNullish(viewerUserId) && viewerUserId === row.challenger_user_id
-	};
+	return toView({
+		row,
+		marketOpen: await isMarketOpen({
+			seriesId: row.series_id,
+			expiryMs: Number(row.series_expiry_ms)
+		})
+	});
 };
 
 /** The owner turns the identity on the public read on or off. Anyone else

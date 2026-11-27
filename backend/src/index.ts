@@ -8,7 +8,6 @@ import { Elysia } from 'elysia';
 import { applyAssetAllowlist } from './custody/assets';
 import { isDbUnavailable, query } from './db/client';
 import { env } from './env';
-import { addVary } from './lib/http';
 import { logger } from './lib/logger';
 import { refuseUnsafeRequest, type NonJsonRoute } from './lib/same-origin';
 import { accountRoutes } from './routes/account';
@@ -130,7 +129,17 @@ export const app = new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BY
 			: env.publicAppUrl;
 		set.headers['access-control-allow-credentials'] = 'true';
 
-		addVary(set, 'Origin');
+		const vary = String(set.headers['vary'] ?? '');
+
+		if (
+			!vary
+				.toLowerCase()
+				.split(',')
+				.map((t) => t.trim())
+				.includes('origin')
+		) {
+			set.headers['vary'] = vary === '' ? 'Origin' : `${vary}, Origin`;
+		}
 
 		if (code === 'NOT_FOUND') {
 			set.status = 404;

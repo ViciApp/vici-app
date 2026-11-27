@@ -1,5 +1,3 @@
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-
 /**
  * Length of a challenge link id. 16 characters over the 32-character alphabet below = 80 bits,
  * so a guessed id hits a live link with negligible probability. The id carries no user, handle or
@@ -17,12 +15,3 @@ export const CHALLENGE_ID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const CHALLENGE_ID_REGEX = new RegExp(
 	`^[${CHALLENGE_ID_ALPHABET}]{${CHALLENGE_ID_LENGTH}}$`
 );
-
-/**
- * Where the receiving page keeps the link a visitor opened, so their own call on that market,
- * maybe after signing up, can be recorded as the answer.
- */
-export const CHALLENGE_CONTEXT_STORAGE_KEY = 'vici.challenge.context.v1';
-
-/** How long an opened link waits for the visitor's call before it is forgotten. */
-export const CHALLENGE_CONTEXT_TTL_MS = 7 * DAY_IN_MS;

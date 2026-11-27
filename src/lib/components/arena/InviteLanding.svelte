@@ -4,6 +4,7 @@
 	import InviteFriendshipSheet from '#lib/components/arena/InviteFriendshipSheet.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { pageTitle } from '#lib/constants/brand.constants.ts';
+	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { authBusy, userSignedIn } from '#lib/derived/user.derived.ts';
@@ -13,7 +14,6 @@
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
-	import { stashInviterForSignup } from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -84,9 +84,27 @@
 		void handleInvite();
 	});
 
-	// Last touch wins: this code replaces a challenge link stashed earlier.
-	const stashCodeForSignup = () =>
-		stashInviterForSignup({ inviter: { referralCode: normalizedCode } });
+	const stashCodeForSignup = () => {
+		try {
+			const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
+			const parsed: Record<string, unknown> =
+				nonNullish(raw) && typeof raw === 'string'
+					? ((): Record<string, unknown> => {
+							try {
+								const v = JSON.parse(raw);
+
+								return typeof v === 'object' && nonNullish(v) ? (v as Record<string, unknown>) : {};
+							} catch {
+								return {};
+							}
+						})()
+					: {};
+			parsed.referralCode = normalizedCode;
+			localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
+		} catch {
+			// Best-effort: signup still works without attribution if storage is unavailable.
+		}
+	};
 
 	const goHome = () => {
 		void goto(resolveAppPath(AppPath.Home), { replace: true });

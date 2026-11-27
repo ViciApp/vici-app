@@ -1371,8 +1371,6 @@ export const ptMessages = {
 	'challenge.line.named_closed_no_position': '@{handle} te desafiou nesta. Ela já fechou.',
 	'challenge.line.anonymous_closed_no_position': 'Um amigo te desafiou nesta. Ela já fechou.',
 	'landing.deck.challenge.eyebrow': 'Um desafio para você',
-	'market.detail.challenge.predict_in_flow': 'Prever no Flow',
-	'market.detail.challenge.region_aria': 'Desafio',
 	'landing.deck.back.crowd_says': 'O público diz',
 	'landing.deck.back.flip_back': 'Toca para virar',
 	'landing.deck.back.returns':
