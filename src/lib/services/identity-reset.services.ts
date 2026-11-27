@@ -2,6 +2,7 @@ import { reconcileIdentityScopedStorage } from '#lib/services/identity-storage.s
 import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
 import { clearAffiliations } from '#lib/stores/affiliations.store.ts';
 import { balancesStore } from '#lib/stores/balances.store.ts';
+import { challengeAnswersStore } from '#lib/stores/challenge-answers.store.ts';
 import { collateralsStore } from '#lib/stores/collaterals.store.ts';
 import { followingStore } from '#lib/stores/following.store.ts';
 import { clearFriendRelations } from '#lib/stores/friends.store.ts';
@@ -41,6 +42,7 @@ export const resetIdentityScopedState = ({ ownerKey }: { ownerKey: string | unde
 	positionsStore.set(undefined);
 	tradeHistoryStore.set(undefined);
 	receivedReactionsStore.set(undefined);
+	challengeAnswersStore.set(undefined);
 
 	reconcileIdentityScopedStorage({ ownerKey });
 };

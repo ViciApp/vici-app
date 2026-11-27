@@ -169,8 +169,9 @@ suite below is untouched and keeps covering the web3 build.
   deterministic fakes in `backend/e2e/fake-engine.ts` (fixture catalog, one
   settled market, the VXP collateral asset, ledgers and collateral deposits
   that enforce the real allowance and domain rules, every account the
-  never-deposited empty one until a deposit lands; every other method, other
-  writes included, rejects), and email lands in an in-memory outbox. Both
+  never-deposited empty one until a deposit lands, no trades until a spec
+  seeds a fill through `POST /__e2e/fills` (`backend.seedFill`); every other
+  method, other writes included, rejects), and email lands in an in-memory outbox. Both
   servers boot from Playwright's
   `webServer` (migrate, seed, serve; then build, preview).
 - **Seed:** `backend/e2e/seed.ts` imports two legacy accounts through the
@@ -202,6 +203,7 @@ e2e-web2/
 ├── support/urls.ts         # the two local origins
 ├── adoption.spec.ts        # legacy email adopts the imported account
 ├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers, legacy hold, ?e=legacy
+├── challenge-share.spec.ts # Challenge a friend: action gate, preview, consent, revoke, answer card
 ├── dash.spec.ts            # empty engine account renders, no failing reads
 ├── markets.spec.ts         # list + detail from the fake engine, settled outcome
 ├── sign-out.spec.ts        # session revoked server-side, app gated again

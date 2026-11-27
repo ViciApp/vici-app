@@ -2,6 +2,7 @@
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
 	import { onDestroy, onMount } from 'svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
+	import ChallengeShareButton from '#lib/components/market/ChallengeShareButton.svelte';
 	import MarketDetailChartCard from '#lib/components/market/MarketDetailChartCard.svelte';
 	import MarketDetailCtaBar from '#lib/components/market/MarketDetailCtaBar.svelte';
 	import MarketDetailLivePill from '#lib/components/market/MarketDetailLivePill.svelte';
@@ -833,6 +834,7 @@
 	{:else if market}
 		{@const m = market}
 		{#snippet detailRight()}
+			<ChallengeShareButton market={m} title={displayTitle} variant="header" />
 			<MarketDetailShareButton title={displayTitle} />
 			<!-- Eye / "watch this market" save control. Same shared
 			     toggle (and same watchlist backend) as the per-card

@@ -2593,5 +2593,49 @@ export const enMessages = {
 	'landing.markets.pending':
 		"{side} at {pct}% with {amount} VXP. If you're right, you earn {earns} VXP",
 	'landing.markets.share.label': 'Share this question',
-	'landing.markets.share.text': "{question} The crowd says {pct}%. What's your call?"
+	'landing.markets.share.text': "{question} The crowd says {pct}%. What's your call?",
+	'challenge.action.label': 'Challenge a friend',
+	'challenge.action.short': 'Challenge',
+	'challenge.side.yes': 'Yes',
+	'challenge.side.no': 'No',
+	'challenge.line.named': "@{handle} called {side} at {pct}%. Think they're wrong?",
+	'challenge.line.anonymous': "A friend called {side} at {pct}%. Think they're wrong?",
+	'challenge.line.named_changed': "@{handle} now says {side} at {pct}%. Think they're wrong?",
+	'challenge.line.anonymous_changed': "A friend now says {side} at {pct}%. Think they're wrong?",
+	'challenge.line.named_no_position': "@{handle} challenged you on this. What's your call?",
+	'challenge.line.anonymous_no_position': "A friend challenged you on this. What's your call?",
+	'challenge.line.named_closed': '@{handle} called {side} at {pct}% on this one. It has closed.',
+	'challenge.line.anonymous_closed': 'A friend called {side} at {pct}% on this one. It has closed.',
+	'challenge.line.anonymous_closed_no_position':
+		'A friend challenged you on this one. It has closed.',
+	'challenge.line.named_closed_no_position': '@{handle} challenged you on this one. It has closed.',
+	'challenge.share.loading': 'Preparing your link',
+	'challenge.share.preview_label': 'What your friend sees',
+	'challenge.share.current_position_note':
+		'The link always shows your current position on this market.',
+	'challenge.share.consent_label': 'Show my @handle and my call on this link',
+	'challenge.share.consent_note':
+		'With this on, anyone with the link sees your @handle and this call, even if your profile is private.',
+	'challenge.share.send': 'Send',
+	'challenge.share.copy': 'Copy link',
+	'challenge.share.copied': 'Challenge link copied.',
+	'challenge.share.text_named': "@{handle} challenged you on VICI. Think they're wrong?",
+	'challenge.share.text_anonymous': "A friend challenged you on VICI. Think they're wrong?",
+	'challenge.share.revoke': 'Turn off this link',
+	'challenge.share.revoke_confirm': 'Turn off this link? Anyone who opens it will find nothing.',
+	'challenge.share.revoke_confirm_cta': 'Turn off',
+	'challenge.share.revoke_cancel': 'Keep it',
+	'challenge.share.revoke_note':
+		"Chats that already show a preview of the link keep it: turning the link off or hiding your @handle can't recall it.",
+	'challenge.share.revoked_title': 'Link turned off',
+	'challenge.share.revoked': 'Your challenge link no longer opens.',
+	'challenge.share.error.title': 'Challenge unavailable',
+	'challenge.share.error.no_position': 'You no longer hold a call on this market.',
+	'challenge.share.error.market_closed': 'This market is closed for predictions.',
+	'challenge.share.error.rate_limited': 'Too many challenge links for now. Try again later.',
+	'challenge.share.error.generic': "Couldn't prepare your challenge link. Try again shortly.",
+	'inbox.challenge_answer.title': 'Your friend answered',
+	'inbox.challenge_answer.body':
+		'@{handle} called {side} at {pct}%. You said {mySide} at {myPct}%.',
+	'inbox.challenge_answer.body_no_position': '@{handle} called {side} at {pct}% on your challenge.'
 } as const;

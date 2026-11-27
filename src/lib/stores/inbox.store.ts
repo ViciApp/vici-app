@@ -3,6 +3,7 @@ import {
 	INBOX_DISMISSED_STORAGE_KEY,
 	INBOX_PROGRESS_STORAGE_KEY,
 	INBOX_READ_STORAGE_KEY,
+	INBOX_RECENT_EVENT_WINDOW_MS,
 	INBOX_SETTLED_READ_STORAGE_KEY
 } from '#lib/constants/inbox.constants.ts';
 import { DEFAULT_LOCALE, type AppLocale } from '#lib/constants/locale.constants.ts';
@@ -13,7 +14,9 @@ import {
 	resolvedPositions,
 	resolvedPositionsNotInitialized
 } from '#lib/derived/resolved-positions.derived.ts';
+import { areChallengeLinksEnabled } from '#lib/services/challenge.services.ts';
 import { receivedReactionsStore } from '#lib/stores/activity-reactions.store.ts';
+import { challengeAnswersStore } from '#lib/stores/challenge-answers.store.ts';
 import { friendRequestsStore, friendsRelationsLoadedStore } from '#lib/stores/friends.store.ts';
 import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
 import {
@@ -33,6 +36,7 @@ import type { Market } from '#lib/types/market.ts';
 import type { ResolvedPosition } from '#lib/types/position.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import type { ActivityReaction } from '#lib/types/social.ts';
+import { challengeAnswerCards } from '#lib/utils/challenge.utils.ts';
 import {
 	decimalFixedValueToNumber,
 	formatRelativeAgoFromNs,
@@ -103,8 +107,6 @@ const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
 // card ages out of the window so it can't linger forever; resolution has its
 // own surface (the league detail), so resolved battles don't notify here.
 
-const BATTLE_NOTIFICATION_WINDOW_MS = 3 * DAY_IN_MS;
-
 const battleInboxStore: Readable<InboxNotification[]> = derived(
 	[leagueBattlesStore, leagueDirectoryStore, userStore, localeStore],
 	([$battles, $directory, $user, $locale]) => {
@@ -130,7 +132,7 @@ const battleInboxStore: Readable<InboxNotification[]> = derived(
 				battle,
 				respondedAtMs: battle.respondedAtMs ?? battle.kickoffMs
 			}))
-			.filter(({ respondedAtMs }) => now - respondedAtMs <= BATTLE_NOTIFICATION_WINDOW_MS);
+			.filter(({ respondedAtMs }) => now - respondedAtMs <= INBOX_RECENT_EVENT_WINDOW_MS);
 
 		return matched
 			.sort((a, b) => b.respondedAtMs - a.respondedAtMs)
@@ -203,7 +205,7 @@ const battleIncomingInboxStore: Readable<InboxNotification[]> = derived(
 		// A challenge can surface under more than one per-league list, so dedupe
 		// by battle id (Map keeps the last seen), mirroring `battleInboxStore`.
 		const matched = [...new Map(incoming.map((battle) => [battle.id, battle])).values()].filter(
-			(battle) => now - battle.kickoffMs <= BATTLE_NOTIFICATION_WINDOW_MS
+			(battle) => now - battle.kickoffMs <= INBOX_RECENT_EVENT_WINDOW_MS
 		);
 
 		return matched
@@ -404,6 +406,18 @@ const likesReceivedInboxStore: Readable<InboxNotification[]> = derived(
 			};
 		});
 	}
+);
+
+/**
+ * "Your friend answered": one card per answer to the viewer's challenge links (a friend's own,
+ * engine-verified call on the challenged market), from `challengeAnswersStore`. Synthetic like the
+ * other social cards: the per-id read and dismissed overlays in {@link combinedInboxStore} drive
+ * their state, and they age out with the battle cards' window.
+ */
+const challengeAnswerInboxStore: Readable<InboxNotification[]> = derived(
+	[challengeAnswersStore, localeStore],
+	([$answers, $locale]) =>
+		challengeAnswerCards({ answers: $answers ?? [], locale: $locale, nowMs: Date.now() })
 );
 
 // ── "While you were away" resolution digest ─────────────────────────────────
@@ -840,7 +854,8 @@ export const initInboxProgress = (): (() => void) => {
  * The inbox surface (Notifications page, bell badge) reads from this combined
  * view. Order: live actionable items (friend requests), then incoming league
  * challenges, then battle responses, then real settled-event notifications,
- * then likes received on your calls, then streak / level milestones. Every
+ * then likes received on your calls, then answers to your challenge links, then
+ * streak / level milestones. Every
  * card is derived from live data: there is no seeded/mock layer.
  *
  * Dismissed cards are filtered out, and the per-id read overlay is applied
@@ -854,6 +869,7 @@ export const combinedInboxStore: Readable<InboxNotification[]> = derived(
 		battleInboxStore,
 		settledInboxStore,
 		likesReceivedInboxStore,
+		challengeAnswerInboxStore,
 		streakInboxStore,
 		levelInboxStore,
 		inboxReadStore,
@@ -865,6 +881,7 @@ export const combinedInboxStore: Readable<InboxNotification[]> = derived(
 		$battles,
 		$settled,
 		$likesReceived,
+		$challengeAnswers,
 		$streak,
 		$level,
 		$read,
@@ -876,6 +893,7 @@ export const combinedInboxStore: Readable<InboxNotification[]> = derived(
 			...$battles,
 			...$settled,
 			...$likesReceived,
+			...$challengeAnswers,
 			...$streak,
 			...$level
 		]
@@ -945,6 +963,8 @@ export const clearInboxToast = (): void => {
  *   first received-reactions load completes (even if empty), so a cold-start
  *   backlog of likes on the viewer's calls is absorbed into the baseline
  *   instead of replaying as arrival toasts.
+ * - `challengeAnswersStore` likewise, where challenge links exist (the web2
+ *   build); the on-chain build never loads it, so it does not wait for it.
  *
  * Leagues are deliberately NOT part of this gate: `refreshMyLeagues()` only
  * runs on Leagues/Battles/LeagueDetail pages, so a session that never visits
@@ -954,8 +974,17 @@ export const clearInboxToast = (): void => {
  * `leaguesLoadedStore`, so the other kinds toast normally meanwhile.
  */
 const sourcesHydrated: Readable<boolean> = derived(
-	[resolvedPositionsNotInitialized, friendsRelationsLoadedStore, receivedReactionsStore],
-	([$notInit, $friendsLoaded, $received]) => !$notInit && $friendsLoaded && nonNullish($received)
+	[
+		resolvedPositionsNotInitialized,
+		friendsRelationsLoadedStore,
+		receivedReactionsStore,
+		challengeAnswersStore
+	],
+	([$notInit, $friendsLoaded, $received, $challengeAnswers]) =>
+		!$notInit &&
+		$friendsLoaded &&
+		nonNullish($received) &&
+		(nonNullish($challengeAnswers) || !areChallengeLinksEnabled())
 );
 
 /**

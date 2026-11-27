@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#PR)
 
 Part **A3** of the challenge links work; the parts and how they stack are listed in [`2026-11-26-feat-challenge-links-api.md`](./2026-11-26-feat-challenge-links-api.md). **Stacks on A1** (routes and the client transport). Independent of A2, A4 and B, and buildable in parallel with them. Ships with the landing go-live.
 
@@ -53,7 +53,7 @@ Tapping the action opens a sheet. The link is created when the sheet opens (crea
 
 ## Linked issues
 
-GitHub issue search was not possible from the authoring session (no access to the repository's issues). No issue is linked. The implementer searches open issues for "challenge" and "share" before flipping the status and records the result here.
+Searched open issues for "challenge" and "share" at implementation (2026-11-27): none matches this work. No issue is linked.
 
 ## Analytics
 
