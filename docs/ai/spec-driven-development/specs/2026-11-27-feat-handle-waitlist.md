@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress (#PR)
+Status: In progress (#1779)
 
 The waitlist is specified in six parts, each with its own status and its own implementation PR, because one PR per purpose would not hold all of it:
 
