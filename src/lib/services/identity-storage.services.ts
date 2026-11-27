@@ -33,7 +33,7 @@ const STORAGE_OWNER_KEY = 'vici.storage-owner.v1';
  * daily-goal profile reconcile re-establishes the real count immediately.
  *
  * The signed-out transition (`ownerKey === undefined`) is a no-op: it neither
- * clears nor forgets the persisted owner. `onAuthStateChange` emits a transient
+ * clears nor forgets the persisted owner. The session store emits a transient
  * `null` user during bootstrap *before* the restored session resolves, so
  * clearing here would wipe a returning user's local-authoritative state (e.g.
  * inbox "mark all read") on every single sign-in. Cross-account safety is

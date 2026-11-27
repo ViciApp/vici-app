@@ -143,7 +143,7 @@
 
 		// The dev / Internet Identity providers resolve `signIn()`
 		// synchronously, so `SignInProviderStack` fires `onSuccess` while
-		// `$userSignedIn` has already flipped true but `onAuthStateChange`
+		// `$userSignedIn` has already flipped true but the session hydration
 		// hasn't landed the profile yet: there's nothing to upsert the picks
 		// onto. Rather than drop them, hand off via the same pre-auth stash the
 		// signed-out path uses and route into the app, where the `(app)` layout
@@ -237,8 +237,8 @@
 		}
 
 		// A signed-out visitor who just authenticated via an in-page provider
-		// (passkey / passkey-backed email). `signUp()` has resolved, but Juno's
-		// `onAuthStateChange` hasn't hydrated the profile yet, so the
+		// (the email code). The sign-in has resolved, but the session
+		// hydration hasn't landed the profile yet, so the
 		// `authenticated` derived hasn't flipped: without an explicit nav the
 		// page would sit on /signup until hydration swaps in the Finish button,
 		// forcing a second tap (and a second round of network calls). Stash the

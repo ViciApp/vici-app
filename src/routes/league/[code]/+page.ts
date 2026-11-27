@@ -11,9 +11,9 @@ import { redirect, type LoadEvent } from '@sveltejs/kit';
 /**
  * Signed-out fast path. Invite links are sent to people with a cold cache
  * and no session, and their destination is always the same: stash the codes
- * and land on `/signup`. That branch needs no auth and no satellite, yet
- * the page component can only take it after the boot gate lifts
- * (`initSatellite`) and the auth handshake settles (`authBusy`), several
+ * and land on `/signup`. That branch needs no auth, yet the page component
+ * can only take it after the boot gate lifts (the locale catalogs) and the
+ * auth handshake settles (`authBusy`), several
  * seconds a first-time mobile visitor spends on a spinner.
  *
  * This load runs at navigation time, before any of that: a device that has

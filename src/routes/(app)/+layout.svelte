@@ -104,9 +104,8 @@
 		$guestMode && page.url.pathname.startsWith(resolveAppPath(AppPath.Flow))
 	);
 
-	// Auth-hydration window. After a provider resolves (notably the
-	// Internet Identity multi-account path), `goto(Flow)` can mount this
-	// shell while `onAuthStateChange` is still hydrating the profile:
+	// Auth-hydration window. After a provider resolves, `goto(Flow)` can
+	// mount this shell while `Authn` is still hydrating the profile:
 	// `authBusy` is true, or the session is present but `profile` hasn't
 	// landed yet. In that window neither redirect effect below should fire
 	// (they'd bounce mid-hydration) and the shell must not paint an empty

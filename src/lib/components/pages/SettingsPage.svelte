@@ -235,7 +235,7 @@
 			await dropAuth();
 		} catch {
 			// Sign-out failed before the session changed. `dropAuth` set the
-			// global `authBusy` flag and only `onAuthStateChange` clears it,
+			// global `authBusy` flag and only the session hydration clears it,
 			// which won't fire now, so clear it here, otherwise the (app)
 			// shell stays stuck on its `authResolving` loader instead of the
 			// restored confirm controls. Then re-enable so the user can retry.
