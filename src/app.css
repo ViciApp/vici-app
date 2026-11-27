@@ -2551,7 +2551,7 @@ a.title-action::after {
 	background: var(--bg-popover);
 	border: 1px solid var(--border-strong);
 	border-radius: 12px;
-	font-family: var(--font-data);
+	font-family: var(--font-mono);
 	font-size: 14px;
 	color: var(--text-base);
 	outline: 0;
@@ -2671,7 +2671,7 @@ a.title-action::after {
 	font-family: var(--font-serif);
 }
 .share-preview-url {
-	font-family: var(--font-data);
+	font-family: var(--font-mono);
 	font-size: var(--text-micro);
 	letter-spacing: 0.02em;
 	color: var(--text-muted);

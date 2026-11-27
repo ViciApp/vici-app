@@ -1615,7 +1615,7 @@
 		min-width: 0;
 		overflow: hidden;
 		color: var(--text-base);
-		font-family: var(--font-data);
+		font-family: var(--font-mono);
 		font-size: var(--t-12);
 		text-align: left;
 		text-overflow: ellipsis;

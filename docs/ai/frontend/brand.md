@@ -330,11 +330,14 @@ when a face with proportional figures (Bricolage Grotesque on a
 headline numeral) sets the number.
 
 **Code** is the one place mono stays: principals, wallet and email
-addresses, invite codes, and admin code views use the `.code` class
+addresses (shown or typed), links meant to be copied, invite and
+one-time codes, and admin code views use the `.code` class
 (`var(--font-mono)` with a slashed zero). They are read, compared or
 typed one character at a time, where `0` / `O` and `1` / `l` must
 never blur, and nobody adds them up, so they do not follow the figures.
-Never use `--font-mono` for a number a person reads as a quantity.
+An input whose own rule sets `font: inherit` outranks the global class,
+so it names `var(--font-mono)` in that rule instead. Never use
+`--font-mono` for a number a person reads as a quantity.
 
 ---
 

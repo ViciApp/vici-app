@@ -49,7 +49,7 @@
 </label>
 <input
 	id="sp-verify-email"
-	class="affil-picker-input num"
+	class="affil-picker-input"
 	class:is-bad={wrongDomain}
 	autocapitalize="off"
 	autocorrect="off"
@@ -147,6 +147,7 @@
 		box-sizing: border-box;
 		padding: 0.75rem 0.85rem;
 		font: inherit;
+		font-family: var(--font-mono);
 		font-size: var(--t-14);
 		color: var(--text-base);
 		background: color-mix(in srgb, var(--bg-surface) 70%, transparent);

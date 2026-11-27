@@ -276,7 +276,7 @@
 				</p>
 				<!-- svelte-ignore a11y_autofocus -->
 				<input
-					class="account-edit-input num"
+					class="account-edit-input"
 					autocapitalize="off"
 					autocomplete="email"
 					autofocus
@@ -521,7 +521,7 @@
 	.account-edit-input {
 		padding: 0.75rem 0.875rem;
 		font: inherit;
-		font-family: var(--font-data);
+		font-family: var(--font-mono);
 		font-size: var(--t-14);
 		color: var(--text-base);
 		background: var(--bg-popover);

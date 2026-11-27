@@ -218,7 +218,7 @@
 				{t({ locale: $localeStore, key: 'leagues.join.label_code' })}
 			</span>
 			<input
-				class="league-field-input is-code num"
+				class="league-field-input is-code"
 				class:is-matched={nonNullish(matched)}
 				aria-invalid={codeIsValid && !resolving && isNullish(matched)}
 				autocapitalize="characters"
@@ -407,7 +407,11 @@
 		outline-offset: 0;
 	}
 
+	/* The field's `font: inherit` outranks the global `.code` class, so
+	   the code role is set here. */
 	.league-field-input.is-code {
+		font-family: var(--font-mono);
+		font-variant-numeric: slashed-zero;
 		font-size: var(--t-20, 1.25rem);
 		font-weight: 700;
 		letter-spacing: 0.18em;

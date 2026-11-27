@@ -426,7 +426,7 @@
 						<!-- svelte-ignore a11y_autofocus -->
 						<input
 							id="signin-email-input"
-							class="signin-email-input num"
+							class="signin-email-input"
 							autocapitalize="off"
 							autocomplete="email webauthn"
 							autofocus
