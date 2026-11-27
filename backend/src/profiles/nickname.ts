@@ -6,7 +6,7 @@
 
 import { isNullish } from '@dfinity/utils';
 import { query, type TxQuery } from '../db/client';
-import { DAY_IN_MS, MINUTE_IN_MS } from '../lib/time';
+import { DAY_IN_MS, MINUTE_IN_MS, TEN_MINUTES_IN_MS } from '../lib/time';
 
 export const MIN_NICKNAME_LENGTH = 2;
 export const MAX_NICKNAME_LENGTH = 16;
@@ -69,6 +69,19 @@ export const handleCooldownDaysLeft = ({
 
 	return Math.min(HANDLE_COOLDOWN_DAYS, HANDLE_COOLDOWN_DAYS - daysSince);
 };
+
+/**
+ * The anonymous availability probe answers a signed-out visitor picking a
+ * handle before sign-up. A Turnstile solve per keystroke would be slow and
+ * visible, so one solve buys a proof bound to the caller's IP for
+ * {@link NICKNAME_CHECK_PROOF_TTL_MS}, and the probe only checks that proof.
+ * The action is the one the app renders its widget with (mirrored, see
+ * backend/README.md "Mirrored constants"); the scope keeps the proof from
+ * opening any other surface.
+ */
+export const NICKNAME_CHECK_TURNSTILE_ACTION = 'handle_check';
+export const NICKNAME_CHECK_SCOPE = 'nickname_check';
+export const NICKNAME_CHECK_PROOF_TTL_MS = TEN_MINUTES_IN_MS;
 
 /**
  * Outcome of a nickname validity + uniqueness check. `reason` is set only
