@@ -1769,11 +1769,12 @@ export const ptMessages = {
 	'onboarding.avail.checking': 'Verificando disponibilidade…',
 	'onboarding.avail.available': 'Disponível ·',
 	'onboarding.avail.taken': 'Em uso: tente uma variação',
-	'onboarding.avail.invalid': 'Apenas letras, números, . _ -',
-	'onboarding.avail.too_short': 'Curto demais: mínimo 2 caracteres',
-	'onboarding.avail.too_long': 'Longo demais: máximo 16 caracteres',
+	'onboarding.avail.invalid': 'Só letras minúsculas e números',
+	'onboarding.avail.too_short': 'Curto demais: mínimo {min} caracteres',
+	'onboarding.avail.too_long': 'Longo demais: máximo {max} caracteres',
 	'onboarding.avail.reserved': 'Reservado: escolha outro',
 	'onboarding.avail.check_failed': 'Não foi possível verificar: tente reivindicar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificações: tente reivindicar',
 	'onboarding.reward_title': 'Pacote inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Faça palpites em {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',
@@ -1952,10 +1953,10 @@ export const ptMessages = {
 	'profile.handle.error_check_failed':
 		'Não foi possível verificar a disponibilidade. Tenta novamente.',
 	'profile.handle.error_reserved': 'Esse handle é reservado',
-	'profile.handle.error_short': 'Pelo menos 3 caracteres',
+	'profile.handle.error_short': 'Pelo menos {min} caracteres',
 	'profile.handle.error_taken': 'Esse handle já está em uso',
 	'profile.handle.error_unchanged': 'Esse já é o teu handle',
-	'profile.handle.hint': 'Letras, números e sublinhados.',
+	'profile.handle.hint': 'Letras minúsculas e números.',
 	'profile.handle.locked':
 		'Alteraste o teu handle recentemente. Poderás alterá-lo de novo em {days} dias.',
 	'profile.handle.locked_one':

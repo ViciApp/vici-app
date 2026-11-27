@@ -1779,11 +1779,12 @@ export const esMessages = {
 	'onboarding.avail.checking': 'Comprobando disponibilidad…',
 	'onboarding.avail.available': 'Disponible ·',
 	'onboarding.avail.taken': 'Ocupado, prueba una variante',
-	'onboarding.avail.invalid': 'Solo letras, números, . _ -',
-	'onboarding.avail.too_short': 'Muy corto: mínimo 2 caracteres',
-	'onboarding.avail.too_long': 'Muy largo: máximo 16 caracteres',
+	'onboarding.avail.invalid': 'Solo letras minúsculas y números',
+	'onboarding.avail.too_short': 'Muy corto: mínimo {min} caracteres',
+	'onboarding.avail.too_long': 'Muy largo: máximo {max} caracteres',
 	'onboarding.avail.reserved': 'Reservado, elige otro',
 	'onboarding.avail.check_failed': 'No se pudo verificar, intenta reclamar',
+	'onboarding.avail.rate_limited': 'Demasiadas verificaciones, intenta reclamar',
 	'onboarding.reward_title': 'Pack inicial de {amount} VXP',
 	'onboarding.reward_sub': 'Predice {event}',
 	'onboarding.lock_ready': 'Reservando @{handle}',
@@ -1962,10 +1963,10 @@ export const esMessages = {
 	'profile.handle.error_check_failed':
 		'No se pudo comprobar la disponibilidad. Inténtalo de nuevo.',
 	'profile.handle.error_reserved': 'Ese handle está reservado',
-	'profile.handle.error_short': 'Al menos 3 caracteres',
+	'profile.handle.error_short': 'Al menos {min} caracteres',
 	'profile.handle.error_taken': 'Ese handle ya está en uso',
 	'profile.handle.error_unchanged': 'Ese ya es tu handle',
-	'profile.handle.hint': 'Letras, números y guiones bajos.',
+	'profile.handle.hint': 'Letras minúsculas y números.',
 	'profile.handle.locked':
 		'Cambiaste tu handle hace poco. Podrás cambiarlo de nuevo en {days} días.',
 	'profile.handle.locked_one':

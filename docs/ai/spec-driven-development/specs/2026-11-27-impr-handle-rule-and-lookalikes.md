@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#1741)
 
 One scoped PR cannot hold this work, so it is split into three specs. Each has its own status and its own PR, and they are stacked in this order:
 
@@ -14,6 +14,8 @@ One scoped PR cannot hold this work, so it is split into three specs. Each has i
 | R3     | [`2026-11-27-impr-handle-rule-legacy-satellite-and-import.md`](./2026-11-27-impr-handle-rule-legacy-satellite-and-import.md) | `feat(satellite): handle rule on the legacy app and in the import` | R1 and R2 (the rename planner)                                                    |
 
 The rollout order across the three parts, and the one ordering constraint that matters (no legacy import between the R2 apply and R3), is in R2 "Rollout".
+
+**R2's rename is not needed.** The production handles were renamed to the rule on 27 Nov 2026, before R1 shipped, so no R2 rename script runs. A handle left outside the rule keeps saving through the grandfather clause of section 3 for as long as it is left untouched.
 
 ## Goal
 
@@ -49,8 +51,8 @@ A handle picked or changed anywhere on vici.app is lowercase `a` to `z` and `0` 
 `src/lib/constants/profile.constants.ts`:
 
 - `HANDLE_PATTERN`: lowercase `a` to `z` and digits only. Length bounds stay `MIN_HANDLE_LENGTH` and `MAX_HANDLE_LENGTH`.
-- `handleUniqueKey(raw)`: trim, NFKD, lowercase, replace the Latin letters that have no decomposition by their plain spelling (pending decision 3), then drop every character outside `a` to `z` and `0` to `9`. For a handle that satisfies the rule the key is the handle itself. A handle written entirely in another script folds to an empty key, which never collides.
-- `cleanHandle(raw)` becomes the input cleaner for the rule: the same fold, clamped to `MAX_HANDLE_LENGTH`. Typing `José.M` yields `josem` (pending decision 1).
+- `handleUniqueKey(raw)`: trim, NFKD, lowercase, replace the Latin letters that have no decomposition by their plain spelling (decision 3), then drop every character outside `a` to `z` and `0` to `9`. For a handle that satisfies the rule the key is the handle itself. A handle written entirely in another script folds to an empty key, which never collides.
+- `cleanHandle(raw)` becomes the input cleaner for the rule: the same fold, clamped to `MAX_HANDLE_LENGTH`. Typing `José.M` yields `josem` (decision 1).
 - `sanitizeNickname`, `NICKNAME_PATTERN`, `MIN_NICKNAME_LENGTH`, `MAX_NICKNAME_LENGTH` and `nicknameUniqueKey` stay, used only by the satellite until R3, and their doc comments say so.
 
 `src/lib/utils/nickname.utils.ts` (`nicknameFormatIssue`, from the public handle check PR): bounds and pattern move to the rule, the reserved test moves to `handleUniqueKey`. Onboarding, the handle editor and the landing claim capsule all read this one function, so the three surfaces cannot disagree.
@@ -60,13 +62,13 @@ A handle picked or changed anywhere on vici.app is lowercase `a` to `z` and `0` 
 - `Onboarding.svelte` and `HandleEditor.svelte`: `cleanHandle` on input, `nicknameFormatIssue` for the inline reason, `maxlength` from `MAX_HANDLE_LENGTH`. The editor's "unchanged" test compares the cleaned input with the stored handle, so an owner whose stored handle is `José` can save `jose`.
 - Copy: `profile.handle.hint` and every onboarding line that names the allowed characters, in every catalog under `src/lib/constants/messages/`.
 - The onboarding stash: `drainPendingOnboarding` runs the stashed handle through `cleanHandle` before the availability probe, so a handle picked under the wider rule is tidied, not dropped.
-- The sign-in bootstrap: the seed is `cleanHandle` of the display name; when it is shorter than `MIN_HANDLE_LENGTH`, reserved or taken, the seed is a generated handle (pending decision 5). The principal is never used as a handle.
+- The sign-in bootstrap: the seed is `cleanHandle` of the display name; when it is shorter than `MIN_HANDLE_LENGTH`, reserved or taken, the seed is a generated handle (decision 5). The principal is never used as a handle.
 - `handle-pool.constants.ts`: doc comment only.
 
 ### 3. The API
 
 - `backend/src/profiles/nickname.ts`: `MIN_HANDLE_LENGTH`, `MAX_HANDLE_LENGTH`, `HANDLE_PATTERN`, `handleUniqueKey`, mirrored from the app and pinned by the drift suite. `checkNicknameAvailability` validates against the rule and answers `taken` when another profile's `handle_key` equals the candidate's key. It gains the `reserved` reason from `RESERVED_HANDLE_KEYS` (the mirror of `RESERVED_HANDLES`; if the waitlist PR landed first this is its `RESERVED_NICKNAME_KEYS`, renamed).
-- `backend/src/profiles/profile-write.ts`: a write is checked against the rule unless the proposed handle is the stored string, character for character. That is the whole grandfather clause: an untouched handle outside the rule keeps saving (every stats sync upserts the full profile), anything else must satisfy the rule. The cooldown keeps comparing keys, now with `handleUniqueKey`: an owner who tidies their own handle (`José` to `jose`, `a.b` to `ab` when `ab` is free) changes the stored string without a key change, so it costs no cooldown (pending decision 2).
+- `backend/src/profiles/profile-write.ts`: a write is checked against the rule unless the proposed handle is the stored string, character for character. That is the whole grandfather clause: an untouched handle outside the rule keeps saving (every stats sync upserts the full profile), anything else must satisfy the rule. The cooldown keeps comparing keys, now with `handleUniqueKey`: an owner who tidies their own handle (`José` to `jose`, `a.b` to `ab` when `ab` is free) changes the stored string without a key change, so it costs no cooldown (decision 2).
 - New column `profiles.handle_key text not null default ''` with a plain index, written by `upsertMyProfile` next to `nickname_key`. The migration fills it for existing rows with a SQL function `handle_fold(text)` defined in the same file; a parity test pins that function against `handleUniqueKey` over a fixture table that includes every mapped letter. `nickname_key` and its unique index stay as they are: two existing lookalikes (`a.b` and `ab`) share one `handle_key`, so that column cannot be unique before R2.
 - Concurrency: `handle_key` is not unique before R2, so the lookup alone does not serialise two writers. Every write that changes a handle first takes `pg_advisory_xact_lock(hashtext('handle:' || new_handle_key))` inside its transaction, then runs the `handle_key` lookup, then writes; a second writer of the same key waits for the first commit and then sees its row. The lock is the one R2's apply and the waitlist reservation share, so the three paths serialise on the same key. Two writers of the same compliant handle also still collide on `profiles_nickname_key_uniq`, as a backstop.
 - `GET /api/v1/profiles/nickname-availability` and the anonymous probe of the public handle check PR answer through the same validator. The new `reserved` reason is a wire change for the typed layers: the web2 client's availability type in `src/lib/web2/client.ts`, the shared `NicknameAvailability` union and its reason-to-copy mapper on the app, and the satellite-facing union (which also lacks `too_long` today: the web3 path maps both to its existing `invalid`). Each gets the new members, and the mapper an exhaustive case with its own copy line.
@@ -130,30 +132,9 @@ No new event. `handle_checked` (already fired by onboarding with `source` and `o
 
 ## Open questions
 
-1. **How many production handles break the rule, and how many lookalike groups exist?** The counting SQL is in R2 "Open questions"; run it before R1 merges, since a large number changes how urgent R2 is.
+1. ~~How many production handles break the rule?~~ Answered: the production handles were renamed to the rule on 27 Nov 2026.
 2. **Does production Postgres support `normalize(text, NFKD)`?** It needs version 13 or later and a UTF-8 database. Local and CI run `postgres:16-alpine` (`backend/docker-compose.yml`); confirm the production version (`select version(), getdatabaseencoding();`). If not, the backfill runs from a script and `handle_fold` is dropped from the design.
-3. **Has the waitlist PR merged when R1 starts?** It decides which side renames the reserved-keys constant and whether section 3 touches the waitlist validator.
-
-## Pending decisions
-
-1. **What the handle field does while someone types a character that is not allowed.**
-   - Recommended: clean it as they type. Capital letters become lowercase, accents drop to the base letter, dots, dashes and other symbols disappear, and a short line under the field says "Lowercase letters and numbers". This is how both fields already behave today for spaces and symbols.
-   - Alternative A: leave the text as typed and show an error until the person fixes it. Clearer about why, slower to get through.
-   - Alternative B: clean capitals and accents silently, but show an error for dots, dashes and underscores, since removing them changes how the handle reads.
-2. **Whether fixing your own handle to the new rule uses up your one change every 30 days.**
-   - Recommended: no. Going from `José` to `jose` or from `a.b` to `ab` (when free) is the same handle under the lookalike test, so it is free and does not start the 30 days.
-   - Alternative: treat it like any other change. Simpler to explain, but it punishes people who tidy their handle before the automatic rename of R2.
-3. **Letters that look like a plain letter but have no accent to strip (`ß`, `ø`, `æ`, `œ`, `ł`, `đ`, `ð`, `þ`, `ı`).**
-   - Recommended: a short fixed table treats them as their usual plain spelling for the "already taken" test: `ß` as `ss`, `æ` as `ae`, `œ` as `oe`, `ø` as `o`, `ł` as `l`, `đ` and `ð` as `d`, `þ` as `th`, `ı` as `i`. So an existing `strøm` blocks a new `strom`.
-   - Alternative: ignore them (an existing `strøm` and a new `strom` could coexist until R2 renames the first). Less code, a small window for lookalikes.
-4. **Which handles are reserved for VICI.** Today: `admin`, `vici`, `root`, `support`, `help`, `mod`, `official`, `team`, `api`, `www`, checked by the app only.
-   - Recommended: enforce the list on the server and add the obvious impersonation names: `viciapp`, `vicimarket`, `viciteam`, `vicisupport`, `viciadmin`, `viciofficial`, `moderator`, `staff`, `security`, `system`, `everyone`. Exact match only.
-   - Alternative A: enforce the current ten on the server and add nothing.
-   - Alternative B: also refuse every handle that starts with `vici`. Stronger against impersonation, but it refuses ordinary words such as `vicious`.
-5. **The handle given to an account that signs in without having picked one** (it arrives through the sign-in screen, and its display name gives nothing usable or the result is taken).
-   - Recommended: a name from the existing Roman suggestion list plus digits, for example `seneca42`, which the person can change at once (a first handle has no 30-day wait).
-   - Alternative A: `user` plus digits. Neutral, off-brand.
-   - Alternative B: send the person to the handle screen before anything else. No generated handles, one more step before the app.
+3. ~~Has the waitlist PR merged when R1 starts?~~ Answered: no, so the waitlist uses `HANDLE_PATTERN`, `handleUniqueKey` and `lockHandleKey` from the start.
 
 ## Decisions
 
@@ -162,6 +143,26 @@ Fixed by the owner before this spec:
 - Every handle created or changed is lowercase `a` to `z` and `0` to `9`, 3 to 15 characters. No accents, no other scripts, no `.`, `_`, `-`.
 - The "already taken" test ignores case, accents and the separators `.`, `_`, `-`.
 - Existing handles outside the rule are renamed by a migration (R2), not grandfathered forever.
+
+Taken by the owner on 27 Nov 2026 (formerly pending):
+
+1. **Input is cleaned as it is typed**: lowercase, accents folded to the base letter, everything outside `a` to `z` and `0` to `9` removed, at most 15 characters, with the hint "Lowercase letters and numbers" under the field.
+2. **Tidying one's own handle to the rule is free**: `José` to `jose` or `a.b` to `ab` keeps the handle key, so it does not use the change every 30 days and does not move the stamp.
+3. **A fixed letter table**: `ß` as `ss`, `æ` as `ae`, `œ` as `oe`, `ø` as `o`, `ł` as `l`, `đ` and `ð` as `d`, `þ` as `th`, `ı` as `i`. The same table serves the uniqueness key and the input cleaner.
+4. **The server enforces `RESERVED_HANDLES`**, the 93 names of the reserved-handles PR (#1739), reused, not copied: the API's `RESERVED_HANDLE_KEYS` is its mirror, held to it by the shared-drift suite.
+5. **An account that signs in without picking a handle** gets its display name cleaned to the rule, or, when that is too short, reserved or taken, a Roman pool name plus two digits (`seneca42`). Never the account id.
+
+Taken while implementing:
+
+- **The rule lives in `src/lib/constants/handle.constants.ts`**, not `profile.constants.ts`: a module with no imports, so the API's drift suite loads it as-is and compares the bounds, the pattern, the letter table, the reserved keys and `handleUniqueKey` itself. `profile.constants.ts` keeps only the legacy nickname rule the satellite enforces, the cooldown and the stash key; its unused `sanitizeNickname` and `cleanHandle` are gone.
+- **One cleaner and one format check, shared with the landing**: `sanitizeHandleInput` and `handleFormatIssue` in `src/lib/utils/handle.utils.ts` replace `cleanHandle` and `nicknameFormatIssue` (`nickname.utils.ts` is removed). `sanitizeHandleInput` is `handleUniqueKey` capped at 15, so what the field shows is the key the server checks.
+- **The handle fields have no `maxlength`**: the cleaner caps the length, and a raw `maxlength` would cut a pasted `@Antonio.Ventilii` before its dot is dropped.
+- **The fold drops the accents with every other character outside `a` to `z` and `0` to `9`**, after NFKD and lowercasing, so the SQL twin `handle_fold` needs no Unicode range. It spells out the uppercase forms of the letter table, because `lower` only folds ASCII under the C locale.
+- **Migration `0028_profiles_handle_key.sql`**: `0026` and `0027` are taken by open branches.
+- **The write guard returns the canonical nickname** that `upsertMyProfile` stores and derives both keys from (the proposed one in R1), so R2's "stale browser" rule only changes what the guard returns.
+- **The cooldown key follows the backend**: `isHandleChange` (`profile.services.ts`) compares the handle key on vici.app and the legacy nickname key on vici.market, so the client stamps `handleLastChangeMs` exactly when the server it talks to expects it. The handle editor stays open inside the window only for a handle outside the rule, and only for tidying it.
+- **The satellite's Candid reason enum is unchanged**: the satellite never answers `too_long` or `reserved` before R3, and a Candid change would need a satellite release. The app's shared union (`HandleRefusal`) carries every reason, so the web3 answer fits it as is.
+- **`by-handle` answers 404 only when the text folds to no key at all** under both folds, so a stored handle in another script is still found by its exact text.
 
 Taken while authoring, open to challenge in review:
 
