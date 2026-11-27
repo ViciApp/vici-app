@@ -1,4 +1,3 @@
-import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import {
 	deleteMyAccount as deleteMyAccountApi,
 	hibernateMyAccount as hibernateMyAccountApi,
@@ -7,6 +6,7 @@ import {
 	resumeMyAccount as resumeMyAccountApi,
 	type ApiDeleteAccountResult
 } from '#lib/api-client/client.ts';
+import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 
 /**
  * Account deletion: FE wrappers around the API's blocking-leagues query and

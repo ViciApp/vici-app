@@ -24,12 +24,12 @@
  * configured" error instead of mailing a code.
  */
 
-import type { AppLocale } from '#lib/constants/locale.constants.ts';
-import { withTimeout } from '#lib/utils/async.utils.ts';
 import {
 	submitSchool as submitSchoolApi,
 	verifySchoolCode as verifySchoolCodeApi
 } from '#lib/api-client/client.ts';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
 
 /** Hard timeout for either verification round-trip. */
 const SCHOOL_VERIFY_TIMEOUT_MS = 15_000;

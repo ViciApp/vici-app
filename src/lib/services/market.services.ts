@@ -1,4 +1,11 @@
 import type { RegistryDid } from '#declarations';
+import {
+	getEngineSeries as getEngineSeriesApi,
+	getEngineSettlementStatus as getEngineSettlementStatusApi,
+	listEngineSeries as listEngineSeriesApi,
+	listEngineSeriesVolumes as listEngineSeriesVolumesApi
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { listOrders as listOrdersApi } from '#lib/api/clearing.api.ts';
 import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
@@ -36,13 +43,6 @@ import {
 } from '#lib/utils/market.utils.ts';
 import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import {
-	getEngineSeries as getEngineSeriesApi,
-	getEngineSettlementStatus as getEngineSettlementStatusApi,
-	listEngineSeries as listEngineSeriesApi,
-	listEngineSeriesVolumes as listEngineSeriesVolumesApi
-} from '#lib/api-client/client.ts';
-import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 

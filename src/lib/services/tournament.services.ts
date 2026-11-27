@@ -1,16 +1,16 @@
 import {
+	claimTournamentPrize as claimTournamentPrizeApi,
+	getCurrentTournament as getCurrentTournamentApi,
+	resolveTournamentRound as resolveTournamentRoundApi,
+	triggerTournamentDraw as triggerTournamentDrawApi
+} from '#lib/api-client/client.ts';
+import {
 	TOURNAMENT_BRACKET_SIZE,
 	type TournamentDoc,
 	type TournamentMatchDoc,
 	type TournamentRound,
 	type TriggerTournamentDrawRefusalReason
 } from '#lib/types/tournament.ts';
-import {
-	claimTournamentPrize as claimTournamentPrizeApi,
-	getCurrentTournament as getCurrentTournamentApi,
-	resolveTournamentRound as resolveTournamentRoundApi,
-	triggerTournamentDraw as triggerTournamentDrawApi
-} from '#lib/api-client/client.ts';
 
 /**
  * Monthly tournament FE wrappers.

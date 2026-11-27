@@ -1,4 +1,9 @@
 import {
+	ApiError,
+	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicApi,
+	issueNicknameCheckProof
+} from '#lib/api-client/client.ts';
+import {
 	HUMAN_PROOF_RENEW_MARGIN_MS,
 	TURNSTILE_ACTION_HANDLE_CHECK
 } from '#lib/constants/turnstile.constants.ts';
@@ -13,11 +18,6 @@ import {
 } from '#lib/utils/handle-probe.utils.ts';
 import { handleFormatIssue, type HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
-import {
-	ApiError,
-	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicApi,
-	issueNicknameCheckProof
-} from '#lib/api-client/client.ts';
 import { nonNullish } from '@dfinity/utils';
 
 export type PublicHandleAvailability =

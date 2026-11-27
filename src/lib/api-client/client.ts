@@ -1,4 +1,31 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
+import {
+	balanceDomainToWire,
+	intervalToWire,
+	leaderboardWindowToWire,
+	mapAccountStateResponse,
+	mapCollateralAssetInfo,
+	mapEvent,
+	mapLeaderboardEntry,
+	mapLimitOrder,
+	mapPosition,
+	mapPriceCandle,
+	mapSeries,
+	mapSeriesTradePage,
+	mapSeriesTradedVolume,
+	mapSettlementStatus,
+	type ApiAccountStateResponseWire,
+	type ApiCollateralAssetInfoWire,
+	type ApiEventWire,
+	type ApiLeaderboardEntryWire,
+	type ApiLimitOrderWire,
+	type ApiPositionWire,
+	type ApiPriceCandleWire,
+	type ApiSeriesTradePageWire,
+	type ApiSeriesTradedVolumeWire,
+	type ApiSeriesWire,
+	type ApiSettlementStatusWire
+} from '#lib/api-client/engine-wire.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
@@ -54,33 +81,6 @@ import type {
 } from '#lib/types/tournament.ts';
 import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
-import {
-	balanceDomainToWire,
-	intervalToWire,
-	leaderboardWindowToWire,
-	mapAccountStateResponse,
-	mapCollateralAssetInfo,
-	mapEvent,
-	mapLeaderboardEntry,
-	mapLimitOrder,
-	mapPosition,
-	mapPriceCandle,
-	mapSeries,
-	mapSeriesTradePage,
-	mapSeriesTradedVolume,
-	mapSettlementStatus,
-	type ApiAccountStateResponseWire,
-	type ApiCollateralAssetInfoWire,
-	type ApiEventWire,
-	type ApiLeaderboardEntryWire,
-	type ApiLimitOrderWire,
-	type ApiPositionWire,
-	type ApiPriceCandleWire,
-	type ApiSeriesTradePageWire,
-	type ApiSeriesTradedVolumeWire,
-	type ApiSeriesWire,
-	type ApiSettlementStatusWire
-} from '#lib/api-client/engine-wire.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type * as z from 'zod';
 

@@ -1,3 +1,4 @@
+import { getUserRankAndCount as getUserRankAndCountApi } from '#lib/api-client/client.ts';
 import { listMyReferrals } from '#lib/services/referral.services.ts';
 import { loadGlobalStandings } from '#lib/services/standings.services.ts';
 import {
@@ -8,7 +9,6 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import { getUserRankAndCount as getUserRankAndCountApi } from '#lib/api-client/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';

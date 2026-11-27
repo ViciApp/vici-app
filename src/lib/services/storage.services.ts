@@ -1,9 +1,9 @@
-import { LEAGUE_IMAGE_JPEG_QUALITY, LEAGUE_IMAGE_SIZE_PX } from '#lib/types/league.ts';
-import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
 import {
 	deleteLeagueImage as deleteLeagueImageApi,
 	uploadLeagueImage as uploadLeagueImageApi
 } from '#lib/api-client/client.ts';
+import { LEAGUE_IMAGE_JPEG_QUALITY, LEAGUE_IMAGE_SIZE_PX } from '#lib/types/league.ts';
+import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

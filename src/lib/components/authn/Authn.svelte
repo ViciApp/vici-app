@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
+	import type { ApiMe } from '#lib/api-client/client.ts';
+	import { loadSession, watchSession, sessionStore } from '#lib/api-client/session.ts';
 	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
 	import { resetIdentityScopedState } from '#lib/services/identity-reset.services.ts';
 	import { loadProfileShell } from '#lib/services/profile.services.ts';
 	import { setCachedProfile } from '#lib/stores/profiles.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import type { User } from '#lib/types/user.ts';
-	import type { ApiMe } from '#lib/api-client/client.ts';
-	import { loadSession, watchSession, sessionStore } from '#lib/api-client/session.ts';
 	import { browser } from '$app/env';
 
 	/**

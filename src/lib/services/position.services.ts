@@ -1,12 +1,12 @@
 import type { RegistryDid } from '#declarations';
+import { listEnginePositions as listEnginePositionsApi } from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import { fetchMarketsLite } from '#lib/services/market.services.ts';
 import type { MarketId } from '#lib/types/market.ts';
 import type { Position } from '#lib/types/position.ts';
 import { filterByMarketIds } from '#lib/utils/balance-domain.utils.ts';
 import { mapPositionData } from '#lib/utils/position.utils.ts';
-import { listEnginePositions as listEnginePositionsApi } from '#lib/api-client/client.ts';
-import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**

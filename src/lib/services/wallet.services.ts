@@ -1,4 +1,10 @@
 import type { ClearingDid } from '#declarations';
+import {
+	getEngineAccountState as getEngineAccountStateApi,
+	getWalletBalances as getWalletBalancesApi,
+	getWalletDepositAddress as getWalletDepositAddressApi
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { SUPPORTED_TOKENS } from '#lib/constants/tokens/tokens.ic.constants.ts';
 import { getCollateralAssets } from '#lib/services/collateral.services.ts';
@@ -6,12 +12,6 @@ import type { TokenId } from '#lib/types/token.ts';
 import type { LedgerBalancesRead, Transaction, WalletBalance } from '#lib/types/wallet.ts';
 import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
 import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
-import {
-	getEngineAccountState as getEngineAccountStateApi,
-	getWalletBalances as getWalletBalancesApi,
-	getWalletDepositAddress as getWalletDepositAddressApi
-} from '#lib/api-client/client.ts';
-import { getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**

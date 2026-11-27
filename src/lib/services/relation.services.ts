@@ -1,5 +1,3 @@
-import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
-import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import {
 	acceptFriendRequest as acceptFriendRequestApi,
 	cancelFriendRequest as cancelFriendRequestApi,
@@ -9,6 +7,8 @@ import {
 	sendFriendRequest as sendFriendRequestApi,
 	unfriendUser as unfriendUserApi
 } from '#lib/api-client/client.ts';
+import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
+import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 

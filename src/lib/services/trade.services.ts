@@ -1,4 +1,10 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
+import {
+	getEnginePriceHistory as getEnginePriceHistoryApi,
+	listEngineSeriesTrades as listEngineSeriesTradesApi,
+	listEngineTradeHistory as listEngineTradeHistoryApi
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
 import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import { fetchMarketsLite } from '#lib/services/market.services.ts';
@@ -10,12 +16,6 @@ import {
 	type MarketPriceSeries,
 	type PriceHistoryPeriod
 } from '#lib/utils/market-price-history.utils.ts';
-import {
-	getEnginePriceHistory as getEnginePriceHistoryApi,
-	listEngineSeriesTrades as listEngineSeriesTradesApi,
-	listEngineTradeHistory as listEngineTradeHistoryApi
-} from '#lib/api-client/client.ts';
-import { getSessionUser } from '#lib/api-client/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 
 /**

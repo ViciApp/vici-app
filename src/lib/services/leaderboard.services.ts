@@ -1,5 +1,5 @@
-import type { UserProfile } from '#lib/types/profile.ts';
 import { listLeaderboard as listLeaderboardApi } from '#lib/api-client/client.ts';
+import type { UserProfile } from '#lib/types/profile.ts';
 
 /**
  * Fetches the top profiles of the server's global ranking (settled history,

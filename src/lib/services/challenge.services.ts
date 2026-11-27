@@ -1,11 +1,3 @@
-import type {
-	ChallengeAnswer,
-	ChallengeAnswerItem,
-	ChallengeRedeemOutcome,
-	ChallengeView,
-	OwnChallenge
-} from '#lib/types/challenge.ts';
-import { parseChallengeId } from '#lib/utils/challenge.utils.ts';
 import {
 	answerChallenge as answerChallengeApi,
 	ApiError,
@@ -17,6 +9,14 @@ import {
 	revokeChallenge as revokeChallengeApi,
 	setChallengeConsent as setChallengeConsentApi
 } from '#lib/api-client/client.ts';
+import type {
+	ChallengeAnswer,
+	ChallengeAnswerItem,
+	ChallengeRedeemOutcome,
+	ChallengeView,
+	OwnChallenge
+} from '#lib/types/challenge.ts';
+import { parseChallengeId } from '#lib/utils/challenge.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 /** Whether challenge links exist in this build: always, since the API serves them. */

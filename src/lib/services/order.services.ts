@@ -1,4 +1,12 @@
 import type { ClearingDid } from '#declarations';
+import {
+	ApiError,
+	cancelEngineOrder as cancelEngineOrderApi,
+	listEngineOrders as listEngineOrdersApi,
+	submitEngineLimitOrder as submitEngineLimitOrderApi,
+	submitEngineMarketOrder as submitEngineMarketOrderApi
+} from '#lib/api-client/client.ts';
+import { getSessionUser } from '#lib/api-client/session.ts';
 import { listOrders as listOrdersApi } from '#lib/api/clearing.api.ts';
 import { MarketClosedError } from '#lib/canisters/clearing.errors.ts';
 import { PRICE_DECIMALS, USD_DECIMALS, ZERO } from '#lib/constants/app.constants.ts';
@@ -13,14 +21,6 @@ import { decimalFixedValueToNumber } from '#lib/utils/format.utils.ts';
 import { walkMarketOrder } from '#lib/utils/market-order.utils.ts';
 import { parseLimitOrderPriceValue } from '#lib/utils/parse.utils.ts';
 import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
-import {
-	ApiError,
-	cancelEngineOrder as cancelEngineOrderApi,
-	listEngineOrders as listEngineOrdersApi,
-	submitEngineLimitOrder as submitEngineLimitOrderApi,
-	submitEngineMarketOrder as submitEngineMarketOrderApi
-} from '#lib/api-client/client.ts';
-import { getSessionUser } from '#lib/api-client/session.ts';
 import { fromNullable, isNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { nanoid } from 'nanoid';

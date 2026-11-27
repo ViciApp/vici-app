@@ -1,6 +1,6 @@
+import { listReceivedActivityReactions as listReceivedActivityReactionsApi } from '#lib/api-client/client.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import type { ActivityReaction } from '#lib/types/social.ts';
-import { listReceivedActivityReactions as listReceivedActivityReactionsApi } from '#lib/api-client/client.ts';
 
 /**
  * Record a failed reaction read as an observable `app_error` event rather than

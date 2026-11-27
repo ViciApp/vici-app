@@ -1,5 +1,5 @@
-import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 import { getUserStats as getUserStatsApi } from '#lib/api-client/client.ts';
+import type { UserStatsDoc } from '#lib/types/user-stats.ts';
 
 /**
  * FE service for the per-user dashboard cache: category win/loss buckets and

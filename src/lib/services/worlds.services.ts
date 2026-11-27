@@ -1,7 +1,3 @@
-import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
-import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
-import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
-import { withTimeout } from '#lib/utils/async.utils.ts';
 import {
 	claimWorldsPodiumPrize as claimWorldsPodiumPrizeApi,
 	getAffiliationStats as getAffiliationStatsApi,
@@ -12,6 +8,10 @@ import {
 	removeAffiliation as removeAffiliationApi,
 	setAffiliation as setAffiliationApi
 } from '#lib/api-client/client.ts';
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+import type { AffiliationChampionship, AffiliationStatsDoc } from '#lib/types/affiliation-stats.ts';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
 
 /**
  * Hard timeout for the affiliation write path, so the picker's

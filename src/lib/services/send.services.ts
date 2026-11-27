@@ -1,11 +1,11 @@
-import type { Token } from '#lib/types/token.ts';
-import { findSendableAsset, type PendingSend } from '#lib/utils/send.utils.ts';
 import {
 	ApiError,
 	listWalletAssets,
 	requestWalletWithdrawal,
 	type ApiWalletAsset
 } from '#lib/api-client/client.ts';
+import type { Token } from '#lib/types/token.ts';
+import { findSendableAsset, type PendingSend } from '#lib/utils/send.utils.ts';
 import { isNullish } from '@dfinity/utils';
 
 /** Localizable send failure: the UI translates `messageKey` (with `params`)

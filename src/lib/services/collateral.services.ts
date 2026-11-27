@@ -1,10 +1,4 @@
 import type { ClearingDid } from '#declarations';
-import { transactionFee } from '#lib/api/icrc-ledger.api.ts';
-import { ZERO } from '#lib/constants/app.constants.ts';
-import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
-import { anonymousIdentity } from '#lib/services/identity.services.ts';
-import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
-import { resolveClearingAssetId } from '#lib/utils/tokens.utils.ts';
 import {
 	depositEngineCollateral as depositEngineCollateralApi,
 	getEngineAccountState as getEngineAccountStateApi,
@@ -12,6 +6,12 @@ import {
 	listEngineCollateralAssets as listEngineCollateralAssetsApi
 } from '#lib/api-client/client.ts';
 import { getSessionUser } from '#lib/api-client/session.ts';
+import { transactionFee } from '#lib/api/icrc-ledger.api.ts';
+import { ZERO } from '#lib/constants/app.constants.ts';
+import { VXP_TOKEN } from '#lib/constants/tokens/tokens.ic.constants.ts';
+import { anonymousIdentity } from '#lib/services/identity.services.ts';
+import { refreshAllBalances } from '#lib/utils/refresh.utils.ts';
+import { resolveClearingAssetId } from '#lib/utils/tokens.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import { nanoid } from 'nanoid';
 

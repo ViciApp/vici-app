@@ -1,7 +1,7 @@
 import type { ClearingDid } from '#declarations';
+import { listEngineLeaderboard as listEngineLeaderboardApi } from '#lib/api-client/client.ts';
 import { setGlobalStandings } from '#lib/stores/standings.store.ts';
 import type { StandingEntry, StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
-import { listEngineLeaderboard as listEngineLeaderboardApi } from '#lib/api-client/client.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 

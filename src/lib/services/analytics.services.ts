@@ -1,3 +1,4 @@
+import { postEvents } from '#lib/api-client/client.ts';
 import { ANALYTICS_MAX_EVENTS_PER_BATCH } from '#lib/constants/analytics.constants.ts';
 import { theme } from '#lib/stores/theme.store.ts';
 import type {
@@ -5,7 +6,6 @@ import type {
 	ClientAnalyticsEventName,
 	TrackEventInput
 } from '#lib/types/analytics-event.ts';
-import { postEvents } from '#lib/api-client/client.ts';
 import { browser } from '$app/env';
 import { nonNullish } from '@dfinity/utils';
 import { get } from 'svelte/store';

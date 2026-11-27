@@ -1,11 +1,11 @@
-import type { AppLocale } from '#lib/constants/locale.constants.ts';
-import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import {
 	getMarketTranslation as getMarketTranslationApi,
 	listMarketTranslations as listMarketTranslationsApi,
 	listMarketTranslationsForLocales as listMarketTranslationsForLocalesApi,
 	upsertMarketTranslation as upsertMarketTranslationApi
 } from '#lib/api-client/client.ts';
+import type { AppLocale } from '#lib/constants/locale.constants.ts';
+import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 
 export const getMarketTranslation = async ({
 	seriesId,

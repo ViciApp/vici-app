@@ -1,3 +1,12 @@
+import {
+	checkNicknameAvailability as checkNicknameAvailabilityApi,
+	getMyProfile as getMyProfileApi,
+	getProfileById as getProfileApi,
+	recordFlowSwipe as recordFlowSwipeApi,
+	searchProfiles as searchProfilesApi,
+	upsertMyProfile as upsertMyProfileApi
+} from '#lib/api-client/client.ts';
+import { assertSessionOwner, getSessionUser } from '#lib/api-client/session.ts';
 import { handleUniqueKey } from '#lib/constants/handle.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
@@ -11,15 +20,6 @@ import { evaluateAchievements, mergeUnlockedAchievements } from '#lib/utils/achi
 import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
 import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { applyDailyStreakBump } from '#lib/utils/streak.utils.ts';
-import {
-	checkNicknameAvailability as checkNicknameAvailabilityApi,
-	getMyProfile as getMyProfileApi,
-	getProfileById as getProfileApi,
-	recordFlowSwipe as recordFlowSwipeApi,
-	searchProfiles as searchProfilesApi,
-	upsertMyProfile as upsertMyProfileApi
-} from '#lib/api-client/client.ts';
-import { assertSessionOwner, getSessionUser } from '#lib/api-client/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';

@@ -1,10 +1,10 @@
 import type { ClearingDid } from '#declarations';
-import type { Outcome } from '#lib/types/market.ts';
-import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
 import {
 	listEngineSettledSeries as listEngineSettledSeriesApi,
 	listEngineSettlementStatuses as listEngineSettlementStatusesApi
 } from '#lib/api-client/client.ts';
+import type { Outcome } from '#lib/types/market.ts';
+import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
 
 /**
  * Fetches the authoritative set of settled (resolved) series ids from

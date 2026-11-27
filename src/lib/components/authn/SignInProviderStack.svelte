@@ -2,6 +2,14 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ChevronRight, Mail } from '@lucide/svelte';
 	import { onMount } from 'svelte';
+	import {
+		getProviders,
+		googleSignInUrl,
+		verifyOtp,
+		ApiError,
+		type ApiProviders
+	} from '#lib/api-client/client.ts';
+	import { adoptSession } from '#lib/api-client/session.ts';
 	import IconApple from '#lib/components/icons/IconApple.svelte';
 	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
 	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
@@ -13,14 +21,6 @@
 	} from '#lib/services/email-sign-in.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import {
-		getProviders,
-		googleSignInUrl,
-		verifyOtp,
-		ApiError,
-		type ApiProviders
-	} from '#lib/api-client/client.ts';
-	import { adoptSession } from '#lib/api-client/session.ts';
 
 	interface Props {
 		onSuccess?: () => void;

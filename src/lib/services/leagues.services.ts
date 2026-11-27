@@ -1,31 +1,3 @@
-import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
-import { authPrincipal } from '#lib/derived/user.derived.ts';
-import { LeaguePrivacy } from '#lib/enums/league.ts';
-import { track } from '#lib/services/analytics.services.ts';
-import { getMyReferralCode } from '#lib/services/referral.services.ts';
-import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
-import {
-	BATTLE_AMOUNT_MAX,
-	BATTLE_AMOUNT_MIN,
-	BATTLE_TRASH_TALK_MAX_LENGTH,
-	isBattleScope,
-	type BattleDoc,
-	type BattleScope,
-	type BattleWinner
-} from '#lib/types/battle.ts';
-import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
-import {
-	LEAGUE_DESCRIPTION_MAX_LENGTH,
-	LEAGUE_INVITE_CODE_ALPHABET,
-	LEAGUE_INVITE_CODE_LENGTH,
-	LEAGUE_INVITE_CODE_REGEX,
-	LEAGUE_NAME_MAX_LENGTH,
-	LEAGUE_NAME_MIN_LENGTH,
-	type JoinLeagueRefusalReason,
-	type LeagueDoc
-} from '#lib/types/league.ts';
-import { appOrigin } from '#lib/utils/nav.utils.ts';
-import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import {
 	acceptDuel as acceptDuelApi,
 	acceptLeagueBattle as acceptLeagueBattleApi,
@@ -55,6 +27,34 @@ import {
 	updateLeague as updateLeagueApi
 } from '#lib/api-client/client.ts';
 import { getSessionUser } from '#lib/api-client/session.ts';
+import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+import { authPrincipal } from '#lib/derived/user.derived.ts';
+import { LeaguePrivacy } from '#lib/enums/league.ts';
+import { track } from '#lib/services/analytics.services.ts';
+import { getMyReferralCode } from '#lib/services/referral.services.ts';
+import { leagueDirectoryStore } from '#lib/stores/league-directory.store.ts';
+import {
+	BATTLE_AMOUNT_MAX,
+	BATTLE_AMOUNT_MIN,
+	BATTLE_TRASH_TALK_MAX_LENGTH,
+	isBattleScope,
+	type BattleDoc,
+	type BattleScope,
+	type BattleWinner
+} from '#lib/types/battle.ts';
+import type { LeagueMemberDoc, LeagueMemberRole } from '#lib/types/league-member.ts';
+import {
+	LEAGUE_DESCRIPTION_MAX_LENGTH,
+	LEAGUE_INVITE_CODE_ALPHABET,
+	LEAGUE_INVITE_CODE_LENGTH,
+	LEAGUE_INVITE_CODE_REGEX,
+	LEAGUE_NAME_MAX_LENGTH,
+	LEAGUE_NAME_MIN_LENGTH,
+	type JoinLeagueRefusalReason,
+	type LeagueDoc
+} from '#lib/types/league.ts';
+import { appOrigin } from '#lib/utils/nav.utils.ts';
+import { hyphenateSlug } from '#lib/utils/slug.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';
