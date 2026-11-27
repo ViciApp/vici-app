@@ -1789,7 +1789,6 @@ export const deMessages = {
 	'notifications.section.new': 'Neu',
 	'notifications.title': 'Benachrichtigungen',
 	'onboarding.finish_cta': 'Einrichtung abschließen',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Sichere dir dein',
 	'onboarding.h1_accent': 'Handle.',
 	'onboarding.sub': 'Verdient, nicht geschenkt. Dein Name in jeder Rangliste.',

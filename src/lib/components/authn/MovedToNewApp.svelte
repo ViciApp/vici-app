@@ -2,6 +2,7 @@
 	import { isNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import { pinToVisualViewport } from '#lib/actions/pin-to-visual-viewport.ts';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { loadNewAppSignupUrl, newAppDomain } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -74,9 +75,7 @@
 		<div class="signin-card">
 			<div class="signin-cluster">
 				<div class="signin-head">
-					<span class="signin-wordmark" aria-label="VICI">
-						<span class="signin-wordmark-letters">VICI</span>
-					</span>
+					<Logo plain size="md" />
 					<p class="signin-eyebrow">{t({ locale: $localeStore, key: 'claim.moved.eyebrow' })}</p>
 					<h1 id={titleId} class="signin-title">
 						{titleParts.before}<span class="serif-italic acc">{domain}</span>{titleParts.after}

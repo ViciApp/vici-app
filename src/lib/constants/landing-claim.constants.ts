@@ -18,6 +18,3 @@ export const LANDING_CLAIM_PRIVACY_PATH = `${PublicPath.Info}/privacy` as const;
  * itself is the record.
  */
 export const LANDING_CLAIM_HANDLE_STORAGE_KEY = 'vici.landing.claimed-handle.v1';
-
-/** The parchment wordmark the top bar shows over the dark footage. */
-export const LANDING_NAV_WORDMARK_SRC = '/branding/vici-wordmark-parchment.png';

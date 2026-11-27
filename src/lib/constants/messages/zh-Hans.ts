@@ -1677,7 +1677,6 @@ export const zhHansMessages = {
 	'notifications.section.new': '最新',
 	'notifications.title': '通知',
 	'onboarding.finish_cta': '完成设置',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': '认领你的',
 	'onboarding.h1_accent': '昵称。',
 	'onboarding.sub': '靠实力赢得，而非赠予。你的名字出现在每个排行榜上。',

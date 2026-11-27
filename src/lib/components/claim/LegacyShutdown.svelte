@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { loadNewAppPageUrl, newAppDomain } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -21,9 +22,7 @@
 	<div class="signin-card">
 		<div class="signin-cluster">
 			<div class="signin-head">
-				<span class="signin-wordmark" aria-label="VICI">
-					<span class="signin-wordmark-letters">VICI</span>
-				</span>
+				<Logo plain size="md" />
 				<p class="signin-eyebrow">{t({ locale: $localeStore, key: 'claim.moved.eyebrow' })}</p>
 				<h1 class="signin-title">
 					{t({ locale: $localeStore, key: 'claim.moved.title', params: { domain } })}

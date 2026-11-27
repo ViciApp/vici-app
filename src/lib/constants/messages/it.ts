@@ -1768,7 +1768,6 @@ export const itMessages = {
 	'notifications.section.new': 'Nuove',
 	'notifications.title': 'Notifiche',
 	'onboarding.finish_cta': 'Completa configurazione',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Scegli il tuo',
 	'onboarding.h1_accent': 'handle.',
 	'onboarding.sub': 'Guadagnato, non regalato. Il tuo nome su ogni classifica.',

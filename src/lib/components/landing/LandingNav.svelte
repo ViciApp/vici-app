@@ -3,10 +3,8 @@
 	import { onMount } from 'svelte';
 	import LandingClaim from '#lib/components/landing/LandingClaim.svelte';
 	import LandingNavSwitch from '#lib/components/landing/LandingNavSwitch.svelte';
-	import {
-		LANDING_CLAIM_MIN_ORIGIN_PX,
-		LANDING_NAV_WORDMARK_SRC
-	} from '#lib/constants/landing-claim.constants.ts';
+	import Logo from '#lib/components/layout/Logo.svelte';
+	import { LANDING_CLAIM_MIN_ORIGIN_PX } from '#lib/constants/landing-claim.constants.ts';
 	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { landingClaimStore } from '#lib/stores/landing-claim.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -63,7 +61,7 @@
 </script>
 
 <nav class="ln" class:is-claiming={claiming}>
-	<img class="ln-mark" alt="VICI" height="274" src={LANDING_NAV_WORDMARK_SRC} width="1024" />
+	<span class="ln-mark"><Logo plain tone="parchment" /></span>
 	<div class="ln-r">
 		{#if canSwitch}
 			<LandingNavSwitch {onview} {view} />
@@ -120,10 +118,7 @@
 
 	/* The artwork carries generous transparent margins; pull them in so the letters sit on the gutter. */
 	.ln-mark {
-		display: block;
-		width: auto;
-		height: 32px;
-		margin: -6px -35px -10px -28px;
+		display: flex;
 	}
 
 	.ln-r {
@@ -240,13 +235,6 @@
 
 		.ln-short {
 			display: inline;
-		}
-	}
-
-	@media (max-width: 560px) {
-		.ln-mark {
-			height: 28px;
-			margin: -5px -31px -8px -24px;
 		}
 	}
 

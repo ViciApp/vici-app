@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Settings, User } from '@lucide/svelte/icons';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { navItems } from '#lib/constants/nav.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
@@ -109,13 +110,7 @@
 
 <header class="app-desktop-nav">
 	<div class="app-desktop-nav-inner">
-		<a
-			class="app-desktop-nav-brand"
-			aria-label={t({ locale: $localeStore, key: 'a11y.landing' })}
-			href={AppPath.Home}
-		>
-			VICI
-		</a>
+		<Logo href={AppPath.Home} label={t({ locale: $localeStore, key: 'a11y.landing' })} size="md" />
 
 		<nav
 			bind:this={linksEl}
@@ -189,15 +184,6 @@
 		gap: 2rem;
 		width: 100%;
 		max-width: var(--content-max, 80rem);
-	}
-
-	.app-desktop-nav-brand {
-		font-family: var(--font-display);
-		font-weight: 600;
-		font-size: var(--t-20);
-		letter-spacing: 0.18em;
-		color: var(--text-base);
-		text-decoration: none;
 	}
 
 	.app-desktop-nav-links {

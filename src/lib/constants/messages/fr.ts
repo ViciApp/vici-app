@@ -1772,7 +1772,6 @@ export const frMessages = {
 	'notifications.section.new': 'Nouveau',
 	'notifications.title': 'Notifications',
 	'onboarding.finish_cta': 'Terminer la configuration',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Réservez votre',
 	'onboarding.h1_accent': 'pseudo.',
 	'onboarding.sub': 'Mérité, pas donné. Votre nom sur chaque classement.',

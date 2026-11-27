@@ -1770,7 +1770,6 @@ export const esMessages = {
 	'notifications.section.new': 'Nuevas',
 	'notifications.title': 'Notificaciones',
 	'onboarding.finish_cta': 'Finalizar configuración',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Reclama tu',
 	'onboarding.h1_accent': 'alias.',
 	'onboarding.sub': 'Ganado, no regalado. Tu nombre en cada clasificación.',
