@@ -27,7 +27,7 @@ import { isNullish, nonNullish } from '@dfinity/utils';
 /** Minimum settled calls before the Owl's accuracy ladder is eligible. A
  * stricter, animal-specific gate than the general accuracy-display threshold:
  * accuracy on a handful of calls isn't yet a signal of calibration. */
-export const MENAGERIE_OWL_MIN_CALLS = 50;
+const MENAGERIE_OWL_MIN_CALLS = 50;
 
 /**
  * Number of categories the owner "owns": at least
@@ -91,7 +91,7 @@ export interface MenagerieStats {
  * The `UserProfile` fields the menagerie reads, narrowed so callers can pass a
  * partial profile in tests / loaders without the full schema.
  */
-export interface MenagerieProfileFields {
+interface MenagerieProfileFields {
 	totalTrades?: number;
 	dailyStreak?: number;
 	onFireStreak?: number;
@@ -106,7 +106,7 @@ export interface MenagerieProfileFields {
 }
 
 /** Live signals the profile doc doesn't carry but the menagerie can use. */
-export interface MenagerieLiveSignals {
+interface MenagerieLiveSignals {
 	referrals?: number;
 	rank?: number;
 	totalRanked?: number;
@@ -245,7 +245,7 @@ export const menagerieTierFor = ({
 	return earned;
 };
 
-export interface MenagerieProgress {
+interface MenagerieProgress {
 	/** The animal's current raw metric value. */
 	current: number;
 	/** Threshold of the next rung, or `null` at max tier. */
@@ -262,7 +262,7 @@ export interface MenagerieProgress {
  * Progress toward the next rung: drives the "X% to next tier" bars. At max tier
  * `next` is `null`, `ratio` is `1`, and `label` is `'max'`.
  */
-export const menagerieProgress = ({
+const menagerieProgress = ({
 	slug,
 	stats
 }: {
@@ -338,20 +338,15 @@ export const menagerieTierColor = (tier: MenagerieTier | null): string =>
 	tier ? MENAGERIE_TIER_COLORS[tier] : 'var(--text-muted)';
 
 /** A `${slug}:${tier}` celebration-ledger key. */
-export const menagerieKey = ({
-	slug,
-	tier
-}: {
-	slug: MenagerieSlug;
-	tier: MenagerieTier;
-}): string => `${slug}:${tier}`;
+const menagerieKey = ({ slug, tier }: { slug: MenagerieSlug; tier: MenagerieTier }): string =>
+	`${slug}:${tier}`;
 
 /**
  * Every `${slug}:${tier}` the owner currently qualifies for: cumulative, so
  * gold implies wood + silver + gold. This is the full earned set; the celebration
  * ledger (`earnedMenagerie`) is compared against it to find fresh crossings.
  */
-export const earnedMenagerieKeys = (stats: MenagerieStats): string[] => {
+const earnedMenagerieKeys = (stats: MenagerieStats): string[] => {
 	const keys: string[] = [];
 
 	for (const animal of MENAGERIE) {
@@ -376,7 +371,7 @@ export interface MenagerieCrossing {
 	tier: MenagerieTier;
 }
 
-export type MenagerieDiff =
+type MenagerieDiff =
 	| { firstRun: true; all: string[]; celebrate: [] }
 	| { firstRun: false; all: string[]; celebrate: MenagerieCrossing[] };
 

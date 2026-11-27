@@ -121,7 +121,7 @@ export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
 /**
  * Clearing account state for `domain`.
  */
-export const getCollateralBalances = async (
+const getCollateralBalances = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse | undefined> => {
 	if (isWeb2Backend()) {

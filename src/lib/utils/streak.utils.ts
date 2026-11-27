@@ -96,7 +96,7 @@ export const todayKey = (now: Date = new Date()): string => {
  * window (continue: at most one fully-missed day), or "too long ago"
  * (break).
  */
-export const dayDelta = ({ from, to }: { from: string; to: string }): number => {
+const dayDelta = ({ from, to }: { from: string; to: string }): number => {
 	const parse = (k: string): number | null => {
 		const m = DAY_KEY_RE.exec(k);
 
@@ -140,7 +140,7 @@ export const dayDelta = ({ from, to }: { from: string; to: string }): number => 
 	return Math.round((b - a) / DAY_IN_MS);
 };
 
-export interface DailyStreakBump {
+interface DailyStreakBump {
 	// New streak day count after the bump (`>= 1`).
 	streak: number;
 	// `'continue'`: same day, or the gap since the recorded key is
