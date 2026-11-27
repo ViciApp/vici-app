@@ -20,7 +20,7 @@ A reservation lasts twelve months. Before it ends the person receives one email 
 
 - A migration adds `renewal_email_sent_at timestamptz` to `waitlist_reservations`.
 - **Who it applies to:** confirmed reservations that are neither admitted nor attached to an account.
-- **The re-confirm email**, `WAITLIST_RENEWAL_NOTICE_DAYS` (30) before `expires_at`, once per cycle, stamped before the send and cleared on failure: the handle, the date the hold ends, a "keep my handle" link, the remove link. In the reservation's language, copy in every live locale.
+- **The re-confirm emails**, at each of `WAITLIST_RENEWAL_NOTICE_DAYS` ([30, 7]) before `expires_at`, each once per cycle (its own stamp column: `renewal_notice_30_at`, `renewal_notice_7_at`), stamped before the send and cleared on failure; the 7-day one is skipped when the handle was already kept: the handle, the date the hold ends, a "keep my handle" link, the remove link. In the reservation's language, copy in every live locale.
 - **The keep link**: `https://vici.app/waitlist/keep?r=<id>&t=<token>` with `token = peppered('waitlist-keep\n' + id + '\n' + expires_at)`, so a link is good for its own cycle only. It opens a public page (`src/routes/waitlist/keep/+page.svelte`) with one button; only the button's `POST /api/v1/waitlist/renew` (`{ id, token }`, IP-limited) renews: `expires_at` moves twelve months on and `renewal_email_sent_at` is cleared. A mail scanner opening the link renews nothing.
 - **No answer:** at `expires_at` the row is deleted by the hourly job (`waitlist-renewal`, which also sends the notices): the handle is free, the calls and links of W4 go with it, the mailbox can join again. No further email is sent.
 - **Admission resets nothing here:** a reservation admitted while a notice is out simply leaves this part's scope.
@@ -62,7 +62,7 @@ No `userId`, no email, no handle.
 4. App: the keep page, its public path in `src/lib/constants/routes.constants.ts`, the client wrapper, i18n keys `waitlist.keep.*` in every catalog.
 5. **Docs in the same PR:** `PRODUCT.md` ("Waitlist": how long a handle is held and how to keep it), `backend/README.md`.
 
-**Tests** (`backend/tests/waitlist-renewal.test.ts`): a notice goes once, 30 days ahead, in the row's language, and not to admitted rows or rows with an account; a failed send is retried; opening the link changes nothing; the button renews for twelve months and a second press with the same link is refused; a link from an earlier cycle is refused; an unanswered row is deleted at its end date and its handle can be reserved again; a second job run does nothing.
+**Tests** (`backend/tests/waitlist-renewal.test.ts`): the first notice goes once 30 days ahead and the second once 7 days ahead (skipped after a keep), in the row's language, and not to admitted rows or rows with an account; a failed send is retried; opening the link changes nothing; the button renews for twelve months and a second press with the same link is refused; a link from an earlier cycle is refused; an unanswered row is deleted at its end date and its handle can be reserved again; a second job run does nothing.
 
 **Rollout.** Any time within eleven months of the first reservation. Rollback: the previous image; reservations then simply do not expire.
 
@@ -73,7 +73,7 @@ No `userId`, no email, no handle.
 
 ## Acceptance criteria
 
-- [ ] A waiting reservation gets one re-confirm email 30 days before its twelve months end, in its language.
+- [ ] A waiting reservation gets a re-confirm email 30 days and another 7 days before its twelve months end (the second only if not yet kept), in its language.
 - [ ] Pressing the button on the linked page extends the hold by twelve months; opening the link alone does not.
 - [ ] A reservation not renewed is removed at its end date and its handle is free.
 - [ ] Admitted reservations and those with an account are never notified or removed by this part.
@@ -83,12 +83,10 @@ No `userId`, no email, no handle.
 
 1. **Counsel**: the policy's retention sentence must match (twelve months, renewable).
 
-## Pending decisions
-
-1. **When the re-confirm email goes, and whether one is enough.** Recommended: one email 30 days before the end of the 12 months. Alternatives: one email 7 days before; two emails (30 days and 7 days before). To settle with the owner before implementation.
-
 ## Decisions
 
 Owner decision (27 Nov 2026): **a reservation lasts 12 months, then a re-confirm email; if there is no response, it is released.**
+
+Owner decision (27 Nov 2026): **two re-confirm emails, 30 days and 7 days before the end; the second is skipped if the person already kept the handle.**
 
 Author's choices (a reviewer may overrule): the keep link is bound to its cycle and needs a button press; admitted reservations and those with an account are outside this clock.
