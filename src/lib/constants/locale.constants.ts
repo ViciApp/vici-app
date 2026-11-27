@@ -34,7 +34,7 @@ export const DEFAULT_LOCALE: AppLocale = 'en';
  *   absent or only partial. Missing keys resolve through the `fallback`
  *   chain to `en`, so the UI always renders real copy, never a raw key.
  */
-export type LocaleTier = 'live' | 'soon';
+type LocaleTier = 'live' | 'soon';
 
 /**
  * A registered locale (BCP-47: `language[-Script][-REGION]`).
@@ -378,7 +378,7 @@ export const isRegisteredLocale = (value: unknown): value is AppLocale =>
  * A group with a single region renders as a direct pick row; a group with
  * several renders an expandable header drilling into its region rows.
  */
-export interface LocaleLanguageGroup {
+interface LocaleLanguageGroup {
 	/** Primary subtag shared by the group (`es`, `pt`, `en`, …). */
 	readonly lang: string;
 	/** Native language name (from the group's anchor entry). */

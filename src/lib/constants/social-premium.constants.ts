@@ -17,11 +17,11 @@ import { isNullish } from '@dfinity/utils';
 
 export const SOCIAL_PREMIUM_OTHER_ID = 'other' as const;
 
-export type SocialPremiumPresetId = 'coffee' | 'beer' | 'pizza' | 'aperitif' | 'dinner';
+type SocialPremiumPresetId = 'coffee' | 'beer' | 'pizza' | 'aperitif' | 'dinner';
 
 export type SocialPremiumOptionId = SocialPremiumPresetId | typeof SOCIAL_PREMIUM_OTHER_ID;
 
-export interface SocialPremiumPreset {
+interface SocialPremiumPreset {
 	readonly id: SocialPremiumPresetId;
 	readonly emoji: string;
 	readonly descKey: MessageKey;

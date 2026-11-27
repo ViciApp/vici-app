@@ -9,7 +9,7 @@ src/satellite/
 ├── satellite.did               Generated Candid (do not hand-edit)
 ├── satellite_extension.did     Generated Candid (do not hand-edit)
 ├── tsconfig.json               Satellite-only TS config
-├── services/                   One <area>.services.ts per concern (`ls` for all ~45), e.g.:
+├── services/                   One <area>.services.ts per concern (`ls` for all), e.g.:
 │   ├── engine-sync.services.ts     Mirrors Juno roles → icdc-core Vici engine
 │   ├── leaderboard.services.ts     Server-side leaderboard reads
 │   ├── market-metadata.services.ts Creator/admin market context updates
@@ -20,6 +20,7 @@ src/satellite/
 │   ├── vxp-onboarding.services.ts  VXP onboarding hooks
 │   └── vxp-payout.services.ts      Shared VXP ledger transfer
 └── utils/                          Catalog: reusability.md
+    ├── award-marker.utils.ts       Anonymous one-time award marker keys
     ├── candid.utils.ts             IDL types off the generated factories
     ├── logger.utils.ts             Structured logging wrapper
     ├── regex.utils.ts              escapeRegex
@@ -27,7 +28,8 @@ src/satellite/
     ├── tournament-draw.utils.ts    When a tournament draw is accepted
     ├── tournament-prize.utils.ts   Tournament podium + prize claim decision
     ├── vxp-payout.utils.ts         VXP transfer error mapping
-    └── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire
+    ├── wire-format.utils.ts        camelCase wire schemas + toWire / fromWire
+    └── worlds-podium.utils.ts      Worlds podium join window + award keys
 ```
 
 ## What goes where
@@ -39,6 +41,8 @@ src/satellite/
 | **`onSetDoc` hook** (post-write trigger)              | A function exported from `services/<area>.services.ts`, registered via the `setDocCollections` map in `index.ts`.                              |
 | **`onDeleteDoc` hook** (post-delete trigger)          | Same shape, via the `deleteDocCollections` map in `index.ts`.                                                                                  |
 | **`assertSetDoc` assertion** (pre-write veto)         | Same shape, via the `assertSetDocCollections` map in `index.ts`.                                                                               |
+| **`assertDeleteDoc` assertion** (pre-delete veto)     | Same shape, via the `assertDeleteDocCollections` map in `index.ts`.                                                                            |
+| **Storage asset assertion** (upload / delete veto)    | `assertUploadAsset` / `assertDeleteAsset` in `index.ts`, over `assetCollections` (`league_images` today).                                      |
 | **Cross-canister call** (registry / clearing)         | Co-located with the hook that needs it (e.g. `engine-sync.services.ts` calls the registry).                                                    |
 | **Pure helper**                                       | `utils/<name>.utils.ts`.                                                                                                                       |
 | **Schema**                                            | Reuse `#lib/schema/*.schema.ts` whenever the same shape is consumed by the FE; only declare a satellite-only schema if the FE doesn't need it. |

@@ -41,12 +41,11 @@ export const worldCupMode: Readable<boolean> = derived(
 );
 
 /**
- * Re-export of the product's archive gate for World-Cup content. `true`
- * while the featured event is `upcoming` / `live` / `wrap-up`; `false`
- * once it has archived. Surfaced here so World-Cup consumers have a
- * single import for the whole foundation.
+ * The product's archive gate under its World-Cup name, read by the gates
+ * below. `true` while the featured event is `upcoming` / `live` /
+ * `wrap-up`; `false` once it has archived.
  */
-export const worldCupNotArchived: Readable<boolean> = featuredEventActive;
+const worldCupNotArchived: Readable<boolean> = featuredEventActive;
 
 /**
  * Whether World-Cup content should be surfaced right now: the user has
@@ -71,7 +70,7 @@ export const worldCupActive: Readable<boolean> = derived(
  *   Markets reverts to all-categories and a recap card converts WC interest
  *   into broader play.
  */
-export type WorldCupPhase = 'off' | 'wc-focus' | 'bridge' | 'open';
+type WorldCupPhase = 'off' | 'wc-focus' | 'bridge' | 'open';
 
 /**
  * How long before the final the `bridge` phase opens. Two weeks gives the

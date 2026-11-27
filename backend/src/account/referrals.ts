@@ -6,7 +6,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { randomInt } from 'node:crypto';
-import { query } from '../db/client';
+import { query, type TxQuery } from '../db/client';
 import { logger } from '../lib/logger';
 import { DAY_IN_MS } from '../lib/time';
 import { friendRelationKey } from '../social/relations';
@@ -121,14 +121,16 @@ export const lookupReferralCode = async (code: string): Promise<string | undefin
  * existing relation in ANY state is left untouched (the key conflict is a
  * no-op).
  */
-const writeConfirmedFriendship = async ({
+export const writeConfirmedFriendship = async ({
 	referrerUserId,
-	refereeUserId
+	refereeUserId,
+	q = query
 }: {
 	referrerUserId: string;
 	refereeUserId: string;
+	q?: TxQuery;
 }): Promise<void> => {
-	await query(
+	await q(
 		`insert into relations (key, category, state, participant_one, participant_two)
 		 values ($1, 'FRIEND', 'ACTIVE', $2, $3)
 		 on conflict (key) do nothing`,
@@ -167,21 +169,19 @@ const resolveCodeForUser = async ({
 	return { normalized, referrerUserId };
 };
 
+/** Why an account cannot be credited to a referrer: it already was, through
+ * any channel (or a deleted account of the same identity collected the
+ * referee bonus), it has no profile yet, or it signed up too long ago. */
+export type ReferralIneligibility = 'already_redeemed' | 'no_profile' | 'outside_signup_window';
+
 /**
- * Records a redemption for a fresh sign-up: one per referee ever, only
- * within the signup window, never against the caller's own code. Writes the
- * referrals row plus the auto-confirmed friendship. NO payout fires here:
- * the bonus is deferred to the referee's first prediction (the trade
- * trigger drives ../vxp/referral.ts), so sign-ups that never engage reward
- * nobody.
+ * The redemption rules every referral channel shares, checked before any
+ * referrer is resolved: one redemption per referee ever and only within the
+ * signup window. `undefined` when the account may be credited.
  */
-export const redeemReferralCode = async ({
-	userId,
-	code
-}: {
-	userId: string;
-	code: string;
-}): Promise<void> => {
+export const referralIneligibility = async (
+	userId: string
+): Promise<ReferralIneligibility | undefined> => {
 	const existing = await query<{ referee_user_id: string }>(
 		`select referee_user_id from referrals where referee_user_id = $1`,
 		[userId]
@@ -193,7 +193,7 @@ export const redeemReferralCode = async ({
 		nonNullish(existing[0]) ||
 		(await hasAwardMarker({ userId, awardType: 'referral', awardKey: userId }))
 	) {
-		throw new ReferralError('You have already redeemed a referral code.');
+		return 'already_redeemed';
 	}
 
 	const profileRows = await query<{ created_at: Date }>(
@@ -203,30 +203,92 @@ export const redeemReferralCode = async ({
 	const [profile] = profileRows;
 
 	if (isNullish(profile)) {
-		throw new ReferralError('Create your profile before redeeming a referral code.');
+		return 'no_profile';
 	}
 
 	// Signup-window gate: only fresh sign-ups earn the VXP bonus. Existing
 	// users who follow a referral link land in claimReferralFriendship
 	// instead (friendship only, no VXP).
 	if (Date.now() - profile.created_at.getTime() > REFERRAL_SIGNUP_WINDOW_MS) {
-		throw new ReferralError(REFERRAL_EXISTING_USER_REASON);
+		return 'outside_signup_window';
 	}
+};
 
-	const { normalized, referrerUserId } = await resolveCodeForUser({ userId, code });
-
-	await query(
-		`insert into referrals (referee_user_id, referrer_user_id, code, redeemed_at_ms)
-		 values ($1, $2, $3, $4)
-		 on conflict (referee_user_id) do nothing`,
-		[userId, referrerUserId, normalized, Date.now()]
+/**
+ * Writes the one referrals row of an eligible referee plus the auto-confirmed
+ * friendship, for any channel: a referral code, or a challenge link
+ * (`challengeId`, with the challenger's own code). The referee primary key
+ * makes a racing second redemption a no-op, so the first written row stands:
+ * `false` tells the loser it credited nobody, and it writes no friendship,
+ * since its referrer is not the one the row names.
+ * NO payout fires here: the bonus is deferred to the referee's first
+ * prediction (the trade trigger drives ../vxp/referral.ts), so sign-ups that
+ * never engage reward nobody.
+ */
+export const writeReferralRedemption = async ({
+	userId,
+	referrerUserId,
+	code,
+	challengeId
+}: {
+	userId: string;
+	referrerUserId: string;
+	code: string;
+	challengeId?: string;
+}): Promise<boolean> => {
+	const inserted = await query<{ referee_user_id: string }>(
+		`insert into referrals (referee_user_id, referrer_user_id, code, redeemed_at_ms, challenge_id)
+		 values ($1, $2, $3, $4, $5)
+		 on conflict (referee_user_id) do nothing
+		 returning referee_user_id`,
+		[userId, referrerUserId, code, Date.now(), challengeId ?? null]
 	);
+
+	if (isNullish(inserted[0])) {
+		return false;
+	}
 
 	await writeConfirmedFriendship({ referrerUserId, refereeUserId: userId });
 
 	logger.info(
-		`referral redeemed: referee ${userId}, referrer ${referrerUserId}, code ${normalized}`
+		`referral redeemed: referee ${userId}, referrer ${referrerUserId}, code ${code}${
+			isNullish(challengeId) ? '' : ', through a challenge link'
+		}`
 	);
+
+	return true;
+};
+
+const INELIGIBLE_REFERRAL_MESSAGES: Record<ReferralIneligibility, string> = {
+	already_redeemed: 'You have already redeemed a referral code.',
+	no_profile: 'Create your profile before redeeming a referral code.',
+	outside_signup_window: REFERRAL_EXISTING_USER_REASON
+};
+
+/**
+ * Records a redemption for a fresh sign-up: one per referee ever, only
+ * within the signup window, never against the caller's own code.
+ */
+export const redeemReferralCode = async ({
+	userId,
+	code
+}: {
+	userId: string;
+	code: string;
+}): Promise<void> => {
+	const ineligible = await referralIneligibility(userId);
+
+	if (nonNullish(ineligible)) {
+		throw new ReferralError(INELIGIBLE_REFERRAL_MESSAGES[ineligible]);
+	}
+
+	const { normalized, referrerUserId } = await resolveCodeForUser({ userId, code });
+
+	const redeemed = await writeReferralRedemption({ userId, referrerUserId, code: normalized });
+
+	if (!redeemed) {
+		throw new ReferralError(INELIGIBLE_REFERRAL_MESSAGES.already_redeemed);
+	}
 };
 
 /**

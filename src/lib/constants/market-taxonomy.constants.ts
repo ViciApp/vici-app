@@ -217,7 +217,7 @@ export const isMicroId = (value: string): value is MicroId =>
 	(MICRO_IDS as readonly string[]).includes(value);
 
 /** Parent macro of a micro. */
-export const macroOfMicro = (micro: MicroId): MacroId => MICRO_TO_MACRO[micro];
+const macroOfMicro = (micro: MicroId): MacroId => MICRO_TO_MACRO[micro];
 
 /** Micros belonging to a macro, in canonical order. */
 export const microsOfMacro = (macro: MacroId): MicroId[] =>
@@ -233,7 +233,7 @@ export const microLabelKey = (micro: MicroId): MessageKey => `market.micro.${mic
 
 // Per-macro brand accent. Micros inherit their macro's color; the chip's
 // meaning is carried by the macro family, not per-micro hues.
-export const MACRO_COLORS = {
+const MACRO_COLORS = {
 	politics: '#FF6B6B',
 	world: '#E2B842',
 	economy: '#7EB6FF',
@@ -253,9 +253,7 @@ export const microColor = (micro: MicroId): string => MACRO_COLORS[macroOfMicro(
  * Micros are de-duplicated preserving first-seen order; anything that is not
  * a known micro id is treated as a Layer-3 free tag.
  */
-export const splitClassification = (
-	values: readonly string[]
-): { micros: MicroId[]; tags: string[] } => {
+const splitClassification = (values: readonly string[]): { micros: MicroId[]; tags: string[] } => {
 	const micros: MicroId[] = [];
 	const seen = new Set<MicroId>();
 	const tags: string[] = [];

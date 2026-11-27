@@ -1,6 +1,6 @@
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
 
-export type AchievementTier = 'gold' | 'silver' | 'bronze';
+type AchievementTier = 'gold' | 'silver' | 'bronze';
 
 /**
  * Achievement definition: drives the Album tile + the unlock toast.
