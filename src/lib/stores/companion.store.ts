@@ -5,7 +5,7 @@ type CompanionWho = 'vici' | 'oracle' | 'trickster' | 'flame';
 type CompanionAnchor = 'br' | 'tr' | 'inline';
 type ViciMood = 'happy' | 'encouraging' | 'thinking' | 'surprised';
 
-export interface CompanionMessage {
+interface CompanionMessage {
 	who: CompanionWho;
 	line: string;
 	dwell_ms?: number;

@@ -51,7 +51,7 @@ const eventConsensus = (event: ClearingDid.Event): number | undefined => {
 	return Math.max(0, Math.min(1, value));
 };
 
-export const deriveCategoryAccuracySignals = ({
+const deriveCategoryAccuracySignals = ({
 	events,
 	tagMappings
 }: {
@@ -82,7 +82,7 @@ export const deriveCategoryAccuracySignals = ({
 	return signals;
 };
 
-export const derivePriorCallSignals = (
+const derivePriorCallSignals = (
 	events: ClearingDid.Event[]
 ): Partial<Record<MarketId, PriorCallSignal>> => {
 	const priorCalls: Partial<Record<MarketId, PriorCallSignal>> = {};

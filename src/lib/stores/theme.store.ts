@@ -5,14 +5,14 @@ import { writable } from 'svelte/store';
 export type Theme = 'dark' | 'light' | 'peach';
 
 const THEME_KEY = 'vici-theme';
-export const THEMES: readonly Theme[] = ['dark', 'light', 'peach'] as const;
+const THEMES: readonly Theme[] = ['dark', 'light', 'peach'] as const;
 
 /**
  * Theme-label i18n keys consumed by `AppearancePicker` (settings tile +
  * dropdown dots) and the Settings appearance row. Centralised so every surface shares the same labelling without
  * each carrying its own literal map.
  */
-export type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach';
+type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach';
 
 /**
  * Background / dot hex pairs for theme preview chips. Single source of
@@ -21,7 +21,7 @@ export type ThemeLabelKey = 'ui.theme.dark' | 'ui.theme.light' | 'ui.theme.peach
  * swatches that must read correctly even when the *opposite* theme is
  * currently active.
  */
-export interface ThemeSwatch {
+interface ThemeSwatch {
 	readonly id: Theme;
 	readonly labelKey: ThemeLabelKey;
 	readonly bg: string;

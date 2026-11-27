@@ -120,7 +120,7 @@ export const startPolling = ({
 	};
 };
 
-export interface LoadEpoch {
+interface LoadEpoch {
 	/** Marks a load as started; the returned check stays true until the next `invalidate`. */
 	start: () => () => boolean;
 	/** Drops every load started before this call. */
