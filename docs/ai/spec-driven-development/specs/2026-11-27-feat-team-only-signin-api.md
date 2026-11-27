@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress
+Status: In progress (#1787)
 
 Part 1 of 2. Part 2 is [`2026-11-27-feat-team-only-signin-app.md`](./2026-11-27-feat-team-only-signin-app.md) (the app's routes and entry points). The two build in parallel: this part is the boundary, part 2 only removes the doors.
 
