@@ -129,7 +129,7 @@ export const formatQuantity = ({
 	decimals?: number;
 }): string => formatToken({ value, unitName: decimals, displayDecimals: 2 });
 
-export const formatCurrency = ({
+const formatCurrency = ({
 	value,
 	decimals = 6,
 	symbol = 'USD'
