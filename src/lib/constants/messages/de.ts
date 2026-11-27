@@ -1801,6 +1801,7 @@ export const deMessages = {
 	'onboarding.avail.too_long': 'Zu lang: höchstens {max} Zeichen',
 	'onboarding.avail.reserved': 'Reserviert, wähle einen anderen',
 	'onboarding.avail.check_failed': 'Prüfung fehlgeschlagen, versuche zu sichern',
+	'onboarding.avail.rate_limited': 'Zu viele Prüfungen, versuche zu sichern',
 	'onboarding.reward_title': '{amount}-VXP-Starterpaket',
 	'onboarding.reward_sub': 'Sag {event} voraus',
 	'onboarding.lock_ready': '@{handle} wird gesichert',

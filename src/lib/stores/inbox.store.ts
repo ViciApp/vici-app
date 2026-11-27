@@ -614,6 +614,20 @@ const loadInboxProgress = (): InboxProgress => {
 
 const inboxProgressStore = writable<InboxProgress>(loadInboxProgress());
 
+/**
+ * Re-reads every persisted inbox set from localStorage. The stores load once
+ * at import, but a web2 account switch moves the tab to another owner without
+ * a reload; without this, the next mark-read / dismiss would write the
+ * previous owner's set back under the new one after
+ * `reconcileIdentityScopedStorage` cleared it.
+ */
+const reloadPersistedInboxState = (): void => {
+	settledReadStore.set(loadSettledReadSet());
+	inboxReadStore.set(loadStringSet(INBOX_READ_STORAGE_KEY));
+	inboxDismissedStore.set(loadStringSet(INBOX_DISMISSED_STORAGE_KEY));
+	inboxProgressStore.set(loadInboxProgress());
+};
+
 const updateInboxProgress = (updater: (current: InboxProgress) => InboxProgress): void => {
 	inboxProgressStore.update((current) => {
 		const next = updater(current);
@@ -766,12 +780,12 @@ const acknowledgeStreak = (): void => {
  *     re-notifies (the streak, unlike the monotonic level, breaks to SPARK).
  * The marker only moves *up* on acknowledge, which is what surfaces the card.
  *
- * On an owner change it reloads the marker from localStorage, which
- * `reconcileIdentityScopedStorage` (run by `Authn` before the new profile is
- * set) has already cleared on a real account switch, so the previous user's
- * `seen*` markers can't suppress the next user's cards. (The other in-memory
- * inbox stores only carry read-state and re-read on the next app load; this
- * one gates card *visibility*, so it re-reads on the switch itself.)
+ * On an owner change it reloads the marker and the read / dismissed sets from
+ * localStorage, which `reconcileIdentityScopedStorage` (run by `Authn` before
+ * the new user is set) has already cleared on a real account switch, so the
+ * previous user's `seen*` markers can't suppress the next user's cards and
+ * their read / dismissed ids can't carry over. The reload sits in this
+ * subscription so it lands before the marker maintenance below reads it.
  *
  * Mounted from `NotifToastHost`'s `onMount` (beside `initInboxToasts`) so the
  * side-effect runs only while the shell is rendered; returns a teardown.
@@ -788,7 +802,7 @@ export const initInboxProgress = (): (() => void) => {
 
 		if (owner !== lastOwner) {
 			lastOwner = owner;
-			inboxProgressStore.set(loadInboxProgress());
+			reloadPersistedInboxState();
 		}
 
 		const { profile } = $user;

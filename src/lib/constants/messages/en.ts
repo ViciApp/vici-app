@@ -1771,6 +1771,7 @@ export const enMessages = {
 	'onboarding.avail.too_long': 'Too long: {max} characters max',
 	'onboarding.avail.reserved': 'Reserved: pick another',
 	'onboarding.avail.check_failed': "Couldn't verify: try claiming",
+	'onboarding.avail.rate_limited': 'Too many checks: try claiming',
 	'onboarding.reward_title': '{amount} VXP starter pack',
 	'onboarding.reward_sub': 'Predict {event}',
 	'onboarding.lock_ready': 'Locking @{handle}',
