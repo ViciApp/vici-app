@@ -26,10 +26,11 @@ Two files under `src/lib/web2/`:
 
 ## Env vars
 
-| Var                 | Values           | Default | Effect                                                                       |
-| ------------------- | ---------------- | ------- | ---------------------------------------------------------------------------- |
-| `VITE_BACKEND`      | `web3` \| `web2` | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only. |
-| `VITE_WEB2_API_URL` | origin URL       | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).    |
+| Var                       | Values              | Default | Effect                                                                                                                                                                                             |
+| ------------------------- | ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_BACKEND`            | `web3` \| `web2`    | `web3`  | Selects the backend for domains that have a dual-mode path. Build-time only.                                                                                                                       |
+| `VITE_WEB2_API_URL`       | origin URL          | empty   | Base of the HTTP API. Empty = same-origin relative (reverse-proxy shape).                                                                                                                          |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare site key | empty   | Public key of the Turnstile widget in front of the anonymous endpoints (`turnstileSiteKey()` in `#lib/env/app.env.ts`). Empty sends an empty token, which the API accepts only outside production. |
 
 ## Swapped domains
 
@@ -55,7 +56,11 @@ is the reference. The rules it demonstrates:
    at the top of the module. Never `await import()` inside the branch.
 3. **Add a typed wrapper in `client.ts` per endpoint**, typed to the wire
    contract of the HTTP API route. If the wire shape differs from the
-   satellite shape, map it inside the wrapper, not in the service.
+   satellite shape, map it inside the wrapper, not in the service. A money
+   or identity endpoint parses its body with a schema from
+   `#lib/schema/web2-api.schema.ts` through `parsedRequest`: a body that
+   does not match throws `Web2ApiError` `invalid_response` with the 2xx
+   status, so a caller reads the outcome as unknown, never as success.
 4. **Default path is byte-for-byte today's behavior.** The `web3` branch
    must remain the exact pre-seam code; a diff with `VITE_BACKEND` unset
    must change nothing observable.
@@ -296,6 +301,13 @@ the on-chain call untouched on the default side:
   `getMyJoinedAtMs` (the Settings "Joined" line) reads the session
   account's `createdAt` in web2 mode, the profile doc's `created_at` on
   the default backend.
+- `handle-availability.services.ts`: `checkHandleAvailabilityPublic`, the
+  signed-out handle probe. The signed-in `/nickname-availability` needs a
+  session, so a visitor before sign-up goes through
+  `/public-nickname-availability` with a Turnstile-backed proof instead
+  (one solve per window, see the "Anonymous handle probe" section of
+  [`backend/README.md`](../../../backend/README.md)); the default backend
+  keeps the satellite's anonymous query.
 - `user-stats.services.ts`: `loadMyUserStats` (the Dash read).
 - `leaderboard.services.ts`: `getLeaderboard`. The API ranks it from
   settled history, never `points` (see the global leaderboard section of

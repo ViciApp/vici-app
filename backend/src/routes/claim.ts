@@ -13,7 +13,7 @@ import { Elysia, t } from 'elysia';
 import { claimPrincipal } from '../auth/adoption';
 import { verifyClaimBlob, type ClaimRejectReason } from '../auth/claim';
 import { requireUser, unauthenticated } from '../auth/guard';
-import { clientIp } from '../lib/http';
+import { badRequest, clientIp } from '../lib/http';
 import { enforceLimit } from '../lib/rate-limit';
 import { TEN_MINUTES_IN_MS } from '../lib/time';
 
@@ -56,17 +56,13 @@ export const claimRoutes = new Elysia({ prefix: '/api/v1' }).post(
 		}
 
 		if (body.blob.length === 0 || body.blob.length > MAX_BLOB_LENGTH) {
-			set.status = 400;
-
-			return { error: 'invalid_claim' };
+			return badRequest(set, 'invalid_claim');
 		}
 
 		const verdict = await verifyClaimBlob({ blob: body.blob });
 
 		if (!verdict.ok) {
-			set.status = 400;
-
-			return { error: reasonToCode(verdict.reason) };
+			return badRequest(set, reasonToCode(verdict.reason));
 		}
 
 		const outcome = await claimPrincipal({

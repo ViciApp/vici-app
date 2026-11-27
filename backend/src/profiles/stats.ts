@@ -4,13 +4,15 @@
 // monthly sharpest-eye podium, scored on read from settled history (the
 // clearing canister), never from a client-written counter.
 
-import { isNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import { settledTotalsByUser } from '../auth/identity';
 import { query, tx } from '../db/client';
 import { cached, SETTLED_STANDINGS_TTL_MS } from '../engine/cache';
 import { fanoutCategoryDeltasToLeagueStats } from '../leagues/stats';
 import { recentMonthWindowSoFar } from '../lib/time';
+import { MACRO_IDS } from '../markets/taxonomy';
 import { ProfileValidationError, PUBLICLY_VISIBLE_PROFILE_SQL } from './profile';
+import { MAX_PROFILE_COUNTER } from './profile-write';
 
 // user_stats
 
@@ -54,8 +56,8 @@ const shapeUserStats = (row: UserStatsRow): UserStats => ({
 
 /**
  * Structural guard for a user_stats write, mirroring the write-time
- * assertions: non-negative safe-integer counters with wins bounded by
- * calls, a bounded recent list, and per-settlement payloads with a finite
+ * assertions: integer counters in [0, MAX_PROFILE_COUNTER] with wins bounded
+ * by calls, a bounded recent list, and per-settlement payloads with a finite
  * non-negative vxp and a real boolean contrarian flag.
  */
 const validateUserStats = ({
@@ -70,10 +72,11 @@ const validateUserStats = ({
 			!Number.isSafeInteger(bucket.calls) ||
 			!Number.isSafeInteger(bucket.wins) ||
 			bucket.calls < 0 ||
-			bucket.wins < 0
+			bucket.wins < 0 ||
+			bucket.calls > MAX_PROFILE_COUNTER
 		) {
 			throw new ProfileValidationError(
-				`user_stats categoryStats[${tag}] counters must be non-negative safe integers (NaN / Infinity not allowed).`
+				`user_stats categoryStats[${tag}] counters must be non-negative safe integers up to ${MAX_PROFILE_COUNTER} (NaN / Infinity not allowed).`
 			);
 		}
 
@@ -109,6 +112,37 @@ const validateUserStats = ({
 	}
 };
 
+/**
+ * The category counters only ever grow: a lower figure (a client reading a
+ * shorter history) keeps the stored one, so the league fan-out sees only new
+ * highs and a drop followed by a rise back counts once. Only the closed macro
+ * taxonomy is kept, the one set of keys anything reads, so the stored doc
+ * stays bounded whatever keys a client sends.
+ */
+const storedCategoryStats = ({
+	proposed,
+	current
+}: {
+	proposed: Record<string, CategoryStatsBucket>;
+	current: Record<string, CategoryStatsBucket> | undefined;
+}): Record<string, CategoryStatsBucket> => {
+	const stored: Record<string, CategoryStatsBucket> = {};
+
+	for (const macro of MACRO_IDS) {
+		const next = proposed[macro];
+		const prev = current?.[macro];
+
+		if (nonNullish(next) || nonNullish(prev)) {
+			stored[macro] = {
+				calls: Math.max(next?.calls ?? 0, prev?.calls ?? 0),
+				wins: Math.max(next?.wins ?? 0, prev?.wins ?? 0)
+			};
+		}
+	}
+
+	return stored;
+};
+
 export const upsertUserStats = async ({
 	userId,
 	categoryStats,
@@ -123,10 +157,20 @@ export const upsertUserStats = async ({
 	validateUserStats({ categoryStats, recentSettlements });
 
 	return await tx(async (q) => {
+		// `for update` locks nothing while the user has no row yet, so two first
+		// saves would both diff against nothing and fan the whole doc out twice.
+		// An empty row (the table defaults) gives the lock something to hold: the
+		// second first save waits here, then reads what the first one stored.
+		await q(`insert into user_stats (user_id) values ($1) on conflict (user_id) do nothing`, [
+			userId
+		]);
+
 		const beforeRows = await q<{ category_stats: Record<string, CategoryStatsBucket> }>(
 			`select category_stats from user_stats where user_id = $1 for update`,
 			[userId]
 		);
+		const before = beforeRows[0]?.category_stats;
+		const stored = storedCategoryStats({ proposed: categoryStats, current: before });
 
 		const rows = await q<UserStatsRow>(
 			`insert into user_stats (user_id, category_stats, recent_settlements, computed_at_ms, updated_at)
@@ -137,7 +181,7 @@ export const upsertUserStats = async ({
 			   computed_at_ms = excluded.computed_at_ms,
 			   updated_at = now()
 			 returning user_id, category_stats, recent_settlements, computed_at_ms::text`,
-			[userId, JSON.stringify(categoryStats), JSON.stringify(recentSettlements), computedAtMs]
+			[userId, JSON.stringify(stored), JSON.stringify(recentSettlements), computedAtMs]
 		);
 		const [row] = rows;
 
@@ -156,8 +200,8 @@ export const upsertUserStats = async ({
 		await fanoutCategoryDeltasToLeagueStats({
 			q,
 			userId,
-			before: beforeRows[0]?.category_stats,
-			after: categoryStats,
+			before,
+			after: stored,
 			hibernated: hibernatedRows[0]?.hibernated ?? false
 		});
 

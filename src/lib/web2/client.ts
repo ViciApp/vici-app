@@ -3,6 +3,21 @@ import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { LeaguePrivacy } from '#lib/enums/league.ts';
 import type { ProfileVisibility } from '#lib/enums/profile.ts';
 import type { UserRole } from '#lib/enums/user.ts';
+import {
+	Web2BaseUnitsSchema,
+	Web2ClaimResponseSchema,
+	Web2MeResponseSchema,
+	Web2OrderCancelledResponseSchema,
+	Web2OrderFilledResponseSchema,
+	Web2WalletAssetsResponseSchema,
+	Web2WalletBalancesResponseSchema,
+	Web2WalletDepositAddressResponseSchema,
+	Web2WalletWithdrawalResponseSchema,
+	type Web2MeSchema,
+	type Web2WalletAssetSchema,
+	type Web2WalletBalanceSchema,
+	type Web2WalletWithdrawalSchema
+} from '#lib/schema/web2-api.schema.ts';
 import type {
 	AffiliationChampionship,
 	AffiliationMemberCount,
@@ -60,6 +75,7 @@ import {
 	type Web2SettlementStatusWire
 } from '#lib/web2/engine-wire.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
+import type * as z from 'zod';
 
 /**
  * Thin typed fetch client for the HTTP API (`/api/v1/...`).
@@ -104,7 +120,7 @@ export interface Web2ApiErrorAmounts {
 }
 
 const isWireAmount = (value: unknown): value is string =>
-	typeof value === 'string' && /^\d+$/.test(value);
+	Web2BaseUnitsSchema.safeParse(value).success;
 
 const apiError = async (response: Response): Promise<Web2ApiError> => {
 	const { status } = response;
@@ -166,15 +182,13 @@ const refusal = async (response: Response): Promise<Web2ApiError> => {
 	return error;
 };
 
-const request = async <T>({
-	path,
-	method,
-	body
-}: {
+interface RequestArgs {
 	path: string;
 	method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 	body?: Record<string, unknown>;
-}): Promise<T> => {
+}
+
+const send = async ({ path, method, body }: RequestArgs): Promise<Response> => {
 	const response = await fetch(`${web2ApiBaseUrl()}${path}`, {
 		method,
 		credentials: 'include',
@@ -190,7 +204,32 @@ const request = async <T>({
 		throw await refusal(response);
 	}
 
-	return (await response.json()) as T;
+	return response;
+};
+
+/** Trusts the 2xx body to be a `T` without checking it; money and identity
+ * endpoints go through {@link parsedRequest} instead. */
+const request = async <T>(args: RequestArgs): Promise<T> => (await (await send(args)).json()) as T;
+
+/**
+ * A request whose 2xx body is checked against `schema` before any caller reads
+ * it. A body that does not match throws a {@link Web2ApiError} with the
+ * response's own 2xx status and the `invalid_response` code: the API may already
+ * have acted on the request, so a caller treats the outcome as unknown, never as
+ * success.
+ */
+const parsedRequest = async <S extends z.ZodType>({
+	schema,
+	...args
+}: RequestArgs & { schema: S }): Promise<z.output<S>> => {
+	const response = await send(args);
+	const parsed = schema.safeParse(await response.json().catch(() => undefined));
+
+	if (!parsed.success) {
+		throw new Web2ApiError({ status: response.status, code: 'invalid_response' });
+	}
+
+	return parsed.data;
 };
 
 export type Web2ProviderStatus = 'available' | 'coming_soon';
@@ -201,25 +240,7 @@ export interface Web2Providers {
 	apple: Web2ProviderStatus;
 }
 
-export interface Web2Identity {
-	provider: string;
-	email: string | null;
-}
-
-export interface Web2LegacyPrincipal {
-	principal: string;
-	matchedVia: string;
-}
-
-export interface Web2Me {
-	id: string;
-	role: string;
-	displayName: string | null;
-	avatarUrl: string | null;
-	createdAt: string;
-	identities: Web2Identity[];
-	legacyPrincipals: Web2LegacyPrincipal[];
-}
+export type Web2Me = z.output<typeof Web2MeSchema>;
 
 export const getProviders = async (): Promise<Web2Providers> => {
 	const { providers } = await request<{ providers: Web2Providers }>({
@@ -231,7 +252,11 @@ export const getProviders = async (): Promise<Web2Providers> => {
 };
 
 export const getMe = async (): Promise<Web2Me> => {
-	const { user } = await request<{ user: Web2Me }>({ path: '/api/v1/me', method: 'GET' });
+	const { user } = await parsedRequest({
+		path: '/api/v1/me',
+		method: 'GET',
+		schema: Web2MeResponseSchema
+	});
 
 	return user;
 };
@@ -262,10 +287,11 @@ export const verifyOtp = async ({
 	email: string;
 	code: string;
 }): Promise<Web2Me> => {
-	const { user } = await request<{ user: Web2Me }>({
+	const { user } = await parsedRequest({
 		path: '/api/v1/auth/otp/verify',
 		method: 'POST',
-		body: { email, code }
+		body: { email, code },
+		schema: Web2MeResponseSchema
 	});
 
 	return user;
@@ -321,14 +347,11 @@ export interface Web2ClaimResult {
  * migrated principal the caller's non-empty account cannot adopt throws a 409
  * `account_not_empty`. */
 export const postClaim = async ({ blob }: { blob: string }): Promise<Web2ClaimResult> => {
-	const { principal, alreadyLinked, adopted } = await request<{
-		principal: string;
-		alreadyLinked: boolean;
-		adopted?: boolean;
-	}>({
+	const { principal, alreadyLinked, adopted } = await parsedRequest({
 		path: '/api/v1/claim',
 		method: 'POST',
-		body: { blob }
+		body: { blob },
+		schema: Web2ClaimResponseSchema
 	});
 
 	return { principal, alreadyLinked, adopted: adopted === true };
@@ -448,16 +471,53 @@ export const upsertMyProfile = async (data: Record<string, unknown>): Promise<Us
 	return mapProfile(profile);
 };
 
+export type Web2NicknameAvailability =
+	| { available: true }
+	| { available: false; reason: 'required' | 'too_short' | 'too_long' | 'invalid' | 'taken' };
+
 /** Server-side nickname validity + uniqueness probe. The caller's own current
  * nickname never counts as a conflict (the session identifies the caller). */
 export const checkNicknameAvailability = async (
 	nickname: string
-): Promise<
-	| { available: true }
-	| { available: false; reason: 'required' | 'too_short' | 'too_long' | 'invalid' | 'taken' }
-> =>
+): Promise<Web2NicknameAvailability> =>
 	await request({
 		path: `/api/v1/profiles/nickname-availability?${encodeQuery({ nickname })}`,
+		method: 'GET'
+	});
+
+/** A proof that this client passed the bot check, valid for `ttlMs` from
+ * issue and only from the IP that asked for it. */
+export interface Web2NicknameCheckProof {
+	proof: string;
+	ttlMs: number;
+}
+
+/** Trade a single-use Turnstile token for a reusable proof. A refused token
+ * throws {@link Web2ApiError} `turnstile_failed` (403); Cloudflare out of
+ * reach or a server without its secret in production, 503. */
+export const issueNicknameCheckProof = async ({
+	turnstileToken
+}: {
+	turnstileToken: string;
+}): Promise<Web2NicknameCheckProof> =>
+	await request({
+		path: '/api/v1/profiles/nickname-check-proof',
+		method: 'POST',
+		body: { turnstileToken }
+	});
+
+/** The signed-out twin of {@link checkNicknameAvailability}, same answer. A
+ * missing, expired or foreign proof throws {@link Web2ApiError}
+ * `human_proof_required` (403). */
+export const checkNicknameAvailabilityPublic = async ({
+	nickname,
+	proof
+}: {
+	nickname: string;
+	proof: string;
+}): Promise<Web2NicknameAvailability> =>
+	await request({
+		path: `/api/v1/profiles/public-nickname-availability?${encodeQuery({ nickname, proof })}`,
 		method: 'GET'
 	});
 
@@ -941,9 +1001,10 @@ export const submitEngineLimitOrder = async ({
 	/** ViciXp call size in whole VXP; the API refuses an order whose notional disagrees with it. */
 	callSize?: number;
 }): Promise<boolean> => {
-	const { filled } = await request<{ filled: boolean }>({
+	const { filled } = await parsedRequest({
 		path: '/api/v1/engine/orders/limit',
 		method: 'POST',
+		schema: Web2OrderFilledResponseSchema,
 		body: {
 			orderId,
 			seriesId,
@@ -975,9 +1036,10 @@ export const submitEngineMarketOrder = async ({
 	/** ViciXp call size in whole VXP; the API refuses a take that costs more. */
 	callSize?: number;
 }): Promise<boolean> => {
-	const { filled } = await request<{ filled: boolean }>({
+	const { filled } = await parsedRequest({
 		path: '/api/v1/engine/orders/market',
 		method: 'POST',
+		schema: Web2OrderFilledResponseSchema,
 		body: {
 			tradeId,
 			seriesId,
@@ -991,10 +1053,11 @@ export const submitEngineMarketOrder = async ({
 };
 
 export const cancelEngineOrder = async ({ orderId }: { orderId: string }): Promise<boolean> => {
-	const { cancelled } = await request<{ cancelled: boolean }>({
+	const { cancelled } = await parsedRequest({
 		path: '/api/v1/engine/orders/cancel',
 		method: 'POST',
-		body: { orderId }
+		body: { orderId },
+		schema: Web2OrderCancelledResponseSchema
 	});
 
 	return cancelled;
@@ -1024,45 +1087,18 @@ export const depositEngineCollateral = async ({
 // ledger; `assetId` here is the custody asset id from `/wallet/assets`, a
 // separate namespace from the engine's collateral `asset_id`.
 
-export interface Web2WalletAsset {
-	id: string;
-	chain: string;
-	symbol: string;
-	decimals: number;
-	chainEnabled: boolean;
-	withdrawable: boolean;
-	/** Base-unit network fee a withdrawal pays on top of its amount, held from
-	 * the same balance. Null when the asset cannot be withdrawn right now. */
-	withdrawalFee: string | null;
-}
+export type Web2WalletAsset = z.output<typeof Web2WalletAssetSchema>;
 
-export interface Web2WalletBalance {
-	assetId: string;
-	symbol: string;
-	chain: string;
-	decimals: number;
-	balance: bigint;
-}
+export type Web2WalletBalance = z.output<typeof Web2WalletBalanceSchema>;
 
-export interface Web2WalletWithdrawal {
-	id: string;
-	assetId: string;
-	amount: string;
-	/** Base-unit network fee held on top of `amount`, refunded with it on a
-	 * failed or rejected withdrawal. */
-	fee: string;
-	destination: string;
-	selfCustody: boolean;
-	state: string;
-	txRef: string | null;
-	failureReason: string | null;
-}
+export type Web2WalletWithdrawal = z.output<typeof Web2WalletWithdrawalSchema>;
 
 /** The withdrawable asset catalog (public read). */
 export const listWalletAssets = async (): Promise<Web2WalletAsset[]> => {
-	const { assets } = await request<{ assets: Web2WalletAsset[] }>({
+	const { assets } = await parsedRequest({
 		path: '/api/v1/wallet/assets',
-		method: 'GET'
+		method: 'GET',
+		schema: Web2WalletAssetsResponseSchema
 	});
 
 	return assets;
@@ -1072,26 +1108,22 @@ export const listWalletAssets = async (): Promise<Web2WalletAsset[]> => {
 export const getWalletBalances = async (): Promise<{
 	accounts: { chain: string; address: string }[];
 	balances: Web2WalletBalance[];
-}> => {
-	const { accounts, balances } = await request<{
-		accounts: { chain: string; address: string }[];
-		balances: (Omit<Web2WalletBalance, 'balance'> & { balance: string })[];
-	}>({ path: '/api/v1/wallet/balances', method: 'GET' });
-
-	return {
-		accounts,
-		balances: balances.map((row) => ({ ...row, balance: BigInt(row.balance) }))
-	};
-};
+}> =>
+	await parsedRequest({
+		path: '/api/v1/wallet/balances',
+		method: 'GET',
+		schema: Web2WalletBalancesResponseSchema
+	});
 
 /** The session user's deposit address on one chain (`ic` = the custodial
  * principal). A disabled chain surfaces as a 503 {@link Web2ApiError}. */
 export const getWalletDepositAddress = async (
 	chain: string
 ): Promise<{ chain: string; address: string }> =>
-	await request({
+	await parsedRequest({
 		path: `/api/v1/wallet/deposit-address/${encodeURIComponent(chain)}`,
-		method: 'GET'
+		method: 'GET',
+		schema: Web2WalletDepositAddressResponseSchema
 	});
 
 /**
@@ -1116,7 +1148,7 @@ export const requestWalletWithdrawal = async ({
 	selfCustody?: boolean;
 	idempotencyKey: string;
 }): Promise<Web2WalletWithdrawal> => {
-	const { withdrawal } = await request<{ withdrawal: Web2WalletWithdrawal }>({
+	const { withdrawal } = await parsedRequest({
 		path: '/api/v1/wallet/withdrawals',
 		method: 'POST',
 		body: {
@@ -1125,7 +1157,8 @@ export const requestWalletWithdrawal = async ({
 			destination,
 			...(isNullish(selfCustody) ? {} : { selfCustody }),
 			idempotencyKey
-		}
+		},
+		schema: Web2WalletWithdrawalResponseSchema
 	});
 
 	return withdrawal;

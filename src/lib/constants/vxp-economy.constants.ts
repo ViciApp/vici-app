@@ -170,7 +170,8 @@ export const COMEBACK_BALANCE_FLOOR_BASE_UNITS = vxpBaseUnits(100);
 
 /**
  * Minimum absence (in days) before a returning user qualifies for the comeback restore. Measured
- * from the gap between their previous and current `lastActiveDay`. Tunable.
+ * as the gap between the previous and the newly recorded active day: `lastActiveDay` on the
+ * satellite, the recorded activity days on the web2 API. Tunable.
  */
 export const COMEBACK_AWAY_DAYS = 7;
 
