@@ -14,9 +14,12 @@ collection.
 ## Steps
 
 1. **Confirm the collection exists.** Check
-   [`juno.config.ts`](../../../../juno.config.ts) and
+   [`juno.config.ts`](../../../../juno.config.ts),
+   [`juno.collections.json`](../../../../juno.collections.json) and
    [`src/lib/constants/collections.constants.ts`](../../../../src/lib/constants/collections.constants.ts).
-   If the collection is new, add it in **both** files in the same PR.
+   If the collection is new, add it in **all three** files in the same PR
+   (`src/tests/lib/constants/collections.constants.spec.ts` fails
+   otherwise).
 
 2. **Add the handler.** In
    `src/satellite/services/<area>.services.ts`, export a function whose
@@ -106,8 +109,8 @@ collection.
 
 - Throwing inside an `onSetDoc` for an expected condition. Log + return.
 - Hand-editing `api-schemas.ts` or `satellite.did` after the build.
-- Forgetting to add the collection to **both** `juno.config.ts` and
-  `collections.constants.ts`.
+- Forgetting to add the collection to **all three** of `juno.config.ts`,
+  `juno.collections.json` and `collections.constants.ts`.
 - Mutating the same doc that triggered the hook without a termination
   guard (write-loop hazard).
 - Importing `@junobuild/core` from satellite code.

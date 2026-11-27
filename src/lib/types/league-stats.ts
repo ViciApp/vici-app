@@ -48,7 +48,7 @@ export interface LeagueStatsDoc {
 export const leagueStatsKey = ({ leagueId }: { leagueId: string }): string => leagueId;
 
 /** A zero bucket: the default for a league/category with no resolved calls yet. */
-export const EMPTY_LEAGUE_STATS_BUCKET: CategoryStatsBucket = { calls: 0, wins: 0 };
+const EMPTY_LEAGUE_STATS_BUCKET: CategoryStatsBucket = { calls: 0, wins: 0 };
 
 /**
  * Resolve the `(calls, wins)` bucket a battle scope reads from a stats

@@ -5,7 +5,7 @@ import type { User } from '@junobuild/core';
  * screens. Derived from the provider Juno records on the `#user` doc
  * (`user.data.provider`), refined by whether an email address is on file.
  */
-export type SignInMethod = 'email' | 'google' | 'passkey' | 'ii';
+type SignInMethod = 'email' | 'google' | 'passkey' | 'ii';
 
 /**
  * Map Juno's recorded provider to the method we display.

@@ -283,7 +283,7 @@ export const lookupLeagueByInvite = async ({
  * HTTP API has no public by-id league read, so the web2 branch of
  * {@link loadLeaguesByIds} resolves the directory without this helper.
  */
-export const getLeagueById = async ({ id }: { id: string }): Promise<LeagueDoc | undefined> => {
+const getLeagueById = async ({ id }: { id: string }): Promise<LeagueDoc | undefined> => {
 	const existing = await getDoc<LeagueDoc>({
 		collection: Collection.LEAGUES,
 		key: id
@@ -412,13 +412,7 @@ export const validateLeagueDraft = ({
  * Callers may pass a creation timestamp so the slug is unique even
  * when two users pick the same name.
  */
-export const deriveLeagueId = ({
-	name,
-	suffix
-}: {
-	name: string;
-	suffix: number | string;
-}): string => {
+const deriveLeagueId = ({ name, suffix }: { name: string; suffix: number | string }): string => {
 	const slug = hyphenateSlug(name.toLowerCase()).slice(0, 24);
 
 	return `${slug || 'league'}-${suffix}`;
