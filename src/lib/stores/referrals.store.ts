@@ -22,7 +22,7 @@ export const myReferralsStore = writable<ReferralListItem[]>([]);
  * principal changes). Lets consumers show a skeleton only on the cold load and
  * keep showing the cached figure while a background refresh is in flight.
  */
-export const myReferralsLoadedStore = writable<boolean>(false);
+const myReferralsLoadedStore = writable<boolean>(false);
 
 let inFlight: Promise<void> | undefined;
 
