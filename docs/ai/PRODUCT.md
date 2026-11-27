@@ -195,8 +195,8 @@ fast query, then upgrades to the certified read. See
 ### Flow cards and market charts: real numbers only
 
 A Flow card and the market chart never show an invented number. The
-"+N today" line counts the trades really made on the market in the last
-24 hours and stays hidden until that count has loaded (or when it is
+"+N today" line counts the trades really made on the market over about
+the last day (whole hours, never more than really happened) and stays hidden until that count has loaded (or when it is
 zero); a friends split shows only when both counts are known; the "this
 week" move shows only when the market has price history; and a market
 with no trades draws a flat line at its live price instead of a made-up

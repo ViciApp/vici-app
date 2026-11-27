@@ -693,7 +693,7 @@
 				       (c) empty: neither available -->
 					<div class="flow-social num">
 						<SeededAvatarStack borderColor="var(--bg-popover)" size={18} />
-						{#if nonNullish(followedYes) && followedYes > 0}
+						{#if nonNullish(followedTotal) && followedTotal > 0 && followedLeanText.length > 0}
 							<span class="flow-followed-lean">{followedLeanText}</span>
 						{:else if predictorsCount > 0}
 							<span>

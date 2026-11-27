@@ -28,9 +28,12 @@ export interface MarketPriceSeries {
 	 */
 	xs: number[];
 	/**
-	 * Executed trades in the candles that start within the last day of the
-	 * window. Exact on hourly candles (the `1d` / `7d` windows); on daily
-	 * candles it counts only the bucket that opened inside that day.
+	 * Executed trades in the candles that open within the last day of the
+	 * window. Candles are epoch-aligned buckets, so the one straddling the
+	 * day boundary is left out: on hourly candles (the `1d` / `7d` windows)
+	 * this covers the last 23 to 24 hours and never counts more than the
+	 * real last-day total. On daily candles it is only the bucket that
+	 * opened inside that day.
 	 */
 	tradesLastDay: number;
 }

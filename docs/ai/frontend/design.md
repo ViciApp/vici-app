@@ -547,8 +547,9 @@ a hash of the market id or a guess, the same rule as the public landing.
 
 - **Social line.** `N friends YES · M NO` needs both counts from
   `followedLean`; without them it falls back to `K predicting`. The
-  `+N today` part is the real count of trades in the last 24 hours, read
-  off the same hourly candles as the back-face sparkline
+  `+N today` part is a real trade count over the hourly candles that
+  opened in the last 24 hours (so the last 23 to 24 hours, never more than
+  the true total), the same candles as the back-face sparkline
   (`MarketPriceSeries.tradesLastDay`), so it appears only on the focused
   card once its history loads, and never at zero.
 - **Weekly move.** The back face's `▲/▼ N% this week` is last close minus
