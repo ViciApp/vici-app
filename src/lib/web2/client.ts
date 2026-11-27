@@ -333,8 +333,7 @@ export const googleSignInUrl = ({ returnTo }: { returnTo?: string } = {}): strin
 
 /**
  * Ask the waitlist to email a code that holds `handle` for `email` while it
- * lives (`codeTtlMs`). The answer is the same whether or not the address
- * already has an account; a refusal (`email_invalid`, `email_not_accepted`,
+ * lives (`codeTtlMs`). A refusal (`email_invalid`, `email_not_accepted`,
  * `handle_invalid`, `handle_taken`, `turnstile_*`, `rate_limited`) throws
  * {@link Web2ApiError}.
  */
