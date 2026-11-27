@@ -424,42 +424,6 @@ export const hasPendingOnboarding = (): boolean =>
 	browser && nonNullish(localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY));
 
 /**
- * Cheap synchronous peek at the stashed sign-in provider
- * (`SignInProviderStack` merges it into the pending payload before the
- * provider runs). Lets an auth-success emitter (e.g. the guest-convert
- * `signed_up`) attach the bounded provider dimension without threading a
- * callback argument through the sheet stack. Reads the raw payload rather
- * than {@link parsePendingOnboarding} so a bare `{ provider }` stash (no
- * actionable picks) still resolves. Best-effort: `undefined` outside the
- * browser, on storage failure, or when nothing valid is stashed.
- */
-export const pendingOnboardingProvider = (): OnboardingProvider | undefined => {
-	if (!browser) {
-		return;
-	}
-
-	try {
-		const raw = localStorage.getItem(PENDING_ONBOARDING_STORAGE_KEY);
-
-		if (isNullish(raw)) {
-			return;
-		}
-
-		const parsed: unknown = JSON.parse(raw);
-
-		if (typeof parsed !== 'object' || isNullish(parsed) || !('provider' in parsed)) {
-			return;
-		}
-
-		const { provider } = parsed;
-
-		return isOnboardingProvider(provider) ? provider : undefined;
-	} catch {
-		// Storage unavailable / malformed stash: the dimension is simply absent.
-	}
-};
-
-/**
  * Settles the pre-auth storage slot once the referral and league side-flows have run. Clears it
  * when both resolved (or were absent); otherwise re-stashes only the unresolved bare code(s),
  * each with its own incremented attempt counter so the next drain retries: until

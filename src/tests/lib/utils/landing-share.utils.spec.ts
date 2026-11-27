@@ -1,4 +1,5 @@
 import {
+	LANDING_CLAIM_PARAM,
 	LANDING_MARKET_PARAM,
 	LANDING_VIEW_PARAM
 } from '#lib/constants/landing-markets.constants.ts';
@@ -17,9 +18,10 @@ const TITLE = 'Will Barça be top of La Liga on New Year’s Eve?';
 const PARAM = marketShareParam({ title: TITLE, seriesId: SERIES_ID });
 
 describe('landing-share.utils', () => {
-	it('names the params m and view', () => {
+	it('names the params m, view and claim', () => {
 		assert.equal(LANDING_MARKET_PARAM, 'm');
 		assert.equal(LANDING_VIEW_PARAM, 'view');
+		assert.equal(LANDING_CLAIM_PARAM, 'claim');
 	});
 
 	describe('landingSearch', () => {
@@ -37,6 +39,14 @@ describe('landing-share.utils', () => {
 			assert.equal(landingSearch({ view: 'markets' }), '?view=markets');
 		});
 
+		it('opens the capsule', () => {
+			assert.equal(
+				landingSearch({ market: PARAM, view: 'markets', claim: true }),
+				`?m=${PARAM}&view=markets&claim=1`
+			);
+			assert.equal(landingSearch({ claim: false }), '');
+		});
+
 		it('keeps the other params and replaces its own', () => {
 			assert.equal(
 				landingSearch({ market: PARAM, search: '?ref=ABCD2345&m=old&view=cards' }),
@@ -52,7 +62,7 @@ describe('landing-share.utils', () => {
 	describe('searchWithoutLandingParams', () => {
 		it('drops m and view, keeps the rest', () => {
 			assert.equal(searchWithoutLandingParams(`?m=${PARAM}&ref=ABCD2345`), '?ref=ABCD2345');
-			assert.equal(searchWithoutLandingParams('?m=a~3fa9c21b&view=markets'), '');
+			assert.equal(searchWithoutLandingParams('?m=a~3fa9c21b&view=markets&claim=1'), '');
 			assert.equal(searchWithoutLandingParams(''), '');
 		});
 	});
@@ -62,7 +72,8 @@ describe('landing-share.utils', () => {
 			assert.deepEqual(parseLandingLink(landingSearch({ market: PARAM })), {
 				market: { param: PARAM, idPrefix: SERIES_ID.slice(0, 8) },
 				marketMalformed: false,
-				view: undefined
+				view: undefined,
+				claim: false
 			});
 		});
 
@@ -78,7 +89,8 @@ describe('landing-share.utils', () => {
 				assert.deepEqual(parseLandingLink(search), {
 					market: undefined,
 					marketMalformed: true,
-					view: undefined
+					view: undefined,
+					claim: false
 				});
 			}
 		});
@@ -88,9 +100,16 @@ describe('landing-share.utils', () => {
 				assert.deepEqual(parseLandingLink(search), {
 					market: undefined,
 					marketMalformed: false,
-					view: undefined
+					view: undefined,
+					claim: false
 				});
 			}
+		});
+
+		it('reads the capsule flag, only as claim=1', () => {
+			assert.equal(parseLandingLink('?claim=1').claim, true);
+			assert.equal(parseLandingLink('?claim=yes').claim, false);
+			assert.equal(parseLandingLink('').claim, false);
 		});
 
 		it('reads the view, ignoring an unknown one', () => {

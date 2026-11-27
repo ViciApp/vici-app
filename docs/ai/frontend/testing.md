@@ -210,6 +210,7 @@ e2e-web2/
 ├── adoption.spec.ts        # legacy email adopts the imported account
 ├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers, legacy hold, ?e=legacy
 ├── dash.spec.ts            # empty engine account renders, no failing reads
+├── landing-funnel.spec.ts  # invite, league and market-page calls open the claim capsule; no Flow without an account
 ├── landing-routing.spec.ts # signed-out markets + share links reach the landing, signed-in stay in the app
 ├── markets.spec.ts         # list + detail from the fake engine, settled outcome
 ├── sign-out.spec.ts        # session revoked server-side, app gated again

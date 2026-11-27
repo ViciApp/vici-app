@@ -1,10 +1,13 @@
 import { NEW_APP_ORIGIN } from '#lib/constants/claim.constants.ts';
 import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
+import { PublicPath } from '#lib/constants/routes.constants.ts';
 import { isE2eOpenSignups } from '#lib/dev/e2e-signups.ts';
 import { viteEnv } from '#lib/env/app.env.ts';
+import { landingHref } from '#lib/utils/nav.utils.ts';
 import { newAppPageUrl, newAppSignupUrl } from '#lib/utils/new-app.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { browser } from '$app/env';
+import { resolve } from '$app/paths';
 import { isNullish } from '@dfinity/utils';
 
 /**
@@ -19,6 +22,16 @@ import { isNullish } from '@dfinity/utils';
  * new app itself and keeps its sign-up flow untouched.
  */
 export const areNewSignupsMoved = (): boolean => !isWeb2Backend() && !isE2eOpenSignups();
+
+/**
+ * Where an invite or league link sends a signed-out visitor, after stashing
+ * its codes: the landing's claim capsule (`/?claim=1`), the one signed-out
+ * funnel, which reads the stash for the claim. Where sign-ups have moved (the
+ * legacy build) it stays `/signup`, whose moved screen carries the codes to
+ * the new app.
+ */
+export const signedOutInviteHref = (): string =>
+	areNewSignupsMoved() ? resolve(PublicPath.SignUp) : landingHref({ claim: true });
 
 /**
  * The new-app destination for the moved screen, carrying the invite or

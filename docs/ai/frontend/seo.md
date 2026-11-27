@@ -187,14 +187,13 @@ The phrase **"prediction market"** lives only in this crawler-facing layer
 (`<title>` / meta description / JSON-LD keywords), never in the rendered
 UI, which keeps saying "Social Markets".
 
-## Guest Flow funnel from a market page
+## The signed-out call to action on a market page
 
-A signed-out visitor landing on a market detail page (`/markets/[id]`,
-where `/m/{slug}` resolves) can't predict there: direct trading is
-build-flag-off (`MARKET_DETAIL_DIRECT_TRADE_ENABLED`) and predictions are
-placed in Flow. So a **live** market closes with a "Try Flow free" CTA
-(`onTryFlow`) that starts a free guest session (`startGuestSession`, the
-same no-account preview the onboarding Skip path uses) and routes to
-`/flow`: the `(app)` gate already exempts a guest there. Signed-in
-members see "Predict in Flow" and skip the guest step. This turns search
-traffic into a try-it funnel without a new page.
+A signed-out visitor landing on a market detail page (`/markets/[id]`)
+can't predict there: direct trading is build-flag-off
+(`MARKET_DETAIL_DIRECT_TRADE_ENABLED`) and predictions are placed in Flow,
+which needs an account. So a **live** market closes with "Claim your
+@handle" (`onTryFlow`), which opens the landing on that market with the claim
+capsule open (`landingHref({ market, claim: true })`). Signed-in members see
+"Predict in Flow". Search traffic joins the same funnel as every other
+signed-out visitor.

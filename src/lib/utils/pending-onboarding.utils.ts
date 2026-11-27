@@ -1,5 +1,5 @@
 import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
-import { REFERRAL_CODE_REGEX } from '#lib/constants/referral.constants.ts';
+import { type PendingInvite, pendingInviteOf } from '#lib/utils/pending-invite.utils.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
@@ -65,14 +65,44 @@ export const stashLeagueInviteForSignup = ({
 };
 
 /**
- * The referral code a `?ref=` param carries, normalized, or `undefined` when
- * there is none or it is not a code: a share link falls back to the
- * sharer's handle while their code loads, and a handle fails the pattern.
+ * Stash the referral code of an invite link (`/i/{code}`, `/join/{code}`)
+ * into the signed-out pending-onboarding payload. The invite the visitor
+ * opened last wins, unlike a `?ref=` capture: the link names its referrer
+ * outright. Best-effort, like the league stash above.
  */
-export const referralCodeFromSearch = (search: string): string | undefined => {
-	const normalized = new URLSearchParams(search).get('ref')?.toUpperCase().trim();
+export const stashReferralInviteForSignup = (code: string): void => {
+	if (!browser) {
+		return;
+	}
 
-	return nonNullish(normalized) && REFERRAL_CODE_REGEX.test(normalized) ? normalized : undefined;
+	try {
+		const parsed = readPendingPayload();
+
+		parsed.referralCode = code;
+		localStorage.setItem(PENDING_ONBOARDING_STORAGE_KEY, JSON.stringify(parsed));
+	} catch {
+		// Swallowed by design: sign-up still works without attribution.
+	}
+};
+
+/**
+ * The invite a signed-out visitor arrived with, as stashed: a referral code
+ * (an invite link or a share link's `?ref=`) and a league invite code. The
+ * landing's claim capsule is where every invite leads while there is no
+ * account, so the waitlist request reads this to put the invite on the
+ * reservation; the sign-up drain reads the same payload once an account
+ * exists. `{}` when nothing is stashed or storage is unavailable.
+ */
+export const readPendingInvite = (): PendingInvite => {
+	if (!browser) {
+		return {};
+	}
+
+	try {
+		return pendingInviteOf(readPendingPayload());
+	} catch {
+		return {};
+	}
 };
 
 /**

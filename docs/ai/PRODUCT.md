@@ -771,7 +771,20 @@ that market as the deck's first card for a signed-out visitor and the market
 page in the app for a signed-in one, and the referral code is kept for the
 sign-up either way. `/?m=<slug~id8>` still works as an alias of it: a
 signed-in session opening it gets the market page too, and Flow shows that
-market first. An existing account signs in through the "Sign in" link (top bar on wide
+market first.
+
+A signed-out visitor has one way in, the claim capsule. A Yes or No on a
+market page, and the market page's call to action ("Claim your @handle"
+where a member sees "Predict in Flow"), open the landing on that market with
+the capsule open; the call is kept with the landing's own calls. Invite
+links (`/i/<code>`, `/join/<code>`) and league links (`/league/<code>`) open
+the capsule too, and the invite, the league and any referral code are kept
+on the device for the claim and for the sign-up that follows admission
+(`readPendingInvite`). A brand-new account that is still in onboarding goes
+to `/signup` instead. There is no Flow without an account: a signed-out
+visit to `/flow` goes to `/signin`. On the legacy build, where sign-ups have
+moved to vici.app, invite and league links keep leading to `/signup`, whose
+moved screen carries the codes over. An existing account signs in through the "Sign in" link (top bar on wide
 screens, footer everywhere). In Markets the curated markets keep their
 film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
@@ -831,9 +844,9 @@ placeholder) and signs up with any enabled provider on one surface,
 anchored by the "1,500 VXP starter pack" reward chip. Team selection is
 deferred to the post-signup Profile, so the onboarding handoff always
 carries a `null` team/side; the first prediction now happens free in the
-app. The screen also links to `/signin` ("Already a member?") and offers a
-"Skip · preview first, sign up later" escape into the signed-out Flow
-preview. This is the only onboarding flow: there is no flag and no
+app. The screen also links to `/signin` ("Already a member?"), and a
+signed-in new user can "Skip for now" into Flow, the handle still claimed.
+This is the only onboarding flow: there is no flag and no
 earlier variant to fall back to.
 
 The screen reuses, rather than re-implements, the handle machinery (live
@@ -843,50 +856,6 @@ taxonomy: `onboarding_started` fires, `handle_checked` carries the
 refusal reason (`taken`, `reserved`, ...) in `label` when `ok` is false,
 and `onboarding_completed` still fires once via the drain
 with `ok` (team-picked) `false`.
-
-### Guest mode: preview Flow free, convert with a starter grant
-
-A visitor who takes the "Skip · preview first, sign up later" path out of
-onboarding becomes a **guest**: they reach Flow and predict immediately
-with no account, no balance, and no wall, and they keep previewing freely;
-there is no hard block at the second pick or ever. Guest picks are a
-throwaway, in-session preview: a guest pick never reaches the engine
-(`placeOrder` and the identity call are bypassed entirely), so free guest
-play can't move market prices. Each pick is recorded only as a client-side
-preview entry (`marketId` / `side` / `ts`, no amount) in `localStorage`,
-purely to power the conversion nudges.
-
-Conversion is driven by loss-aversion, not a gate: a soft sheet on the
-first pick and a remind sheet every fifth pick after offer to **create an
-account, claim the 1,500 VXP starter grant, and start predicting for
-real**, never to "save your pick". A standing inline pill on Flow opens
-the same ask whenever the guest has at least one pick. The remind nudge
-references the in-session count as social proof only ("you've made N
-predictions"), pluralised, and never implies those picks carry over. Every
-surface is dismissible and none blocks a card; the sheet waits until no
-menagerie reveal or Flow beat is on screen before it renders, the same
-collision gate the achievement host uses. The 1,500 VXP figure comes from
-the registration milestone grant, not a literal.
-
-On sign-up from the funnel the guest becomes a member through the **normal
-new-member path**: the existing `onProfileSetForVxpOnboarding` grant fires
-(no new mint, no retroactive call, no new economic action), the in-session
-preview picks are **discarded**, the portfolio starts empty, and the
-guest session and preview `localStorage` are cleared. The sign-up CTAs
-reuse the real provider stack (redirect-safe) labelled with the claimed
-guest handle, and the pre-auth handoff carries only the handle/identity,
-never picks or commits VXP. A "1,500 VXP added" toast confirms the grant.
-Because guest picks are client-only, a cleared browser simply loses the
-preview, which is harmless: nothing was ever a position. Analytics reuse
-existing names: a guest pick emits `position_taken` with
-`source: 'guest_flow'`, each conversion ask emits `onboarding_step` with
-`source: 'guest_flow'` and the surface as `label`, and conversion emits
-`signed_up` with `source: 'guest_convert'`. Conversion widens the
-new-account mint surface (a brand-new account can be created after a
-frictionless preview) but keeps it no wider than the existing grant; the
-anti-farm hardening tracked in #543 bounds that surface and is not changed
-here. Decision record:
-[`specs/2026-06-25-feat-guest-mode.md`](./spec-driven-development/specs/2026-06-25-feat-guest-mode.md).
 
 ### Onboarding: picks persist across every sign-in provider
 
@@ -988,7 +957,7 @@ the pre-paint standalone/iOS detection in `app.html` were already shipped;
 this layer adds only the install behaviour. Decision record:
 [`specs/2026-06-25-feat-pwa-install.md`](./spec-driven-development/specs/2026-06-25-feat-pwa-install.md).
 
-### Discoverability: search snippets & the guest Flow funnel
+### Discoverability: search snippets
 
 VICI is a static SPA, so its search presence is generated **at deploy
 time** (see [`frontend/seo.md`](./frontend/seo.md)). Search intent lands on
@@ -1004,11 +973,10 @@ snapshot of the order book). The phrase "prediction market" appears **only**
 in this crawler-facing metadata (titles, descriptions, structured data),
 never in the rendered product UI, which continues to say "Social Markets".
 
-A signed-out visitor who lands on a **live** market page gets a **"Try Flow
-free"** CTA (predictions are placed in Flow, not on the detail page): it
-starts a free guest session and drops them into the Flow swipe deck with no
-account, the same guest preview the onboarding Skip path uses. Signed-in
-members see "Predict in Flow" instead. Decision record:
+A signed-out visitor who lands on a **live** market page gets "Claim your
+@handle", which opens the landing's claim capsule on that market (see the
+landing section above); signed-in members see "Predict in Flow". Decision
+record:
 [`specs/2026-07-14-impr-seo-rich-snippets-topic-pages.md`](./spec-driven-development/specs/2026-07-14-impr-seo-rich-snippets-topic-pages.md).
 
 ### Market categories: three-layer taxonomy

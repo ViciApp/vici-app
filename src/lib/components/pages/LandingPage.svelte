@@ -58,8 +58,12 @@
 	// (`?view=markets`). A market link that resolves to nothing (malformed,
 	// or a market that is gone) opens Markets too: the visitor followed a
 	// link to a market, so the markets are the nearest thing to it.
+	//
+	// `?claim=1` opens the capsule: the app sends a signed-out visitor here
+	// for every call and every invite. A call made there is already in the
+	// calls store, so the capsule names it when it is for the linked market.
 	const openLink = async (): Promise<void> => {
-		const { market, marketMalformed, view: linkView } = parseLandingLink(page.url.search);
+		const { market, marketMalformed, view: linkView, claim } = parseLandingLink(page.url.search);
 		const seriesId = isNullish(market) ? undefined : await resolveMarketShareSeriesId(market.param);
 
 		leadSeriesId = seriesId;
@@ -67,6 +71,14 @@
 
 		if (linkView === 'markets' || marketMalformed || (nonNullish(market) && isNullish(seriesId))) {
 			void openMarkets({ seriesId });
+		}
+
+		if (claim) {
+			const last = $landingCallsStore.at(-1);
+
+			landingClaimStore.open({
+				ack: nonNullish(last) && last.seriesId === seriesId ? callAck(last) : undefined
+			});
 		}
 	};
 
@@ -153,14 +165,18 @@
 		void openMarkets({ seriesId: leadSeriesId });
 	};
 
+	// The capsule's line naming a call.
+	const callAck = ({ side, pricePercent }: LandingCall): string =>
+		t({
+			locale: $localeStore,
+			key: side === 'yes' ? 'landing.page.ack_yes' : 'landing.page.ack_no',
+			params: { pct: pricePercent }
+		});
+
 	const onMarketsCall = (call: LandingCall): void => {
 		landingCallsStore.add(call);
 
-		const ack = t({
-			locale: $localeStore,
-			key: call.side === 'yes' ? 'landing.page.ack_yes' : 'landing.page.ack_no',
-			params: { pct: call.pricePercent }
-		});
+		const ack = callAck(call);
 
 		clearTimeout(ackTimer);
 		ackTimer = setTimeout(() => landingClaimStore.open({ ack }), LANDING_MARKETS_ACK_DELAY_MS);

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { PENDING_ONBOARDING_STORAGE_KEY } from '../src/lib/constants/profile.constants';
 
 /**
  * Invite-link landing smoke tests.
@@ -15,18 +16,21 @@ import { expect, test } from '@playwright/test';
  *   anonymous visitor to the markets they can see, the landing's Markets
  *   view (`/?view=markets`).
  * - A well-formed code is stashed for attribution and the visitor is sent to
- *   `/signup`; the code needn't exist, since the signed-out branch stashes
- *   blindly and lets the post-signin drain validate it.
+ *   the landing's claim capsule (`/?claim=1`), the one signed-out funnel;
+ *   the code needn't exist, since the signed-out branch stashes blindly and
+ *   lets the drain validate it. (This suite opens sign-ups; where they have
+ *   moved to the new app the destination is `/signup`, pinned by
+ *   `moved-to-new-app.spec.ts`.)
  *
  * A genuine 404 renders SvelteKit's error page and
- * reaches neither the landing nor `/signup`, so either assertion fails loud.
+ * reaches no landing URL, so either assertion fails loud.
  */
 
 const ROUTES = ['/join', '/i'] as const;
 
 // 8-char Crockford-base32, passes `REFERRAL_CODE_REGEX`. Needn't map to a real
-// referrer: the anonymous branch stashes the code and routes to signup before
-// any lookup.
+// referrer: the anonymous branch stashes the code and routes to the capsule
+// before any lookup.
 const VALID_CODE = 'ABCDEF12';
 
 // Wrong length + out-of-alphabet chars (`-`) → fails the code regex.
@@ -46,12 +50,20 @@ test.describe('invite landing (anonymous)', () => {
 			expect(new URL(page.url()).searchParams.get('view')).toBe('markets');
 		});
 
-		test(`${route}/{code} stashes the code and routes to /signup`, async ({ page }) => {
+		test(`${route}/{code} stashes the code and opens the claim capsule`, async ({ page }) => {
 			await page.goto(`${route}/${VALID_CODE}`);
 
-			await page.waitForURL('**/signup');
+			await page.waitForURL('**/?claim=1');
 
-			expect(new URL(page.url()).pathname).toBe('/signup');
+			expect(new URL(page.url()).searchParams.get('claim')).toBe('1');
+			expect(
+				JSON.parse(
+					(await page.evaluate(
+						(key) => localStorage.getItem(key),
+						PENDING_ONBOARDING_STORAGE_KEY
+					)) ?? '{}'
+				)
+			).toMatchObject({ referralCode: VALID_CODE });
 		});
 	}
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import { Eye, Gift } from '@lucide/svelte/icons';
+	import { Gift } from '@lucide/svelte/icons';
 	import { onMount, untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
@@ -48,9 +48,9 @@
 		onPicksReady?: (result: OnboardingPicks) => void;
 		// "Already a member? Sign in".
 		onSignIn: () => void;
-		// "Skip: preview first, sign up later". Carries the selected handle so
-		// the guest session (and the later conversion) keeps the chosen name.
-		onSkip: (handle: string | null) => void;
+		// "Skip" for a signed-in new user: on into the app. The selected handle
+		// is stashed first, so the drain still claims it.
+		onSkip: () => void;
 		// True when the user is already signed in (post-signin onboarding path).
 		authenticated?: boolean;
 	}
@@ -364,13 +364,11 @@
 		canClaim ? 'onboarding.lock_ready' : 'onboarding.lock_blocked'
 	);
 
-	// Skip into guest preview. Stash the claimed handle through the same
-	// pre-auth pipeline a real sign-up uses, so a later conversion keeps the
-	// chosen name, then hand the handle to the host to open the guest session.
-	const onSkipPreview = () => {
-		const handle = availability.ok ? selectedName : null;
+	// Skip the rest of onboarding. Stash the claimed handle through the same
+	// pipeline a sign-up uses, so the drain still claims it, then move on.
+	const onSkipOnboarding = () => {
 		onCommitHandle();
-		onSkip(handle);
+		onSkip();
 	};
 
 	onMount(() => {
@@ -552,16 +550,6 @@
 								onSuccess={onAuthSuccess}
 							/>
 						</div>
-
-						<button
-							class="ob-guest-btn"
-							data-tid={TestId.OnboardingHandleSkip}
-							onclick={onSkipPreview}
-							type="button"
-						>
-							<Eye aria-hidden="true" size={16} strokeWidth={1.7} />
-							{t({ locale: $localeStore, key: 'onboarding.guest_cta' })}
-						</button>
 					{/if}
 				</div>
 
@@ -569,15 +557,11 @@
 					<button
 						class="ob-skip-link"
 						data-tid={TestId.OnboardingHandleSkip}
-						onclick={onSkipPreview}
+						onclick={onSkipOnboarding}
 						type="button"
 					>
 						{t({ locale: $localeStore, key: 'onboarding.skip' })}
 					</button>
-				{:else}
-					<p class="ob-guest-reassure">
-						{t({ locale: $localeStore, key: 'onboarding.guest_reassure' })}
-					</p>
 				{/if}
 
 				{#if !authenticated}

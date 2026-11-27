@@ -28,6 +28,12 @@ export const LANDING_MARKET_PARAM = 'm';
 /** Query parameter opening the landing on one of its views (`/?view=markets`). */
 export const LANDING_VIEW_PARAM = 'view';
 
+/**
+ * Query parameter opening the claim capsule (`/?claim=1`): where every
+ * signed-out call and every invite or league link outside the landing leads.
+ */
+export const LANDING_CLAIM_PARAM = 'claim';
+
 /** How long the share button's status label stays up: the confirmation, and the link to copy by hand. */
 export const LANDING_SHARE_COPIED_MS = 2_000;
 export const LANDING_SHARE_MANUAL_MS = 6_000;

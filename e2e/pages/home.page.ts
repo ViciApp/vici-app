@@ -300,8 +300,8 @@ export class HomePage {
 	 * start. The empty handle field auto-claims its pool suggestion, so the
 	 * provider stack ungates (the dev button becomes enabled) without any
 	 * interaction, leaving the flow ready for the dev sign-in click. The
-	 * "Skip" affordance is deliberately untouched: it starts guest mode, not
-	 * the auth path.
+	 * "Skip" affordance (signed-in new users only) is deliberately untouched:
+	 * it is not the auth path.
 	 */
 	async advanceOnboardingToAuth(): Promise<void> {
 		await this.onboarding.waitFor({ state: 'visible' });
