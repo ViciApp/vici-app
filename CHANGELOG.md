@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.68](https://github.com/ViciApp/vici-app/compare/v1.8.67...v1.8.68) (2026-11-27)
+
+
+### Documentation
+
+* **ai:** link the icdc-core follow-up of the call-size spec ([#1768](https://github.com/ViciApp/vici-app/issues/1768)) ([a9c87a8](https://github.com/ViciApp/vici-app/commit/a9c87a803b9ad129ac667a88ba63f95039fc5f66))
+
 ## [1.8.67](https://github.com/ViciApp/vici-app/compare/v1.8.66...v1.8.67) (2026-11-27)
 
 
