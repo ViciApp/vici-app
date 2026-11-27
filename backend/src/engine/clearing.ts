@@ -344,6 +344,33 @@ export const listCollateralAssets = (): Promise<ClearingDid.CollateralAssetInfo[
 		}
 	});
 
+const loadSeriesOrders = async (
+	seriesId: string | undefined
+): Promise<ClearingDid.LimitOrder[]> => {
+	const actor = await readerClearing();
+
+	return await actor.list_orders({ series_id: toNullable(seriesId) });
+};
+
+/** The resting orders of one series' book, or of every series when none is
+ * named. A resting order's price never changes, so the cached book prices any
+ * order it holds, but its quantity shrinks as it fills; `fresh` reads past the
+ * cache for one placed since or for its current quantity. */
+export const listSeriesOrders = async ({
+	seriesId,
+	fresh = false
+}: {
+	seriesId?: string;
+	fresh?: boolean;
+}): Promise<ClearingDid.LimitOrder[]> =>
+	fresh
+		? await loadSeriesOrders(seriesId)
+		: await cached({
+				key: `clearing:orders:${seriesId ?? '*'}`,
+				ttlMs: PUBLIC_READ_TTL_MS,
+				load: () => loadSeriesOrders(seriesId)
+			});
+
 /** Per-principal settled-position win/total counts over an arbitrary
  * half-open window. Uncached: each read scores a bespoke window. */
 const aggregateSettlementAccuracy = async (

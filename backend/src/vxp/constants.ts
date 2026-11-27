@@ -20,6 +20,14 @@ export const parseVxp = (wholeVxp: number): bigint =>
 export const vxpFromBaseUnits = (baseUnits: bigint): number =>
 	Number(baseUnits) / Number(VXP_BASE_UNITS_PER_WHOLE);
 
+/** Call-size range in whole VXP: a ViciXp call is a multiple of the step
+ * inside [min, max], both included. The order routes refuse anything else. */
+export const VXP_MIN_CALL_SIZE = 10;
+
+export const VXP_MAX_CALL_SIZE = 200;
+
+export const VXP_CALL_SIZE_STEP = 10;
+
 // Onboarding: the new-user starter is a single 1,500 VXP grant at
 // registration (m1). m2/m3 are retained at 0 so there is no engagement-gated
 // drip; the payout path skips any milestone whose amount is not positive.

@@ -424,12 +424,15 @@ not noisy). The FlowEnd celebration deliberately never surfaces
 accuracy (a swipe places a call, it doesn't win one; see §7.3); the
 gate applies to Profile + leaderboard previews on their next pass.
 
-The **call-size ladder** is available to every predictor: the Flow-card back
-shows the per-call size slider
-([`FlowCallSize.svelte`](../../../src/lib/components/market/FlowCallSize.svelte))
+The **call-size slider** is available to every predictor: the Flow-card back
+shows it ([`FlowCallSize.svelte`](../../../src/lib/components/market/FlowCallSize.svelte))
 whenever call-size controls are wired on the ViciXP domain, starting from the
-`VXP_DEFAULT_CALL_SIZE` rung. There is no lifetime-call gate; sizing is
-offered from the first call.
+stored size or `VXP_DEFAULT_CALL_SIZE`. It is the shared
+[`CallSizeSlider`](../../../src/lib/components/market/CallSizeSlider.svelte),
+the same control the market detail sheet uses: one range over the call-size
+constants in steps of `VXP_CALL_SIZE_STEP`, no preset or peg buttons, and a cap
+state (label, value, fill and handle in `--no`) at `VXP_MAX_CALL_SIZE`. There
+is no lifetime-call gate; sizing is offered from the first call.
 
 ### 7.6 Negative-state choreography
 

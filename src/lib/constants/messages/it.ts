@@ -9,6 +9,8 @@ export const itMessages = {
 	'trade.error.generic': 'Impossibile inviare la tua previsione. Riprova tra poco.',
 	'trade.error.insufficient_margin':
 		'Saldo disponibile insufficiente: questa previsione richiede {required}, ma hai {available}. Si libera man mano che le tue previsioni aperte si risolvono.',
+	'trade.error.invalid_call_size':
+		'Questa taglia della call non è disponibile. Scegli una taglia sul cursore e riprova.',
 	'trade.error.market_closed':
 		'Questo mercato si è appena chiuso: le predizioni non sono più aperte.',
 	'trade.error.not_authorized_to_trade': 'Non hai accesso a questo mercato.',
@@ -782,6 +784,7 @@ export const itMessages = {
 	'card.back.who_calling': 'Chi prevede cosa',
 	'card.call_size': 'TAGLIA DELLA CALL',
 	'card.call_size_cap': 'TAGLIA DELLA CALL · MAX',
+	'card.call_size_value': '{amount} VXP',
 	'card.days_left_aria': '{days} giorni rimasti',
 	'card.favorite': 'FAVORITO',
 	'card.followed_friend_plural': 'amici',

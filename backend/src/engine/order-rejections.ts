@@ -37,6 +37,13 @@ export const ORDER_REJECTIONS: Record<OrderErrorVariant, OrderRejection | undefi
 	Unauthorized: undefined
 };
 
+/** A ViciXp order sized outside the call-size range (`vxp/call-size.ts`). */
+export const INVALID_CALL_SIZE = 'invalid_call_size';
+
+/** The codes the order routes refuse with themselves, before the engine is
+ * asked: each a 400. */
+export const ORDER_ROUTE_REFUSAL_CODES = [INVALID_CALL_SIZE] as const;
+
 const variantName = (err: ClearingDid.TradeError): OrderErrorVariant =>
 	Object.keys('Common' in err ? err.Common : err)[0] as OrderErrorVariant;
 

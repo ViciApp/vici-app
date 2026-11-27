@@ -37,8 +37,7 @@
 		// Current call size (string for input-binding parity with
 		// FlowMode). Drives the call-size slider and payout preview.
 		tradeAmount?: string;
-		// Call-size ladder change callback. Fires when a rung or the
-		// native range input changes.
+		// Call-size change callback. Fires as the call-size slider moves.
 		onCallSizeChange?: (next: string) => void;
 		// Real, market-wide price history (0–100 YES series) for the
 		// community-read sparkline. Absent → a flat line at the live price.

@@ -18,11 +18,29 @@ const minOf = (values: bigint[]): bigint =>
 	values.reduce((smallest, value) => (value < smallest ? value : smallest));
 
 /**
- * What one share of the caller's outcome costs at a resting book level, in
- * clearing USD base units (`USD_DECIMALS`): the level price when the caller
- * buys from it, its complement when the caller sells into it (buying NO on a
- * binary book sells YES). Rounded up, so a spend sized on it never comes out
- * above the engine's own margin figure.
+ * What one share of the caller's outcome costs at a fixed-point engine price,
+ * in clearing USD base units (`USD_DECIMALS`): the price when the caller buys,
+ * its complement when the caller sells (buying NO on a binary book sells YES).
+ * Rounded up, so a spend sized on it never comes out above the engine's own
+ * margin figure.
+ */
+export const shareCostUsd = ({
+	price: { value, decimals },
+	side
+}: {
+	price: ClearingDid.DecimalValue;
+	side: OrderSide;
+}): bigint => {
+	const scale = 10n ** BigInt(decimals);
+	const outcomeValue = side === 'BUY' ? value : scale - value;
+
+	return ceilDiv({ value: outcomeValue * USD_ONE, divisor: scale });
+};
+
+/**
+ * What one share of the caller's outcome costs at a resting book level: the
+ * level price when the caller buys from it, its complement when the caller
+ * sells into it. See {@link shareCostUsd}.
  */
 export const levelShareCostUsd = ({
 	level,
@@ -30,13 +48,7 @@ export const levelShareCostUsd = ({
 }: {
 	level: ClearingDid.LimitOrder;
 	takerSide: OrderSide;
-}): bigint => {
-	const { value, decimals } = level.price.decimal;
-	const scale = 10n ** BigInt(decimals);
-	const outcomeValue = takerSide === 'BUY' ? value : scale - value;
-
-	return ceilDiv({ value: outcomeValue * USD_ONE, divisor: scale });
-};
+}): bigint => shareCostUsd({ price: level.price.decimal, side: takerSide });
 
 interface MarketOrderFill {
 	filledQty: bigint;
