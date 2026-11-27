@@ -564,8 +564,9 @@ a hash of the market id or a guess, the same rule as the public landing.
   (`MarketPriceSeries.tradesLastDay`), so it appears only on the focused
   card once its history loads, and never at zero.
 - **Back-face headcount.** `K predicting` next to the countdown is the
-  sum of the market's outcome `totalPredictions`, a real 0 included. A
-  market without outcome data shows no headcount.
+  sum of the market's outcome `totalPredictions`, a real 0 included, and
+  shows only when an outcome carries that figure. No data path fills it
+  today, so the segment is hidden for now.
 - **Who's calling what.** Only the live price ("All callers") and, when
   it exists, the followed-predictors split. A top-accuracy row comes back
   only with a real reputation aggregate behind it.

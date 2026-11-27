@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { DAY_IN_MS, HOUR_IN_MS, MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { Market } from '#lib/types/market.ts';
@@ -82,10 +83,12 @@
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
 
-	// The real headcount, including a genuine 0, when the market carries
-	// outcome data; without it the count is unknown and the segment is
-	// hidden rather than filled with a sample figure.
-	const hasOutcomeData = $derived((market.outcomes?.length ?? 0) > 0);
+	// The real headcount, including a genuine 0, when an outcome carries a
+	// `totalPredictions` figure. No data path fills it today, so the segment
+	// stays hidden rather than reading as a sample figure or a false 0.
+	const hasOutcomeData = $derived(
+		market.outcomes?.some(({ totalPredictions }) => nonNullish(totalPredictions)) ?? false
+	);
 	const predictorsCount = $derived(
 		market.outcomes?.reduce((acc, outcome) => acc + (outcome.totalPredictions ?? 0), 0) ?? 0
 	);

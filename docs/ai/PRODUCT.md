@@ -198,7 +198,8 @@ A Flow card and the market chart never show an invented number. The
 "+N today" line counts the trades really made on the market over about
 the last day (whole hours, never more than really happened) and stays hidden until that count has loaded (or when it is
 zero); a friends split shows only when both counts are known; the back of a
-card shows how many are predicting only when that count is known, and
+card shows how many are predicting only when that count is known (not
+yet available, so it is hidden), and
 "Who's calling what" lists only the live price and the people you follow
 (no top-accuracy row until a real accuracy figure exists); the "this
 week" move shows only when the market has price history; and a market
