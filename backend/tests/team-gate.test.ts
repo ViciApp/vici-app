@@ -295,6 +295,26 @@ describe.if(dbAvailable)('team gate on sessions', () => {
 		expect((await withSession('/me', token)).status).toBe(200);
 	});
 
+	test('the session domain is read after the last @, as isTeamEmail reads it', async () => {
+		const rows = await query<{ id: string }>(
+			`insert into users (role) values ('user') returning id`
+		);
+		const userId = rows[0]?.id ?? '';
+		const email = `${teamEmail()}@evil.example`;
+
+		await query(
+			`insert into auth_identities (user_id, provider, subject, email) values ($1, 'google', $2, $3)`,
+			[userId, `sub-${crypto.randomUUID()}`, email]
+		);
+
+		const token = await createSession(userId);
+
+		enforce({ domains: [TEAM_DOMAIN] });
+
+		expect(isTeamEmail(email)).toBe(false);
+		expect((await withSession('/me', token)).status).toBe(401);
+	});
+
 	test('a team admin keeps the app and the admin', async () => {
 		const token = await sessionFor({ email: teamEmail(), role: 'admin' });
 

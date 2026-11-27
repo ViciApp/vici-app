@@ -43,7 +43,7 @@ export const requireUser = async (request: Request): Promise<AuthedUser | null> 
 		       where ai.user_id = u.id
 		         and (
 		           lower(ai.email) = any($3::text[])
-		           or split_part(lower(ai.email), '@', 2) = any($4::text[])
+		           or substring(lower(ai.email) from '@([^@]*)$') = any($4::text[])
 		         )
 		     )
 		   )
