@@ -343,7 +343,7 @@
 	.handle-editor-title {
 		margin: 0;
 		color: var(--text-base);
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-18);
 		font-weight: 700;
 		letter-spacing: var(--tracking-tight);

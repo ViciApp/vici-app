@@ -198,8 +198,9 @@
 				</button>
 			</div>
 			<p>
-				{subParts[0]}<code class="league-code-example num">{LEAGUE_INVITE_CODE_EXAMPLE}</code
-				>{subParts[1] ?? ''}
+				{subParts[0]}<code class="league-code-example num">
+					{LEAGUE_INVITE_CODE_EXAMPLE}
+				</code>{subParts[1] ?? ''}
 			</p>
 		</header>
 
@@ -302,7 +303,7 @@
 
 	.league-form-head h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-18, 1.1rem);
 		color: var(--text-base);
 	}

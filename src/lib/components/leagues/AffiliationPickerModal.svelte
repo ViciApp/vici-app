@@ -928,12 +928,12 @@
 							<button class="affil-picker-add-cta" onclick={openAddConfirm} type="button">
 								<span class="affil-picker-add-cta-icon" aria-hidden="true">+</span>
 								<span class="affil-picker-add-cta-body">
-									<span class="affil-picker-add-cta-title"
-										>{tr('worlds.picker.school.add_cta_title')}</span
-									>
-									<span class="affil-picker-add-cta-sub num allcaps"
-										>{tr('worlds.picker.school.verified_by_email')}</span
-									>
+									<span class="affil-picker-add-cta-title">
+										{tr('worlds.picker.school.add_cta_title')}
+									</span>
+									<span class="affil-picker-add-cta-sub num allcaps">
+										{tr('worlds.picker.school.verified_by_email')}
+									</span>
 								</span>
 								<span class="affil-picker-add-cta-arrow" aria-hidden="true">→</span>
 							</button>
@@ -1074,7 +1074,7 @@
 	.affil-picker-title {
 		flex: 1;
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-32, 2rem);
 		font-weight: 600;
 		line-height: 1.1;

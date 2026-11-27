@@ -9,7 +9,6 @@
 	import {
 		LANDING_DECK_SEEN_STORAGE_KEY,
 		LANDING_FLOAT_WAIT_MS,
-		LANDING_HEADLINE_FONT_SRC,
 		LANDING_MARKETS_ACK_DELAY_MS,
 		LANDING_SHARE_NUDGE_MS
 	} from '#lib/constants/landing-page.constants.ts';
@@ -165,16 +164,6 @@
 </script>
 
 <svelte:window onkeydowncapture={warmMarkets} onpointerdowncapture={warmMarkets} />
-
-<svelte:head>
-	<link
-		as="font"
-		crossorigin="anonymous"
-		href={LANDING_HEADLINE_FONT_SRC}
-		rel="preload"
-		type="font/woff2"
-	/>
-</svelte:head>
 
 <div bind:this={root} class="lp">
 	<h1 class="sr-only">{t({ locale: $localeStore, key: 'landing.page.heading' })}</h1>

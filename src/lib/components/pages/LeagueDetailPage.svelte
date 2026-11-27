@@ -1720,9 +1720,9 @@
 					<span class="eyebrow league-detail-member-stat-label">
 						{t({ locale: $localeStore, key: 'leagues.detail.member_stat_accuracy' })}
 					</span>
-					<span class="num league-detail-member-stat-value"
-						>{formatAccuracy(openMember.member)}</span
-					>
+					<span class="num league-detail-member-stat-value">
+						{formatAccuracy(openMember.member)}
+					</span>
 				</div>
 				<div class="league-detail-member-stat">
 					<span class="eyebrow league-detail-member-stat-label">
@@ -2667,7 +2667,7 @@
 	}
 
 	.league-detail-recruit-title {
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-14);
 		font-weight: 600;
 		color: var(--text-base);

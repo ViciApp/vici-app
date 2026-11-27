@@ -54,7 +54,7 @@
 			role="status"
 		>
 			<LoadingSpinner size="md" />
-			<h2 class="font-display text-foreground mt-6 text-2xl font-semibold">
+			<h2 class="text-foreground mt-6 text-2xl font-semibold">
 				{t({ locale: $localeStore, key: 'profile.loading.title' })}
 			</h2>
 			<p class="text-muted-foreground mt-2 max-w-xs">
@@ -68,7 +68,7 @@
 			<div class="bg-card mb-6 rounded-full p-6">
 				<User class="text-muted-foreground" aria-hidden="true" size={40} strokeWidth={1.6} />
 			</div>
-			<h2 class="font-display text-foreground text-2xl font-semibold">
+			<h2 class="text-foreground text-2xl font-semibold">
 				{t({ locale: $localeStore, key: 'profile.empty.title' })}
 			</h2>
 			<p class="text-muted-foreground mt-2 max-w-xs">

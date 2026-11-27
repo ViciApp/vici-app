@@ -238,9 +238,9 @@
 				<h2 class="avatar-editor-title">
 					{t({ locale: $localeStore, key: 'profile.avatar.title' })}
 				</h2>
-				<span class="avatar-editor-sub"
-					>{t({ locale: $localeStore, key: 'profile.avatar.subtitle' })}</span
-				>
+				<span class="avatar-editor-sub">
+					{t({ locale: $localeStore, key: 'profile.avatar.subtitle' })}
+				</span>
 			</div>
 			<button
 				class="avatar-editor-close"
@@ -449,7 +449,7 @@
 
 	.avatar-editor-title {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-18);
 		font-weight: 700;
 	}
@@ -706,7 +706,7 @@
 
 	.avatar-editor-confirm-title {
 		margin: 0 0 6px;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-18);
 		font-weight: 700;
 		color: var(--text-base);

@@ -1228,7 +1228,7 @@
 	.market-detail-title {
 		margin: 0.625rem 0 0;
 		color: var(--text-base);
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: 1.5rem;
 		font-weight: 600;
 		letter-spacing: -0.02em;

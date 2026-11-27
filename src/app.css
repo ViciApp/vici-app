@@ -2,7 +2,7 @@
 @import './landing.css';
 
 /* ─── Self-hosted fonts ────────────────────────────────────────────
- * All five families are licensed under the SIL Open Font License 1.1.
+ * All four families are licensed under the SIL Open Font License 1.1.
  * Files live under `static/fonts/` and are served at `/fonts/*`.
  * Hanken Grotesk is a variable font: a single woff2 covers all four
  * weights via `font-weight: 400 700`. Bricolage Grotesque is variable
@@ -53,9 +53,8 @@
 	src: url('/fonts/jetbrainsmono-bold.woff2') format('woff2');
 }
 
-/* Bricolage Grotesque is the display face for the signed-out landing
- * only, so it is not preloaded in `app.html`: the request starts when a
- * landing heading first needs it, and signed-in loads never pay for it. */
+/* Bricolage Grotesque is the headline face: every heading, in the app
+ * and on the signed-out landing. Preloaded in `app.html` with Hanken. */
 @font-face {
 	font-family: 'Bricolage Grotesque';
 	font-style: normal;
@@ -726,6 +725,20 @@ html {
  * `:disabled` only matches form elements, so we also exclude
  * `[aria-disabled='true']` / `[disabled]` for custom buttons. */
 @layer base {
+	/* Headings set in the headline face. In the base layer, so any class
+	 * that names its own face (`.eyebrow`, `.serif-italic`, a component's
+	 * scoped rule) still wins: an eyebrow marked up as an `<h2>` stays a
+	 * UI label. A title that is not a heading element opts in with the
+	 * `font-headline` utility. */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-headline);
+	}
+
 	button:not(:disabled):not([aria-disabled='true']),
 	[role='button']:not([disabled]):not([aria-disabled='true']),
 	summary:not([aria-disabled='true']) {

@@ -79,19 +79,19 @@
 <button class="card-inline" data-tid={TestId.MarketCard} onclick={onClick} type="button">
 	<div class="row between">
 		{#if tag}
-			<span style:color={tagColor(tag)} class="tag"
-				>{categoryLabel({ category: tag, variant: 'short', locale: $localeStore })}</span
-			>
+			<span style:color={tagColor(tag)} class="tag">
+				{categoryLabel({ category: tag, variant: 'short', locale: $localeStore })}
+			</span>
 		{:else}
 			<span class="tag">&nbsp;</span>
 		{/if}
-		<span class="num mute t-eyebrow"
-			>{freshVolume
+		<span class="num mute t-eyebrow">
+			{freshVolume
 				? t({ locale: $localeStore, key: 'market.detail.stats.new' })
-				: `${vol} ${t({ locale: $localeStore, key: 'market.vol_suffix' })}`} · {closes}</span
-		>
+				: `${vol} ${t({ locale: $localeStore, key: 'market.vol_suffix' })}`} · {closes}
+		</span>
 	</div>
-	<div style="margin-top: 8px; font-weight: 600; line-height: 1.35;" class="t-body">
+	<div style="margin-top: 8px; font-weight: 600; line-height: 1.35;" class="t-body font-headline">
 		{display.title}
 	</div>
 	{#if nonNullish(translation)}
@@ -109,13 +109,13 @@
 			<ProbBar {yes} />
 		</div>
 		{#if hasProbability}
-			<span style:color={yes >= 50 ? 'var(--yes)' : 'var(--no)'} class="num t-body fw-600"
-				>{yes}%</span
-			>
+			<span style:color={yes >= 50 ? 'var(--yes)' : 'var(--no)'} class="num t-body fw-600">
+				{yes}%
+			</span>
 		{:else}
-			<span class="num t-body fw-600"
-				><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
-			>
+			<span class="num t-body fw-600">
+				<MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} />
+			</span>
 		{/if}
 	</div>
 </button>

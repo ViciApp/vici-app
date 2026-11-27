@@ -397,9 +397,9 @@
 									</div>
 									<div class="tournament-match-meta num">
 										{#if concluded}
-											<span class="tournament-match-date"
-												>{formatIsoDateUtc({ timestampMs: match.endMs })}</span
-											>
+											<span class="tournament-match-date">
+												{formatIsoDateUtc({ timestampMs: match.endMs })}
+											</span>
 											<span class="tournament-match-winner">
 												{match.winnerLeagueId} →
 											</span>
@@ -496,7 +496,7 @@
 
 	.tournament-headline {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-24, 1.5rem);
 		font-weight: 600;
 		line-height: 1.15;

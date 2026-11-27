@@ -400,9 +400,9 @@
 			<ul class="worlds-detail-champions-list">
 				{#each championships as cup (cup.monthAnchor)}
 					<li class="row-between worlds-detail-champions-row">
-						<span class="worlds-detail-champions-month"
-							>{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}</span
-						>
+						<span class="worlds-detail-champions-month">
+							{formatMonthAnchorLabel({ anchor: cup.monthAnchor, locale: $localeStore })}
+						</span>
 						<span class="num worlds-detail-champions-acc worlds-detail-acc">
 							{formatAccuracyPercent(cup.accuracy)}
 						</span>
@@ -694,7 +694,7 @@
 	}
 
 	.worlds-detail-empty-title {
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-style: italic;
 		font-weight: 400;
 		font-size: var(--t-20, 1.25rem);

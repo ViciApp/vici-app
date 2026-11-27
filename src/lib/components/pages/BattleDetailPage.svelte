@@ -573,15 +573,15 @@
 			</div>
 			<div class="battle-detail-meta-row">
 				<span class="eyebrow">{t({ locale: $localeStore, key: 'battle.detail.scope_label' })}</span>
-				<span class="num allcaps"
-					>{battleScopeLabel({ scope: battle.scope, locale: $localeStore })}</span
-				>
+				<span class="num allcaps">
+					{battleScopeLabel({ scope: battle.scope, locale: $localeStore })}
+				</span>
 			</div>
 			{#if nonNullish(battle.amount) && battle.amount > 0}
 				<div class="battle-detail-meta-row">
-					<span class="eyebrow"
-						>{t({ locale: $localeStore, key: 'battle.detail.amount_label' })}</span
-					>
+					<span class="eyebrow">
+						{t({ locale: $localeStore, key: 'battle.detail.amount_label' })}
+					</span>
 					<span class="num">
 						{t({
 							locale: $localeStore,
@@ -707,7 +707,7 @@
 
 	.battle-detail-empty h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-16, 1rem);
 		color: var(--text-base);
 	}

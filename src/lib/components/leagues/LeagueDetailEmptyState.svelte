@@ -30,7 +30,7 @@
 
 	.league-detail-empty h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-headline);
 		font-size: var(--t-16, 1rem);
 		color: var(--text-base);
 	}

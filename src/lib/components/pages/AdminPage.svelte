@@ -87,7 +87,7 @@
 
 <div class="space-y-12 px-4 py-6 sm:py-8 lg:py-10">
 	<header class="space-y-4">
-		<h1 class="font-display text-foreground text-4xl font-semibold tracking-tight sm:text-5xl">
+		<h1 class="text-foreground text-4xl font-semibold tracking-tight sm:text-5xl">
 			{t({ locale: $localeStore, key: 'admin.dashboard.title' })}
 		</h1>
 		<p class="text-muted-foreground max-w-2xl text-lg">
@@ -158,12 +158,12 @@
 				<Vibrate size={18} strokeWidth={1.8} />
 			</span>
 			<span class="flex-1">
-				<span class="text-foreground block text-sm font-semibold"
-					>{t({ locale: $localeStore, key: 'admin.haptics.title' })}</span
-				>
-				<span class="text-muted-foreground block text-xs"
-					>{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}</span
-				>
+				<span class="text-foreground block text-sm font-semibold">
+					{t({ locale: $localeStore, key: 'admin.haptics.title' })}
+				</span>
+				<span class="text-muted-foreground block text-xs">
+					{t({ locale: $localeStore, key: 'admin.diagnostics.haptics_description' })}
+				</span>
 			</span>
 			<ChevronRight class="text-muted-foreground" aria-hidden="true" size={18} strokeWidth={1.8} />
 		</button>
