@@ -2,7 +2,7 @@ import type { ClearingDid } from '#declarations';
 import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import { formatToken } from '#lib/utils/format.utils.ts';
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
-import { Web2ApiError } from '#lib/web2/client.ts';
+import { ApiError } from '#lib/web2/client.ts';
 import { assertNever, isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -158,7 +158,7 @@ export const mapTradeError = (err: ClearingDid.TradeError): TradeErrorMessage =>
 
 /**
  * The HTTP API's order refusals, by the stable `code` of its error envelope.
- * Web2 mode never sees a `TradeError`: the API signs for the user and reduces
+ * The app never sees a `TradeError`: the API signs for the user and reduces
  * the variant to one of these, or refuses an order itself (`invalid_call_size`).
  * `backend/src/engine/order-rejections.ts` owns the codes; the shared-drift
  * suite pins the two lists together.
@@ -185,7 +185,7 @@ const ORDER_REJECTION_KEYS: Record<string, MessageKey> = {
  * user can act on from a failure it should not explain.
  */
 export const orderRejectionMessage = (error: unknown): TradeErrorMessage | undefined => {
-	if (!(error instanceof Web2ApiError) || error.status < 400 || error.status >= 500) {
+	if (!(error instanceof ApiError) || error.status < 400 || error.status >= 500) {
 		return;
 	}
 

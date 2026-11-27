@@ -14,13 +14,13 @@ import { walkMarketOrder } from '#lib/utils/market-order.utils.ts';
 import { parseLimitOrderPriceValue } from '#lib/utils/parse.utils.ts';
 import { refreshAllBalances, refreshOrders, refreshPositions } from '#lib/utils/refresh.utils.ts';
 import {
-	cancelEngineOrder as cancelEngineOrderWeb2,
-	listEngineOrders as listEngineOrdersWeb2,
-	submitEngineLimitOrder as submitEngineLimitOrderWeb2,
-	submitEngineMarketOrder as submitEngineMarketOrderWeb2,
-	Web2ApiError
+	ApiError,
+	cancelEngineOrder as cancelEngineOrderApi,
+	listEngineOrders as listEngineOrdersApi,
+	submitEngineLimitOrder as submitEngineLimitOrderApi,
+	submitEngineMarketOrder as submitEngineMarketOrderApi
 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { fromNullable, isNullish, toNullable, type Nullable } from '@dfinity/utils';
 import { AnonymousIdentity, type Identity } from '@icp-sdk/core/agent';
 import { nanoid } from 'nanoid';
@@ -84,8 +84,8 @@ export const getOrderBook = async ({
 
 /** Map a session miss onto one stable error text, so the UI's auth-failure
  * handling reads a single message. */
-const rethrowWeb2Unauthenticated = (err: unknown): never => {
-	if (err instanceof Web2ApiError && err.status === 401) {
+const rethrowUnauthenticated = (err: unknown): never => {
+	if (err instanceof ApiError && err.status === 401) {
 		throw new Error('Not authenticated');
 	}
 
@@ -114,7 +114,7 @@ export const placeOrder = async ({
 	qty: bigint;
 	/** The call size in clearing USD base units: a market order never spends more. */
 	maxSpendUsd: bigint;
-	/** The ViciXp call size in whole VXP, declared to the web2 API so it can check the order against it. */
+	/** The ViciXp call size in whole VXP, declared to the API so it can check the order against it. */
 	callSize?: number;
 	outcome: Outcome;
 	expiryDate: bigint;
@@ -163,7 +163,7 @@ export const placeOrder = async ({
 		const orderId = `ORD_${nanoid(8)}`;
 
 		try {
-			await submitEngineLimitOrderWeb2({
+			await submitEngineLimitOrderApi({
 				orderId,
 				seriesId: marketId,
 				side: normalizedSide === 'BUY' ? 'buy' : 'sell',
@@ -174,7 +174,7 @@ export const placeOrder = async ({
 				callSize
 			});
 		} catch (err: unknown) {
-			rethrowWeb2Unauthenticated(err);
+			rethrowUnauthenticated(err);
 		}
 	} else {
 		const counterSide = normalizedSide === 'BUY' ? 'Sell' : 'Buy';
@@ -191,7 +191,7 @@ export const placeOrder = async ({
 					identity: new AnonymousIdentity(),
 					params: { series_id: toNullable(marketId) }
 				}),
-				listEngineOrdersWeb2().then((own) => new Set(own.map((o) => o.order_id)))
+				listEngineOrdersApi().then((own) => new Set(own.map((o) => o.order_id)))
 			]);
 
 			return orders
@@ -219,7 +219,7 @@ export const placeOrder = async ({
 			readBook: fetchMatchingOrders,
 			takeLevel: async ({ level, qty: take }) => {
 				try {
-					await submitEngineMarketOrderWeb2({
+					await submitEngineMarketOrderApi({
 						tradeId: `TRD_${nanoid(8)}`,
 						seriesId: marketId,
 						matchingOrderId: level.order_id,
@@ -227,7 +227,7 @@ export const placeOrder = async ({
 						callSize
 					});
 				} catch (err: unknown) {
-					rethrowWeb2Unauthenticated(err);
+					rethrowUnauthenticated(err);
 				}
 			}
 		});
@@ -261,7 +261,7 @@ export const placeOrder = async ({
 		// The activity owner is the session account id; the HTTP feed's trade
 		// trigger fires the onboarding-milestone and referral awards, and the
 		// daily-streak bump rides `recordActivity`'s profile write.
-		const userText = getWeb2User()?.id;
+		const userText = getSessionUser()?.id;
 
 		if (isNullish(userText)) {
 			return;
@@ -287,9 +287,9 @@ export const placeOrder = async ({
 export const cancelLimitOrder = async (orderId: string): Promise<void> => {
 	// The API signs the cancel with the caller's derived custodial identity.
 	try {
-		await cancelEngineOrderWeb2({ orderId });
+		await cancelEngineOrderApi({ orderId });
 	} catch (err: unknown) {
-		rethrowWeb2Unauthenticated(err);
+		rethrowUnauthenticated(err);
 	}
 
 	track({ name: 'order_cancelled' });
@@ -309,11 +309,11 @@ export const cancelLimitOrder = async (orderId: string): Promise<void> => {
 export const getUserOrders = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.LimitOrder[]> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return [];
 	}
 
-	const orders = await listEngineOrdersWeb2();
+	const orders = await listEngineOrdersApi();
 
 	return filterByPlaygroundExpandedDomain({ items: orders, targetDomain: domain });
 };
@@ -332,12 +332,12 @@ export const loadUserOrders = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.LimitOrder[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return;
 	}
 
 	try {
-		const orders = await listEngineOrdersWeb2();
+		const orders = await listEngineOrdersApi();
 
 		onLoad({
 			certified: true,

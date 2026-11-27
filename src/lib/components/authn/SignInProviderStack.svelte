@@ -17,10 +17,10 @@
 		getProviders,
 		googleSignInUrl,
 		verifyOtp,
-		Web2ApiError,
-		type Web2Providers
+		ApiError,
+		type ApiProviders
 	} from '#lib/web2/client.ts';
-	import { adoptWeb2Session } from '#lib/web2/session.ts';
+	import { adoptSession } from '#lib/web2/session.ts';
 
 	interface Props {
 		onSuccess?: () => void;
@@ -34,8 +34,8 @@
 	// Optimistic defaults so the stack renders immediately; the real statuses
 	// arrive from `/auth/providers` on mount. Apple ships disabled either way
 	// (the address flow is not wired on the client yet), and passkey has no
-	// web2 counterpart at all, so both read as "coming soon".
-	let providers = $state<Web2Providers>({
+	// API counterpart at all, so both read as "coming soon".
+	let providers = $state<ApiProviders>({
 		email: 'available',
 		google: 'available',
 		apple: 'coming_soon'
@@ -71,7 +71,7 @@
 	// account on the legacy app (held there until the move). Map each to its
 	// own message instead of the generic retry copy.
 	const errorKeyFor = (err: unknown): ErrorKey => {
-		if (!(err instanceof Web2ApiError)) {
+		if (!(err instanceof ApiError)) {
 			return 'signin.otp.error';
 		}
 
@@ -180,7 +180,7 @@
 		try {
 			const user = await verifyOtp({ email: email.trim(), code: code.trim() });
 
-			adoptWeb2Session(user);
+			adoptSession(user);
 
 			// Mirror the on-chain stack: fire at the success boundary so the event
 			// carries the now-authenticated session. The address is never a prop.

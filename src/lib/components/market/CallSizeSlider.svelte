@@ -15,7 +15,7 @@
 	 * The one call-size control of every surface that sizes a ViciXP call: a
 	 * labelled value readout over a native range whose `min`, `max` and `step`
 	 * are the economy constants, so every stop is a size the trade guard and
-	 * the web2 API accept. Native range keys work (arrows move one step, Home /
+	 * the API accept. Native range keys work (arrows move one step, Home /
 	 * End jump to the bounds). At the maximum the control switches to its cap
 	 * state so the upper bound is felt, not read.
 	 */

@@ -1,16 +1,16 @@
-import { getMyProfile, verifyOtp, Web2ApiError, type Web2Me } from '#lib/web2/client.ts';
+import { ApiError, getMyProfile, verifyOtp, type ApiMe } from '#lib/web2/client.ts';
 import {
-	adoptWeb2Session,
-	assertWeb2SessionOwner,
-	getWeb2User,
-	watchWeb2Session,
-	Web2SessionChangedError
+	adoptSession,
+	assertSessionOwner,
+	getSessionUser,
+	SessionChangedError,
+	watchSession
 } from '#lib/web2/session.ts';
 import { isNullish } from '@dfinity/utils';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-const meOf = (id: string): Web2Me => ({
+const meOf = (id: string): ApiMe => ({
 	id,
 	role: 'user',
 	displayName: null,
@@ -32,7 +32,7 @@ const stubApi = ({
 	me,
 	refuse = { status: 401, body: { error: 'unauthenticated' } }
 }: {
-	me?: Web2Me;
+	me?: ApiMe;
 	refuse?: { status: number; body: unknown };
 }): void => {
 	globalThis.fetch = (...[url]: Parameters<typeof fetch>): Promise<Response> =>
@@ -51,7 +51,7 @@ const settle = async (): Promise<void> => {
 	}
 };
 
-describe('web2 session', () => {
+describe('session', () => {
 	const originalFetch = globalThis.fetch;
 	let stopWatching: (() => void) | undefined;
 
@@ -63,7 +63,7 @@ describe('web2 session', () => {
 				removeEventListener: () => undefined
 			}
 		});
-		adoptWeb2Session(ACCOUNT_A);
+		adoptSession(ACCOUNT_A);
 	});
 
 	afterEach(() => {
@@ -73,54 +73,54 @@ describe('web2 session', () => {
 		Reflect.deleteProperty(globalThis, 'document');
 	});
 
-	describe('assertWeb2SessionOwner', () => {
+	describe('assertSessionOwner', () => {
 		it('lets a write through while the cookie belongs to the same account', async () => {
 			stubApi({ me: ACCOUNT_A });
 
-			await assertWeb2SessionOwner(ACCOUNT_A.id);
+			await assertSessionOwner(ACCOUNT_A.id);
 
-			assert.equal(getWeb2User()?.id, ACCOUNT_A.id);
+			assert.equal(getSessionUser()?.id, ACCOUNT_A.id);
 		});
 
 		it('refuses the write and moves to the cookie account after a sign-in in another tab', async () => {
 			stubApi({ me: ACCOUNT_B });
 
-			await assert.rejects(assertWeb2SessionOwner(ACCOUNT_A.id), Web2SessionChangedError);
+			await assert.rejects(assertSessionOwner(ACCOUNT_A.id), SessionChangedError);
 
-			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+			assert.equal(getSessionUser()?.id, ACCOUNT_B.id);
 		});
 	});
 
-	describe('watchWeb2Session', () => {
+	describe('watchSession', () => {
 		it('signs the tab out when a request is refused as unauthenticated', async () => {
-			stopWatching = watchWeb2Session();
+			stopWatching = watchSession();
 			stubApi({});
 
-			await assert.rejects(getMyProfile(), Web2ApiError);
+			await assert.rejects(getMyProfile(), ApiError);
 
-			assert.equal(getWeb2User(), undefined);
+			assert.equal(getSessionUser(), undefined);
 		});
 
 		it('keeps the session on any other refusal', async () => {
-			stopWatching = watchWeb2Session();
+			stopWatching = watchSession();
 			stubApi({ me: ACCOUNT_A, refuse: { status: 401, body: { error: 'invalid_code' } } });
 
-			await assert.rejects(verifyOtp({ email: 'a@example.com', code: '000000' }), Web2ApiError);
+			await assert.rejects(verifyOtp({ email: 'a@example.com', code: '000000' }), ApiError);
 
-			assert.equal(getWeb2User()?.id, ACCOUNT_A.id);
+			assert.equal(getSessionUser()?.id, ACCOUNT_A.id);
 		});
 
 		it('leaves the session alone once stopped', async () => {
-			watchWeb2Session()();
+			watchSession()();
 			stubApi({});
 
-			await assert.rejects(getMyProfile(), Web2ApiError);
+			await assert.rejects(getMyProfile(), ApiError);
 
-			assert.equal(getWeb2User()?.id, ACCOUNT_A.id);
+			assert.equal(getSessionUser()?.id, ACCOUNT_A.id);
 		});
 
 		it('moves to the cookie account when another tab changes it', async () => {
-			stopWatching = watchWeb2Session();
+			stopWatching = watchSession();
 			stubApi({ me: ACCOUNT_B });
 
 			const otherTab = new BroadcastChannel('vici.web2-session');
@@ -129,7 +129,7 @@ describe('web2 session', () => {
 
 			await settle();
 
-			assert.equal(getWeb2User()?.id, ACCOUNT_B.id);
+			assert.equal(getSessionUser()?.id, ACCOUNT_B.id);
 		});
 	});
 });

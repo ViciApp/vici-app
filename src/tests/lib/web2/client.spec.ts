@@ -1,12 +1,12 @@
 import {
+	ApiError,
 	cancelEngineOrder,
 	getEngineAccountState,
 	getMe,
 	getUserRankAndCount,
 	getWalletBalances,
 	listEngineSettlementStatuses,
-	requestWalletWithdrawal,
-	Web2ApiError
+	requestWalletWithdrawal
 } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
@@ -183,25 +183,19 @@ describe('getEngineAccountState', () => {
 	});
 });
 
-describe('Web2ApiError', () => {
+describe('ApiError', () => {
 	const originalFetch = globalThis.fetch;
 
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 	});
 
-	const refusal = async ({
-		status,
-		body
-	}: {
-		status: number;
-		body: string;
-	}): Promise<Web2ApiError> => {
+	const refusal = async ({ status, body }: { status: number; body: string }): Promise<ApiError> => {
 		globalThis.fetch = () => Promise.resolve(new Response(body, { status }));
 
 		const err: unknown = await cancelEngineOrder({ orderId: 'o1' }).catch((e: unknown) => e);
 
-		assert.ok(err instanceof Web2ApiError);
+		assert.ok(err instanceof ApiError);
 
 		return err;
 	};
@@ -314,7 +308,7 @@ describe('requestWalletWithdrawal', () => {
 
 			const err: unknown = await withdraw().catch((e: unknown) => e);
 
-			assert.ok(err instanceof Web2ApiError);
+			assert.ok(err instanceof ApiError);
 			assert.equal(err.status, 201);
 			assert.equal(err.code, 'invalid_response');
 		});
@@ -353,7 +347,7 @@ describe('getMe', () => {
 
 		const err: unknown = await getMe().catch((e: unknown) => e);
 
-		assert.ok(err instanceof Web2ApiError);
+		assert.ok(err instanceof ApiError);
 		assert.equal(err.code, 'invalid_response');
 	});
 });

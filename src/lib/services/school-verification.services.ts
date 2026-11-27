@@ -27,8 +27,8 @@
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import { withTimeout } from '#lib/utils/async.utils.ts';
 import {
-	submitSchool as submitSchoolWeb2,
-	verifySchoolCode as verifySchoolCodeWeb2
+	submitSchool as submitSchoolApi,
+	verifySchoolCode as verifySchoolCodeApi
 } from '#lib/web2/client.ts';
 
 /** Hard timeout for either verification round-trip. */
@@ -84,7 +84,7 @@ export const submitSchool = async ({
 	// name/country for a new entry) server-side, so the `schoolId` hint is
 	// not part of its contract.
 	const { submissionId } = await withTimeout({
-		operation: submitSchoolWeb2({ name, country, email, locale }),
+		operation: submitSchoolApi({ name, country, email, locale }),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'submitSchool'
 	});
@@ -103,7 +103,7 @@ export const verifySchoolCode = async ({
 	code
 }: SchoolVerifyInput): Promise<SchoolVerifyResult> => {
 	const result = await withTimeout({
-		operation: verifySchoolCodeWeb2({ submissionId, code }),
+		operation: verifySchoolCodeApi({ submissionId, code }),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'verifySchoolCode'
 	});

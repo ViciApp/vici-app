@@ -1,10 +1,10 @@
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
 import {
-	getMarketTranslation as getMarketTranslationWeb2,
-	listMarketTranslationsForLocales as listMarketTranslationsForLocalesWeb2,
-	listMarketTranslations as listMarketTranslationsWeb2,
-	upsertMarketTranslation as upsertMarketTranslationWeb2
+	getMarketTranslation as getMarketTranslationApi,
+	listMarketTranslations as listMarketTranslationsApi,
+	listMarketTranslationsForLocales as listMarketTranslationsForLocalesApi,
+	upsertMarketTranslation as upsertMarketTranslationApi
 } from '#lib/web2/client.ts';
 
 export const getMarketTranslation = async ({
@@ -13,10 +13,10 @@ export const getMarketTranslation = async ({
 }: {
 	seriesId: string;
 	locale: AppLocale;
-}): Promise<MarketTranslation | undefined> => await getMarketTranslationWeb2({ seriesId, locale });
+}): Promise<MarketTranslation | undefined> => await getMarketTranslationApi({ seriesId, locale });
 
 export const listMarketTranslations = async (seriesId: string): Promise<MarketTranslation[]> =>
-	await listMarketTranslationsWeb2(seriesId);
+	await listMarketTranslationsApi(seriesId);
 
 /**
  * Bulk overlay read for a set of markets across a set of candidate locales
@@ -32,7 +32,7 @@ export const listMarketTranslationsForLocales = async ({
 	seriesIds: string[];
 	locales: AppLocale[];
 }): Promise<MarketTranslation[]> =>
-	await listMarketTranslationsForLocalesWeb2({ seriesIds, locales });
+	await listMarketTranslationsForLocalesApi({ seriesIds, locales });
 
 /**
  * The API enforces the curator gate (admin or series creator) and returns the
@@ -46,4 +46,4 @@ export const upsertMarketTranslation = async ({
 	seriesId: string;
 	locale: AppLocale;
 	data: MarketTranslationInput;
-}): Promise<MarketTranslation> => await upsertMarketTranslationWeb2({ seriesId, locale, data });
+}): Promise<MarketTranslation> => await upsertMarketTranslationApi({ seriesId, locale, data });

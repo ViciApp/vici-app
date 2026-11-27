@@ -1,8 +1,8 @@
 import { LEAGUE_IMAGE_JPEG_QUALITY, LEAGUE_IMAGE_SIZE_PX } from '#lib/types/league.ts';
 import { downscaleImageToSquareJpeg } from '#lib/utils/image.utils.ts';
 import {
-	deleteLeagueImage as deleteLeagueImageWeb2,
-	uploadLeagueImage as uploadLeagueImageWeb2
+	deleteLeagueImage as deleteLeagueImageApi,
+	uploadLeagueImage as uploadLeagueImageApi
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 
@@ -42,7 +42,7 @@ export const uploadLeagueImage = async ({
 		throw new Error('Could not process the selected image.');
 	}
 
-	const { imageUrl } = await uploadLeagueImageWeb2({ leagueId, image: downscaled });
+	const { imageUrl } = await uploadLeagueImageApi({ leagueId, image: downscaled });
 
 	if (isNullish(imageUrl)) {
 		throw new Error('Could not process the selected image.');
@@ -79,7 +79,7 @@ export const deleteLeagueImageByUrl = async (url: string): Promise<void> => {
 	}
 
 	try {
-		await deleteLeagueImageWeb2(decodeURIComponent(leagueId));
+		await deleteLeagueImageApi(decodeURIComponent(leagueId));
 	} catch (err) {
 		// The row-side clear is the source of truth; a dangling asset is
 		// a cosmetic leak, not a failure the user should see.

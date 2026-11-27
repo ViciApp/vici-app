@@ -7,15 +7,15 @@ import type {
 } from '#lib/types/challenge.ts';
 import { parseChallengeId } from '#lib/utils/challenge.utils.ts';
 import {
-	answerChallenge as answerChallengeWeb2,
-	createChallenge as createChallengeWeb2,
-	getChallenge as getChallengeWeb2,
-	listChallengeAnswers as listChallengeAnswersWeb2,
-	listMyChallenges as listMyChallengesWeb2,
-	redeemChallenge as redeemChallengeWeb2,
-	revokeChallenge as revokeChallengeWeb2,
-	setChallengeConsent as setChallengeConsentWeb2,
-	Web2ApiError
+	answerChallenge as answerChallengeApi,
+	ApiError,
+	createChallenge as createChallengeApi,
+	getChallenge as getChallengeApi,
+	listChallengeAnswers as listChallengeAnswersApi,
+	listMyChallenges as listMyChallengesApi,
+	redeemChallenge as redeemChallengeApi,
+	revokeChallenge as revokeChallengeApi,
+	setChallengeConsent as setChallengeConsentApi
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 
@@ -30,14 +30,14 @@ const requireChallengeId = (raw: string): string => {
 	const id = parseChallengeId(raw);
 
 	if (isNullish(id)) {
-		throw new Web2ApiError({ status: 404, code: CHALLENGE_NOT_FOUND_CODE });
+		throw new ApiError({ status: 404, code: CHALLENGE_NOT_FOUND_CODE });
 	}
 
 	return id;
 };
 
 const isNotFound = (err: unknown): boolean =>
-	err instanceof Web2ApiError && err.status === 404 && err.code === CHALLENGE_NOT_FOUND_CODE;
+	err instanceof ApiError && err.status === 404 && err.code === CHALLENGE_NOT_FOUND_CODE;
 
 /**
  * Issues the signed-in user's link for a market, or returns their active one (same id). The
@@ -46,7 +46,7 @@ const isNotFound = (err: unknown): boolean =>
 export const createChallenge = async (params: {
 	seriesId: string;
 	showIdentity: boolean;
-}): Promise<OwnChallenge> => await createChallengeWeb2(params);
+}): Promise<OwnChallenge> => await createChallengeApi(params);
 
 /** The public read of a link, or `undefined` when it cannot be read (malformed, unknown, revoked,
  * pruned or its challenger hidden: one outcome for all). */
@@ -58,7 +58,7 @@ export const getChallenge = async (rawId: string): Promise<ChallengeView | undef
 	}
 
 	try {
-		return await getChallengeWeb2(id);
+		return await getChallengeApi(id);
 	} catch (err) {
 		if (isNotFound(err)) {
 			return;
@@ -76,24 +76,24 @@ export const setChallengeConsent = async ({
 	id: string;
 	showIdentity: boolean;
 }): Promise<OwnChallenge> =>
-	await setChallengeConsentWeb2({ id: requireChallengeId(id), showIdentity });
+	await setChallengeConsentApi({ id: requireChallengeId(id), showIdentity });
 
 /** The owner turns the link off. */
 export const revokeChallenge = async (id: string): Promise<void> => {
-	await revokeChallengeWeb2(requireChallengeId(id));
+	await revokeChallengeApi(requireChallengeId(id));
 };
 
 /** Credits the link's challenger as the signed-in user's referrer, under the referral rules. */
 export const redeemChallenge = async (id: string): Promise<ChallengeRedeemOutcome> =>
-	await redeemChallengeWeb2(requireChallengeId(id));
+	await redeemChallengeApi(requireChallengeId(id));
 
 /** Records the signed-in user's own call on the link's market as an answer (engine-verified). */
 export const answerChallenge = async (id: string): Promise<ChallengeAnswer> =>
-	await answerChallengeWeb2(requireChallengeId(id));
+	await answerChallengeApi(requireChallengeId(id));
 
 /** The signed-in user's active links. */
-export const listMyChallenges = async (): Promise<OwnChallenge[]> => await listMyChallengesWeb2();
+export const listMyChallenges = async (): Promise<OwnChallenge[]> => await listMyChallengesApi();
 
 /** Answers to the signed-in user's links, newest first. */
 export const listChallengeAnswers = async (): Promise<ChallengeAnswerItem[]> =>
-	await listChallengeAnswersWeb2();
+	await listChallengeAnswersApi();

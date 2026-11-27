@@ -10,7 +10,7 @@
 // unadopted provisional one; a user id or an email used on two rows (one
 // person must not be split across two accounts, nor two accounts share one
 // address, since a login adopts only one of them); an email that already
-// signs in to a web2 account (that login never reaches adoption); an email
+// signs in to a live account (that login never reaches adoption); an email
 // the export already holds for another principal (two accounts would compete
 // for one login). An email the account already carries is a no-op, so a
 // re-run converges.
@@ -50,7 +50,7 @@ export type AssignmentOutcome =
 	| 'email_repeated'
 	| 'unknown_user'
 	| 'not_provisional'
-	| 'email_has_web2_account'
+	| 'email_has_live_account'
 	| 'email_on_other_legacy_account';
 
 /** The outcomes that change nothing and need nothing from the operator. */
@@ -108,7 +108,7 @@ interface AssignmentFacts {
 	users: Map<string, { provisional: boolean }>;
 	/** Each account's importer principals, the one to write first. */
 	principals: Map<string, ProvisionalPrincipal[]>;
-	web2Emails: Set<string>;
+	liveEmails: Set<string>;
 	/** Each address the export holds, with the principals and accounts
 	 * (null when unlinked) carrying it. */
 	legacyEmails: Map<string, Array<{ principal: string; userId: string | null }>>;
@@ -146,7 +146,7 @@ const readFacts = async ({
 
 	// Same match as resolveIdentity's lookup by email: a live account holding
 	// the address under any provider takes the login before adoption runs.
-	const web2 = await q<{ email: string }>(
+	const live = await q<{ email: string }>(
 		`select distinct lower(ai.email) as email
 		 from auth_identities ai
 		 join users u on u.id = ai.user_id and u.hard_deleted_at is null
@@ -181,7 +181,7 @@ const readFacts = async ({
 	return {
 		users: new Map(users.map(({ id, provisional }) => [id, { provisional }])),
 		principals: principalsByUser,
-		web2Emails: new Set(web2.map(({ email }) => email)),
+		liveEmails: new Set(live.map(({ email }) => email)),
 		legacyEmails
 	};
 };
@@ -241,8 +241,8 @@ const judge = (input: JudgeInput): AssignmentPlanRow => {
 		return refuse('not_provisional');
 	}
 
-	if (facts.web2Emails.has(email)) {
-		return refuse('email_has_web2_account');
+	if (facts.liveEmails.has(email)) {
+		return refuse('email_has_live_account');
 	}
 
 	const carriers = facts.legacyEmails.get(email) ?? [];

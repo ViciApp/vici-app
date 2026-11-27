@@ -5,8 +5,8 @@ import type { MarketId } from '#lib/types/market.ts';
 import type { Position } from '#lib/types/position.ts';
 import { filterByMarketIds } from '#lib/utils/balance-domain.utils.ts';
 import { mapPositionData } from '#lib/utils/position.utils.ts';
-import { listEnginePositions as listEnginePositionsWeb2 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { listEnginePositions as listEnginePositionsApi } from '#lib/web2/client.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
@@ -15,7 +15,7 @@ import { isNullish } from '@dfinity/utils';
  */
 const fetchPositions = async (domain: RegistryDid.BalanceDomain): Promise<Position[]> => {
 	const [positions, markets] = await Promise.all([
-		listEnginePositionsWeb2(),
+		listEnginePositionsApi(),
 		// Order-book-free: only the market id set is needed to filter positions
 		// to the currently visible markets.
 		fetchMarketsLite({ identity: anonymousIdentity(), certified: true, domain })
@@ -31,7 +31,7 @@ const fetchPositions = async (domain: RegistryDid.BalanceDomain): Promise<Positi
  * {@link fetchMarketsLite}. Returns `[]` when nobody is signed in.
  */
 export const getPositions = async (domain: RegistryDid.BalanceDomain): Promise<Position[]> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return [];
 	}
 
@@ -52,7 +52,7 @@ export const loadPositions = async ({
 	onLoad: (options: { certified: boolean; response: Position[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return;
 	}
 
@@ -67,11 +67,11 @@ export const loadPositions = async ({
  * Positions for a single market id. Returns `[]` when nobody is signed in.
  */
 export const getPositionsForMarket = async (targetSeriesId: MarketId): Promise<Position[]> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return [];
 	}
 
-	const positions = await listEnginePositionsWeb2();
+	const positions = await listEnginePositionsApi();
 
 	return positions.filter((p) => p.series_id === targetSeriesId).map(mapPositionData);
 };

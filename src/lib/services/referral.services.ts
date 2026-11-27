@@ -1,13 +1,13 @@
 import type { ReferralListItem } from '#lib/types/referral.ts';
 import {
-	claimReferralFriendship as claimReferralFriendshipWeb2,
-	getMyReferralCode as getMyReferralCodeWeb2,
-	listMyReferrals as listMyReferralsWeb2,
-	lookupReferralCode as lookupReferralCodeWeb2,
-	redeemReferralCode as redeemReferralCodeWeb2,
-	Web2ApiError
+	ApiError,
+	claimReferralFriendship as claimReferralFriendshipApi,
+	getMyReferralCode as getMyReferralCodeApi,
+	listMyReferrals as listMyReferralsApi,
+	lookupReferralCode as lookupReferralCodeApi,
+	redeemReferralCode as redeemReferralCodeApi
 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { isNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 
@@ -17,7 +17,7 @@ import type { PrincipalText } from '@dfinity/zod-schemas';
  * match on the reason (`existing_user_no_bonus`, "already redeemed", ...).
  */
 const rethrowReferralReason = (err: unknown): never => {
-	if (err instanceof Web2ApiError && err.status === 400) {
+	if (err instanceof ApiError && err.status === 400) {
 		throw new Error(err.code);
 	}
 
@@ -29,7 +29,7 @@ const rethrowReferralReason = (err: unknown): never => {
  * a returning user who predates the feature still gets a code.
  */
 export const getMyReferralCode = async (): Promise<string | undefined> =>
-	await getMyReferralCodeWeb2();
+	await getMyReferralCodeApi();
 
 /**
  * Resolves a referral code to its owner's account id (or `undefined` if unknown / malformed),
@@ -40,7 +40,7 @@ export const lookupReferralCode = async ({
 	code
 }: {
 	code: string;
-}): Promise<PrincipalText | undefined> => await lookupReferralCodeWeb2(code);
+}): Promise<PrincipalText | undefined> => await lookupReferralCodeApi(code);
 
 /**
  * Submits a referral code redemption for the current caller. The API enforces:
@@ -57,7 +57,7 @@ export const lookupReferralCode = async ({
  */
 export const redeemReferralCode = async ({ code }: { code: string }): Promise<void> => {
 	try {
-		await redeemReferralCodeWeb2(code);
+		await redeemReferralCodeApi(code);
 	} catch (err: unknown) {
 		rethrowReferralReason(err);
 	}
@@ -72,7 +72,7 @@ export const redeemReferralCode = async ({ code }: { code: string }): Promise<vo
  */
 export const claimReferralFriendship = async ({ code }: { code: string }): Promise<void> => {
 	try {
-		await claimReferralFriendshipWeb2(code);
+		await claimReferralFriendshipApi(code);
 	} catch (err: unknown) {
 		rethrowReferralReason(err);
 	}
@@ -84,13 +84,13 @@ export const claimReferralFriendship = async ({ code }: { code: string }): Promi
  * referrer payout) so the FE can show the full monitoring view.
  */
 export const listMyReferrals = async (): Promise<ReferralListItem[]> => {
-	const items = await listMyReferralsWeb2();
+	const items = await listMyReferralsApi();
 
 	// The route lists rows where the caller IS the referrer, so the wire
 	// omits the referrer id; restore it from the session account. A missing
 	// session means the caller raced the /me probe: fail fast rather than
 	// emitting rows with a blank owner.
-	const referrer = getWeb2User()?.id;
+	const referrer = getSessionUser()?.id;
 
 	if (isNullish(referrer)) {
 		throw new Error('Not authenticated');

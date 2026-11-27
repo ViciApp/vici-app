@@ -51,7 +51,7 @@
 		type SendIntent
 	} from '#lib/utils/send.utils.ts';
 	import { mergeWalletFeed, weeklyVxpDeltaBaseUnits } from '#lib/utils/transactions.utils.ts';
-	import type { Web2WalletAsset } from '#lib/web2/client.ts';
+	import type { ApiWalletAsset } from '#lib/web2/client.ts';
 	import { goto } from '$app/navigation';
 
 	/**
@@ -179,7 +179,7 @@
 	});
 
 	// An empty catalog offers no token, so "still loading" needs its own flag.
-	let sendAssets = $state<Web2WalletAsset[]>([]);
+	let sendAssets = $state<ApiWalletAsset[]>([]);
 	let sendAssetsLoaded = $state(false);
 
 	const loadSendAssets = async () => {

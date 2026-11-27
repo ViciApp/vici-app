@@ -2,8 +2,8 @@ import type { ClearingDid } from '#declarations';
 import type { Outcome } from '#lib/types/market.ts';
 import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
 import {
-	listEngineSettledSeries as listEngineSettledSeriesWeb2,
-	listEngineSettlementStatuses as listEngineSettlementStatusesWeb2
+	listEngineSettledSeries as listEngineSettledSeriesApi,
+	listEngineSettlementStatuses as listEngineSettlementStatusesApi
 } from '#lib/web2/client.ts';
 
 /**
@@ -21,7 +21,7 @@ import {
  */
 export const getSettledSeriesIds = async (): Promise<Set<string>> => {
 	try {
-		return new Set(await listEngineSettledSeriesWeb2());
+		return new Set(await listEngineSettledSeriesApi());
 	} catch (err: unknown) {
 		console.warn('Settled series read failed, skipping the settled filter', err);
 
@@ -69,7 +69,7 @@ export const loadSettlementOutcomes = async ({
 }): Promise<Map<string, SettlementDetails>> => {
 	const details = new Map<string, SettlementDetails>();
 
-	for (const status of await listEngineSettlementStatusesWeb2(seriesIds)) {
+	for (const status of await listEngineSettlementStatusesApi(seriesIds)) {
 		details.set(status.series_id, settlementDetails(status));
 	}
 

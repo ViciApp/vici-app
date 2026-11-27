@@ -1,4 +1,4 @@
-import { Web2AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
+import { AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
 import { apiUrl, expect, test } from './support/fixtures';
 
 /**
@@ -7,7 +7,7 @@ import { apiUrl, expect, test } from './support/fixtures';
  */
 test.describe('sign-out', () => {
 	test('signing out revokes the session and gates the app again', async ({ page, backend }) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await app.signUp({ email: uniqueEmail('signout'), handle: uniqueHandle(), backend });
 

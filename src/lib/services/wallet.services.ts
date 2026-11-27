@@ -7,11 +7,11 @@ import type { LedgerBalancesRead, Transaction, WalletBalance } from '#lib/types/
 import { findSupportedTokenForClearingAssetId } from '#lib/utils/asset-ref.utils.ts';
 import { compareBalanceDomains } from '#lib/utils/balance-domain.utils.ts';
 import {
-	getEngineAccountState as getEngineAccountStateWeb2,
-	getWalletBalances as getWalletBalancesWeb2,
-	getWalletDepositAddress as getWalletDepositAddressWeb2
+	getEngineAccountState as getEngineAccountStateApi,
+	getWalletBalances as getWalletBalancesApi,
+	getWalletDepositAddress as getWalletDepositAddressApi
 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 /**
@@ -23,14 +23,14 @@ import { isNullish, nonNullish } from '@dfinity/utils';
  * their last known value for it (see `mergeReadBalances`).
  */
 export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
-	const user = getWeb2User();
+	const user = getSessionUser();
 
 	if (isNullish(user)) {
 		return { balances: {} };
 	}
 
 	try {
-		const { balances } = await getWalletBalancesWeb2();
+		const { balances } = await getWalletBalancesApi();
 
 		const bySymbol = new Map(
 			balances
@@ -59,12 +59,12 @@ export const getLedgerBalances = async (): Promise<LedgerBalancesRead> => {
 const getCollateralBalances = async (
 	domain: ClearingDid.BalanceDomain
 ): Promise<ClearingDid.AccountStateResponse | undefined> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return;
 	}
 
 	try {
-		return await getEngineAccountStateWeb2(domain);
+		return await getEngineAccountStateApi(domain);
 	} catch (e: unknown) {
 		console.error('Failed to get collateral balances', e);
 	}
@@ -154,7 +154,7 @@ export const getTransactionsPage = (_params: {
  * credited to the custodial balance).
  */
 export const getReceiveAddress = async (): Promise<string> => {
-	const { address } = await getWalletDepositAddressWeb2('ic');
+	const { address } = await getWalletDepositAddressApi('ic');
 
 	return address;
 };

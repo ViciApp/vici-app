@@ -1,13 +1,13 @@
 import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 import type { FriendRequestOutcome, Relation } from '#lib/types/relation.ts';
 import {
-	acceptFriendRequest as acceptFriendRequestWeb2,
-	cancelFriendRequest as cancelFriendRequestWeb2,
-	followUser as followUserWeb2,
-	getProfileByHandle as getProfileByHandleWeb2,
-	rejectFriendRequest as rejectFriendRequestWeb2,
-	sendFriendRequest as sendFriendRequestWeb2,
-	unfriendUser as unfriendUserWeb2
+	acceptFriendRequest as acceptFriendRequestApi,
+	cancelFriendRequest as cancelFriendRequestApi,
+	followUser as followUserApi,
+	getProfileByHandle as getProfileByHandleApi,
+	rejectFriendRequest as rejectFriendRequestApi,
+	sendFriendRequest as sendFriendRequestApi,
+	unfriendUser as unfriendUserApi
 } from '#lib/web2/client.ts';
 import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
@@ -41,7 +41,7 @@ const resolveTargetUserId = async ({
 		throw new Error('not_found');
 	}
 
-	const match = await getProfileByHandleWeb2(stripped);
+	const match = await getProfileByHandleApi(stripped);
 
 	if (nonNullish(match)) {
 		if (match.owner === sender) {
@@ -69,14 +69,14 @@ export const sendFriendRequest = async ({
 	target: string;
 	sender: PrincipalText;
 }): Promise<FriendRequestOutcome> =>
-	sendFriendRequestWeb2(await resolveTargetUserId({ input: target, sender }));
+	sendFriendRequestApi(await resolveTargetUserId({ input: target, sender }));
 
 export const acceptFriendRequest = async ({
 	currentRelation
 }: {
 	currentRelation: KeyedDoc<Relation> | { key: string };
 }): Promise<void> => {
-	await acceptFriendRequestWeb2(currentRelation.key);
+	await acceptFriendRequestApi(currentRelation.key);
 };
 
 export const rejectFriendRequest = async ({
@@ -84,7 +84,7 @@ export const rejectFriendRequest = async ({
 }: {
 	currentRelation: KeyedDoc<Relation> | { key: string };
 }): Promise<void> => {
-	await rejectFriendRequestWeb2(currentRelation.key);
+	await rejectFriendRequestApi(currentRelation.key);
 };
 
 /**
@@ -98,7 +98,7 @@ export const cancelFriendRequest = async ({
 }: {
 	currentRelation: KeyedDoc<Relation> | { key: string };
 }): Promise<void> => {
-	await cancelFriendRequestWeb2(currentRelation.key);
+	await cancelFriendRequestApi(currentRelation.key);
 };
 
 /**
@@ -111,7 +111,7 @@ export const unfriendUser = async (params: {
 	sender: PrincipalText;
 	target: PrincipalText;
 }): Promise<void> => {
-	await unfriendUserWeb2(params.target);
+	await unfriendUserApi(params.target);
 };
 
 export const followUser = async ({
@@ -120,5 +120,5 @@ export const followUser = async ({
 	target: PrincipalText;
 	sender: PrincipalText;
 }): Promise<void> => {
-	await followUserWeb2(target);
+	await followUserApi(target);
 };

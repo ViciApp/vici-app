@@ -1,5 +1,5 @@
 import { E2E_ADMIN_EMAIL, E2E_LEGACY_PENDING } from '../backend/e2e/fixtures';
-import { Web2AppPage, uniqueEmail } from './pages/web2-app.page';
+import { AppPage, uniqueEmail } from './pages/web2-app.page';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -12,7 +12,7 @@ test.describe('beta access gate', () => {
 		page,
 		admin
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await admin.setBetaGate({ enabled: true, emails: [E2E_ADMIN_EMAIL] });
 
@@ -29,7 +29,7 @@ test.describe('beta access gate', () => {
 		admin,
 		backend
 	}) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await admin.setBetaGate({ enabled: true, emails: [E2E_ADMIN_EMAIL], allowNewUsers: true });
 
@@ -52,7 +52,7 @@ test.describe('beta access gate', () => {
 	});
 
 	test('the OAuth refusal marker renders the legacy message and is stripped', async ({ page }) => {
-		const app = new Web2AppPage(page);
+		const app = new AppPage(page);
 
 		await page.goto('/signin?e=legacy');
 

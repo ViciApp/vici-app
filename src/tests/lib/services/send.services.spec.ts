@@ -5,7 +5,7 @@ import {
 } from '#lib/services/send.services.ts';
 import type { Token } from '#lib/types/token.ts';
 import { pendingSendFor, type PendingSend, type SendIntent } from '#lib/utils/send.utils.ts';
-import { Web2ApiError, type Web2WalletAsset } from '#lib/web2/client.ts';
+import { ApiError, type ApiWalletAsset } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -13,7 +13,7 @@ const ICP_LEDGER = 'ryjl3-tyaaa-aaaaa-aaaba-cai';
 
 const token = { symbol: 'ICP', ledgerCanisterId: ICP_LEDGER, decimals: 8 } as Token;
 
-const icpAsset: Web2WalletAsset = {
+const icpAsset: ApiWalletAsset = {
 	id: 'asset-icp',
 	chain: 'ic',
 	symbol: 'ICP',
@@ -189,11 +189,11 @@ describe('send.services', () => {
 
 			assert.equal(pendingSendAfterError({ pending, err: new Error('offline') }), pending);
 			assert.equal(
-				pendingSendAfterError({ pending, err: new Web2ApiError({ status: 503, code: 'x' }) }),
+				pendingSendAfterError({ pending, err: new ApiError({ status: 503, code: 'x' }) }),
 				pending
 			);
 			assert.equal(
-				pendingSendAfterError({ pending, err: new Web2ApiError({ status: 401, code: 'x' }) }),
+				pendingSendAfterError({ pending, err: new ApiError({ status: 401, code: 'x' }) }),
 				undefined
 			);
 		});

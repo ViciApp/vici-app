@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_WEB2_API_URL, E2E_WEB2_APP_URL } from './e2e-web2/support/urls';
+import { E2E_API_URL, E2E_APP_URL } from './e2e-web2/support/urls';
 
 /**
  * End-to-end suite: the production bundle, served by `vite preview`, talking to the real API
@@ -18,8 +18,8 @@ const isCI = process.env.CI === 'true';
 
 const DATABASE_URL = process.env.E2E_DATABASE_URL ?? 'postgres://vici:vici@127.0.0.1:5432/vici';
 
-const API_PORT = new URL(E2E_WEB2_API_URL).port;
-const APP_PORT = new URL(E2E_WEB2_APP_URL).port;
+const API_PORT = new URL(E2E_API_URL).port;
+const APP_PORT = new URL(E2E_APP_URL).port;
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
@@ -40,7 +40,7 @@ export default defineConfig({
 	workers: 1,
 	reporter: isCI ? [['html', { outputFolder: 'playwright-report-web2' }], ['list']] : 'list',
 	use: {
-		baseURL: E2E_WEB2_APP_URL,
+		baseURL: E2E_APP_URL,
 		testIdAttribute: 'data-tid',
 		trace: 'retain-on-failure',
 		screenshot: 'only-on-failure',
@@ -60,7 +60,7 @@ export default defineConfig({
 			// local re-run against the same database converges.
 			command: 'bun run e2e:stack',
 			cwd: 'backend',
-			url: `${E2E_WEB2_API_URL}/health`,
+			url: `${E2E_API_URL}/health`,
 			reuseExistingServer: !isCI,
 			timeout: FIVE_MINUTES_MS,
 			stdout: 'pipe',
@@ -70,8 +70,8 @@ export default defineConfig({
 				VICI_E2E: '1',
 				DATABASE_URL,
 				PORT: API_PORT,
-				PUBLIC_APP_URL: E2E_WEB2_APP_URL,
-				API_BASE_URL: E2E_WEB2_API_URL,
+				PUBLIC_APP_URL: E2E_APP_URL,
+				API_BASE_URL: E2E_API_URL,
 				// Record-only VXP economy: awards are recorded, never paid.
 				VXP_TREASURY_DISABLED: '1',
 				// Unroutable on purpose: every engine and ledger call is faked, so
@@ -85,13 +85,13 @@ export default defineConfig({
 			// The production bundle, not the dev server: the suite asserts what
 			// ships. VITE_* are build-time, hence the build inside the command.
 			command: `npx vite build && npx vite preview --port ${APP_PORT} --strictPort`,
-			url: E2E_WEB2_APP_URL,
+			url: E2E_APP_URL,
 			reuseExistingServer: !isCI,
 			timeout: FIVE_MINUTES_MS,
 			stdout: 'ignore',
 			stderr: 'pipe',
 			env: {
-				VITE_WEB2_API_URL: E2E_WEB2_API_URL
+				VITE_API_URL: E2E_API_URL
 			}
 		}
 	]

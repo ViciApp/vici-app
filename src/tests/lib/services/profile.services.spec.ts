@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 // The service imports SvelteKit modules, which this runner cannot load, so the
-// spec reads its source: a web2 profile PUT writes the whole doc onto whichever
+// spec reads its source: a profile PUT writes the whole doc onto whichever
 // account the session cookie belongs to, so every PUT confirms that account
 // first and a patch is built from the session's own row.
 const source = readFileSync(
@@ -20,21 +20,21 @@ const bodyOf = (name: string): string => {
 	return source.slice(start, source.indexOf('\n};', start));
 };
 
-describe('profile.services web2 writes', () => {
+describe('profile.services writes', () => {
 	it('builds a patch on the session own row, not the public read', () => {
 		const body = bodyOf('patchProfile');
 
-		assert.ok(body.includes('await getMyProfileWeb2()'));
+		assert.ok(body.includes('await getMyProfileApi()'));
 		assert.ok(!/=\s*await getProfile\(principal\);/.test(body));
 	});
 
 	for (const writer of ['upsertProfile', 'saveMyEmail']) {
 		it(`${writer} confirms the session account before the PUT`, () => {
 			const body = bodyOf(writer);
-			const guard = body.indexOf('await assertWeb2SessionOwner(');
+			const guard = body.indexOf('await assertSessionOwner(');
 
 			assert.notEqual(guard, -1);
-			assert.ok(guard < body.indexOf('await upsertMyProfileWeb2('));
+			assert.ok(guard < body.indexOf('await upsertMyProfileApi('));
 		});
 	}
 });

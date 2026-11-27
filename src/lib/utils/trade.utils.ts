@@ -92,7 +92,7 @@ export const executeOutcomeTrade = async ({
 	});
 	// A resting limit order is sized on the exact price the engine receives (rounded to
 	// `PRICE_DECIMALS`), so its notional never exceeds the call size and never falls a whole
-	// share short of it; the web2 API refuses either on ViciXp. A market order is capped by
+	// share short of it; the API refuses either on ViciXp. A market order is capped by
 	// `maxSpendUsd` at every level it walks, so its upper bound may stay on the float price.
 	const priceUsd =
 		type === 'LIMIT'

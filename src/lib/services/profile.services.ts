@@ -12,14 +12,14 @@ import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
 import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { applyDailyStreakBump } from '#lib/utils/streak.utils.ts';
 import {
-	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
-	getMyProfile as getMyProfileWeb2,
-	getProfileById as getProfileWeb2,
-	recordFlowSwipe as recordFlowSwipeWeb2,
-	searchProfiles as searchProfilesWeb2,
-	upsertMyProfile as upsertMyProfileWeb2
+	checkNicknameAvailability as checkNicknameAvailabilityApi,
+	getMyProfile as getMyProfileApi,
+	getProfileById as getProfileApi,
+	recordFlowSwipe as recordFlowSwipeApi,
+	searchProfiles as searchProfilesApi,
+	upsertMyProfile as upsertMyProfileApi
 } from '#lib/web2/client.ts';
-import { assertWeb2SessionOwner, getWeb2User } from '#lib/web2/session.ts';
+import { assertSessionOwner, getSessionUser } from '#lib/web2/session.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';
@@ -65,7 +65,7 @@ const emptyProfile = (owner: PrincipalText): UserProfile => ({
  * owner that is not an account id (the API answers those as absent).
  */
 const fetchProfile = async (principal: PrincipalText): Promise<UserProfile | undefined> =>
-	(await getProfileWeb2(principal)) ?? undefined;
+	(await getProfileApi(principal)) ?? undefined;
 
 /**
  * Loads a user profile from the API or returns a default shell, keyed by the
@@ -81,10 +81,10 @@ export const getProfile = async (principal: PrincipalText): Promise<KeyedDoc<Use
  * default shell (with `existed: false`) for a freshly created account that has
  * no stored profile yet, so the onboarding drain runs its new-user branch.
  */
-export const loadWeb2ProfileShell = async (
+export const loadProfileShell = async (
 	owner: PrincipalText
 ): Promise<{ profile: UserProfile; existed: boolean }> => {
-	const profile = await getMyProfileWeb2();
+	const profile = await getMyProfileApi();
 
 	return isNullish(profile)
 		? { profile: emptyProfile(owner), existed: false }
@@ -266,7 +266,7 @@ const patchProfile = ({
 		// the whole doc onto the session's account.
 		const profileDoc = {
 			key: principal,
-			data: (await getMyProfileWeb2()) ?? emptyProfile(principal)
+			data: (await getMyProfileApi()) ?? emptyProfile(principal)
 		};
 		const resolved = typeof patch === 'function' ? patch(profileDoc.data) : patch;
 		const data: UserProfile = {
@@ -338,7 +338,7 @@ export const recordFlowSwipe = ({
 }: {
 	dayKey: string;
 }): Promise<{ dailyGoalDone: number; dailyGoalDate: string; capReached: boolean }> =>
-	recordFlowSwipeWeb2({ dayKey });
+	recordFlowSwipeApi({ dayKey });
 
 /**
  * Persist the Menagerie celebration ledger: the set of `${slug}:${tier}` keys
@@ -384,8 +384,8 @@ export const upsertProfile = async (profileDoc: KeyedDoc<UserProfile>): Promise<
 	// The session cookie, not `owner`, picks the row: refuse a snapshot of one
 	// account while the cookie belongs to another (a sign-in in another tab),
 	// rather than write it over that account's profile.
-	await assertWeb2SessionOwner(profileDoc.key);
-	await upsertMyProfileWeb2(profileDoc.data);
+	await assertSessionOwner(profileDoc.key);
+	await upsertMyProfileApi(profileDoc.data);
 };
 
 /**
@@ -487,7 +487,7 @@ export const applyOnboardingPicks = async ({
 /**
  * Case-insensitive profile search over nickname and owner.
  */
-export const searchProfiles = (query: string): Promise<UserProfile[]> => searchProfilesWeb2(query);
+export const searchProfiles = (query: string): Promise<UserProfile[]> => searchProfilesApi(query);
 
 /**
  * Whether writing `next` over `current` changes the handle, so the write must
@@ -517,7 +517,7 @@ export const checkNicknameAvailability = async ({
 }: {
 	nickname: string;
 }): Promise<NicknameAvailability> => {
-	const result = await checkNicknameAvailabilityWeb2(nickname);
+	const result = await checkNicknameAvailabilityApi(nickname);
 
 	if (result.available) {
 		return { available: true };
@@ -531,7 +531,7 @@ export const checkNicknameAvailability = async ({
  * line: the session account's creation time. `undefined` when unknown.
  */
 export const getMyJoinedAtMs = (): number | undefined => {
-	const joinedAtMs = Date.parse(getWeb2User()?.createdAt ?? '');
+	const joinedAtMs = Date.parse(getSessionUser()?.createdAt ?? '');
 
 	return Number.isNaN(joinedAtMs) ? undefined : joinedAtMs;
 };
@@ -550,15 +550,15 @@ export const saveMyEmail = async ({
 	principal: PrincipalText;
 	email: string;
 }): Promise<void> => {
-	await assertWeb2SessionOwner(principal);
+	await assertSessionOwner(principal);
 
-	const profile = await getMyProfileWeb2();
+	const profile = await getMyProfileApi();
 
 	if (isNullish(profile)) {
 		return;
 	}
 
-	await upsertMyProfileWeb2({ ...profile, email });
+	await upsertMyProfileApi({ ...profile, email });
 };
 
 /**

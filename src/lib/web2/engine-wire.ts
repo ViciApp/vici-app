@@ -20,34 +20,34 @@ type Opt<W> = [] | [W];
 const mapOpt = <W, T>({ value, map }: { value: Opt<W>; map: (wire: W) => T }): [] | [T] =>
 	value.length === 0 ? [] : [map(value[0])];
 
-interface Web2DecimalValueWire {
+interface ApiDecimalValueWire {
 	decimals: number;
 	value: string;
 }
 
-const mapDecimalValue = (wire: Web2DecimalValueWire): ClearingDid.DecimalValue => ({
+const mapDecimalValue = (wire: ApiDecimalValueWire): ClearingDid.DecimalValue => ({
 	decimals: wire.decimals,
 	value: BigInt(wire.value)
 });
 
-interface Web2PriceWire {
+interface ApiPriceWire {
 	timestamp: Opt<string>;
 	oracle_id: Opt<string>;
-	decimal: Web2DecimalValueWire;
+	decimal: ApiDecimalValueWire;
 }
 
-const mapPrice = (wire: Web2PriceWire): RegistryDid.Price => ({
+const mapPrice = (wire: ApiPriceWire): RegistryDid.Price => ({
 	timestamp: mapOpt({ value: wire.timestamp, map: BigInt }),
 	oracle_id: wire.oracle_id,
 	decimal: mapDecimalValue(wire.decimal)
 });
 
-type Web2AssetWire =
+type ApiAssetWire =
 	| { Erc20: { decimals: number; token_address: string; chain_id: string } }
 	| { Icrc: string }
 	| { NativeEvm: { decimals: number; chain_id: string } };
 
-const mapAsset = (wire: Web2AssetWire): RegistryDid.Asset => {
+const mapAsset = (wire: ApiAssetWire): RegistryDid.Asset => {
 	if ('Icrc' in wire) {
 		return { Icrc: Principal.fromText(wire.Icrc) };
 	}
@@ -59,21 +59,21 @@ const mapAsset = (wire: Web2AssetWire): RegistryDid.Asset => {
 	return { NativeEvm: { ...wire.NativeEvm, chain_id: BigInt(wire.NativeEvm.chain_id) } };
 };
 
-type Web2PayoutUnitWire =
+type ApiPayoutUnitWire =
 	| { Fiat: RegistryDid.FiatUnit }
-	| { Asset: Web2AssetWire }
+	| { Asset: ApiAssetWire }
 	| { NonMonetary: RegistryDid.NonMonetaryUnit };
 
-const mapPayoutUnit = (wire: Web2PayoutUnitWire): RegistryDid.PayoutUnit =>
+const mapPayoutUnit = (wire: ApiPayoutUnitWire): RegistryDid.PayoutUnit =>
 	'Asset' in wire ? { Asset: mapAsset(wire.Asset) } : wire;
 
-export interface Web2SeriesWire {
+export interface ApiSeriesWire {
 	title: string;
-	strike: Opt<Web2PriceWire>;
+	strike: Opt<ApiPriceWire>;
 	creator: string;
 	payoff_type: RegistryDid.PayoffType;
 	engine_id: Opt<string>;
-	payout_unit: Web2PayoutUnitWire;
+	payout_unit: ApiPayoutUnitWire;
 	expiry_ns: string;
 	banner_url: Opt<string>;
 	start_ns: Opt<string>;
@@ -92,7 +92,7 @@ export interface Web2SeriesWire {
 	forked_from: Opt<string>;
 }
 
-export const mapSeries = (wire: Web2SeriesWire): RegistryDid.Series => ({
+export const mapSeries = (wire: ApiSeriesWire): RegistryDid.Series => ({
 	title: wire.title,
 	strike: mapOpt({ value: wire.strike, map: mapPrice }),
 	creator: Principal.fromText(wire.creator),
@@ -117,12 +117,12 @@ export const mapSeries = (wire: Web2SeriesWire): RegistryDid.Series => ({
 	forked_from: wire.forked_from
 });
 
-type Web2SettlementInputWire = { Price: Web2PriceWire } | { Outcome: string };
+type ApiSettlementInputWire = { Price: ApiPriceWire } | { Outcome: string };
 
-const mapSettlementInput = (wire: Web2SettlementInputWire): ClearingDid.SettlementInput =>
+const mapSettlementInput = (wire: ApiSettlementInputWire): ClearingDid.SettlementInput =>
 	'Price' in wire ? { Price: mapPrice(wire.Price) } : wire;
 
-export interface Web2SettlementStatusWire {
+export interface ApiSettlementStatusWire {
 	status: ClearingDid.PlanStatus;
 	series_id: string;
 	fee_usd: string;
@@ -132,11 +132,11 @@ export interface Web2SettlementStatusWire {
 	balance_domain: ClearingDid.BalanceDomain;
 	oracle_source: string;
 	total_positions: string;
-	settlement: Web2SettlementInputWire;
+	settlement: ApiSettlementInputWire;
 }
 
 export const mapSettlementStatus = (
-	wire: Web2SettlementStatusWire
+	wire: ApiSettlementStatusWire
 ): ClearingDid.SettlementStatusView => ({
 	status: wire.status,
 	series_id: wire.series_id,
@@ -150,17 +150,17 @@ export const mapSettlementStatus = (
 	settlement: mapSettlementInput(wire.settlement)
 });
 
-export interface Web2PriceCandleWire {
-	low: Web2PriceWire;
-	high: Web2PriceWire;
-	close: Web2PriceWire;
-	open: Web2PriceWire;
+export interface ApiPriceCandleWire {
+	low: ApiPriceWire;
+	high: ApiPriceWire;
+	close: ApiPriceWire;
+	open: ApiPriceWire;
 	volume: string;
 	trade_count: string;
 	bucket_start_ns: string;
 }
 
-export const mapPriceCandle = (wire: Web2PriceCandleWire): ClearingDid.SeriesPriceCandle => ({
+export const mapPriceCandle = (wire: ApiPriceCandleWire): ClearingDid.SeriesPriceCandle => ({
 	low: mapPrice(wire.low),
 	high: mapPrice(wire.high),
 	close: mapPrice(wire.close),
@@ -170,18 +170,18 @@ export const mapPriceCandle = (wire: Web2PriceCandleWire): ClearingDid.SeriesPri
 	bucket_start_ns: BigInt(wire.bucket_start_ns)
 });
 
-export interface Web2SeriesTradePageWire {
+export interface ApiSeriesTradePageWire {
 	next_cursor: Opt<string>;
 	items: {
 		qty: string;
 		timestamp: string;
 		event_id: string;
-		price: Web2PriceWire;
+		price: ApiPriceWire;
 	}[];
 }
 
 export const mapSeriesTradePage = (
-	wire: Web2SeriesTradePageWire
+	wire: ApiSeriesTradePageWire
 ): ClearingDid.SeriesTradeHistoryPage => ({
 	next_cursor: mapOpt({ value: wire.next_cursor, map: BigInt }),
 	items: wire.items.map(({ qty, timestamp, event_id, price }) => ({
@@ -192,32 +192,32 @@ export const mapSeriesTradePage = (
 	}))
 });
 
-export interface Web2SeriesTradedVolumeWire {
+export interface ApiSeriesTradedVolumeWire {
 	series_id: string;
 	volume: string;
 	trade_count: string;
 }
 
 export const mapSeriesTradedVolume = (
-	wire: Web2SeriesTradedVolumeWire
+	wire: ApiSeriesTradedVolumeWire
 ): ClearingDid.SeriesTradedVolume => ({
 	series_id: wire.series_id,
 	volume: BigInt(wire.volume),
 	trade_count: BigInt(wire.trade_count)
 });
 
-export interface Web2CollateralAssetInfoWire {
+export interface ApiCollateralAssetInfoWire {
 	metrics: Opt<{
 		haircut_bps: number;
 		latest_transfer_fee: Opt<string>;
 		insurance_fee_ratio: Opt<number>;
 		last_updated_ns: Opt<string>;
 		protocol_fee_ratio: Opt<number>;
-		price_usd: Web2DecimalValueWire;
+		price_usd: ApiDecimalValueWire;
 	}>;
 	config: {
 		decimals: number;
-		asset: Web2AssetWire;
+		asset: ApiAssetWire;
 		is_enabled: boolean;
 		allowed_balance_domains: ClearingDid.BalanceDomain[];
 		oracle_id: Opt<string>;
@@ -227,7 +227,7 @@ export interface Web2CollateralAssetInfoWire {
 }
 
 export const mapCollateralAssetInfo = (
-	wire: Web2CollateralAssetInfoWire
+	wire: ApiCollateralAssetInfoWire
 ): ClearingDid.CollateralAssetInfo => ({
 	metrics: mapOpt({
 		value: wire.metrics,
@@ -246,7 +246,7 @@ export const mapCollateralAssetInfo = (
 	}
 });
 
-export interface Web2LeaderboardEntryWire {
+export interface ApiLeaderboardEntryWire {
 	principal: string;
 	prior_rank: Opt<string>;
 	rank: string;
@@ -256,7 +256,7 @@ export interface Web2LeaderboardEntryWire {
 }
 
 export const mapLeaderboardEntry = (
-	wire: Web2LeaderboardEntryWire
+	wire: ApiLeaderboardEntryWire
 ): ClearingDid.LeaderboardEntry => ({
 	principal: Principal.fromText(wire.principal),
 	prior_rank: mapOpt({ value: wire.prior_rank, map: BigInt }),
@@ -266,7 +266,7 @@ export const mapLeaderboardEntry = (
 	settled_count: BigInt(wire.settled_count)
 });
 
-export interface Web2LimitOrderWire {
+export interface ApiLimitOrderWire {
 	qty: string;
 	creator: string;
 	outcome_id: Opt<string>;
@@ -274,11 +274,11 @@ export interface Web2LimitOrderWire {
 	series_id: string;
 	side: ClearingDid.Side;
 	order_id: string;
-	price: Web2PriceWire;
+	price: ApiPriceWire;
 	balance_domain: ClearingDid.BalanceDomain;
 }
 
-export const mapLimitOrder = (wire: Web2LimitOrderWire): ClearingDid.LimitOrder => ({
+export const mapLimitOrder = (wire: ApiLimitOrderWire): ClearingDid.LimitOrder => ({
 	qty: BigInt(wire.qty),
 	creator: Principal.fromText(wire.creator),
 	outcome_id: wire.outcome_id,
@@ -290,7 +290,7 @@ export const mapLimitOrder = (wire: Web2LimitOrderWire): ClearingDid.LimitOrder 
 	balance_domain: wire.balance_domain
 });
 
-export interface Web2PositionWire {
+export interface ApiPositionWire {
 	outcome_id: Opt<string>;
 	series_id: string;
 	net_qty: string;
@@ -298,7 +298,7 @@ export interface Web2PositionWire {
 	reserved_margin_usd: string;
 }
 
-export const mapPosition = (wire: Web2PositionWire): ClearingDid.Position => ({
+export const mapPosition = (wire: ApiPositionWire): ClearingDid.Position => ({
 	outcome_id: wire.outcome_id,
 	series_id: wire.series_id,
 	net_qty: BigInt(wire.net_qty),
@@ -306,18 +306,18 @@ export const mapPosition = (wire: Web2PositionWire): ClearingDid.Position => ({
 	reserved_margin_usd: BigInt(wire.reserved_margin_usd)
 });
 
-export interface Web2EventWire {
+export interface ApiEventWire {
 	qty: string;
 	series_id: string;
 	user: string;
 	timestamp: string;
 	event_id: string;
-	price: Web2PriceWire;
+	price: ApiPriceWire;
 	event_type: ClearingDid.EventType;
 	clearing_id: string;
 }
 
-export const mapEvent = (wire: Web2EventWire): ClearingDid.Event => ({
+export const mapEvent = (wire: ApiEventWire): ClearingDid.Event => ({
 	qty: BigInt(wire.qty),
 	series_id: wire.series_id,
 	user: Principal.fromText(wire.user),
@@ -328,7 +328,7 @@ export const mapEvent = (wire: Web2EventWire): ClearingDid.Event => ({
 	clearing_id: Principal.fromText(wire.clearing_id)
 });
 
-interface Web2AssetWorthWire {
+interface ApiAssetWorthWire {
 	pre_haircut_value_usd: string;
 	haircut_bps: number;
 	balance: string;
@@ -338,17 +338,17 @@ interface Web2AssetWorthWire {
 
 /** Domain-keyed candid maps (`vec record { BalanceDomain; nat }`) survive JSON
  * as pair arrays; only the numeric halves need reviving. */
-type Web2DomainPairsWire = [ClearingDid.BalanceDomain, string][];
+type ApiDomainPairsWire = [ClearingDid.BalanceDomain, string][];
 
-const mapDomainPairs = (wire: Web2DomainPairsWire): Array<[ClearingDid.BalanceDomain, bigint]> =>
+const mapDomainPairs = (wire: ApiDomainPairsWire): Array<[ClearingDid.BalanceDomain, bigint]> =>
 	wire.map(([domain, value]) => [domain, BigInt(value)]);
 
-export interface Web2AccountStateResponseWire {
-	assets: Web2AssetWorthWire[];
+export interface ApiAccountStateResponseWire {
+	assets: ApiAssetWorthWire[];
 	state: {
 		user: string;
-		reserved_margins_usd: Web2DomainPairsWire;
-		cash_balances_usd: Web2DomainPairsWire;
+		reserved_margins_usd: ApiDomainPairsWire;
+		cash_balances_usd: ApiDomainPairsWire;
 		balances: [ClearingDid.BalanceDomain, [string, string][]][];
 	};
 	total_equity_usd: string;
@@ -356,7 +356,7 @@ export interface Web2AccountStateResponseWire {
 }
 
 export const mapAccountStateResponse = (
-	wire: Web2AccountStateResponseWire
+	wire: ApiAccountStateResponseWire
 ): ClearingDid.AccountStateResponse => ({
 	assets: wire.assets.map((asset) => ({
 		pre_haircut_value_usd: BigInt(asset.pre_haircut_value_usd),

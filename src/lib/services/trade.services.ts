@@ -11,11 +11,11 @@ import {
 	type PriceHistoryPeriod
 } from '#lib/utils/market-price-history.utils.ts';
 import {
-	getEnginePriceHistory as getEnginePriceHistoryWeb2,
-	listEngineSeriesTrades as listEngineSeriesTradesWeb2,
-	listEngineTradeHistory as listEngineTradeHistoryWeb2
+	getEnginePriceHistory as getEnginePriceHistoryApi,
+	listEngineSeriesTrades as listEngineSeriesTradesApi,
+	listEngineTradeHistory as listEngineTradeHistoryApi
 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
 
 /**
@@ -26,7 +26,7 @@ const fetchUserTradeHistory = async (
 	domain: RegistryDid.BalanceDomain
 ): Promise<ClearingDid.Event[]> => {
 	const [events, markets] = await Promise.all([
-		listEngineTradeHistoryWeb2(),
+		listEngineTradeHistoryApi(),
 		// Order-book-free: trade history only needs the market id set to scope
 		// events to the current domain.
 		fetchMarketsLite({ identity: anonymousIdentity(), certified: true, domain })
@@ -44,7 +44,7 @@ const fetchUserTradeHistory = async (
 export const getUserTradeHistory = async (
 	domain: RegistryDid.BalanceDomain
 ): Promise<ClearingDid.Event[]> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		throw new Error('Not authenticated');
 	}
 
@@ -65,7 +65,7 @@ export const loadUserTradeHistory = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.Event[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	if (isNullish(getWeb2User())) {
+	if (isNullish(getSessionUser())) {
 		return;
 	}
 
@@ -114,7 +114,7 @@ export const loadMarketPriceCandles = async ({
 	// The candles are one read from the public HTTP bridge, delivered as the
 	// final (`certified: true`) pass.
 	try {
-		const response = await getEnginePriceHistoryWeb2({ seriesId, interval, startTimeNs });
+		const response = await getEnginePriceHistoryApi({ seriesId, interval, startTimeNs });
 		// `all` has no lower query bound, so anchor the x-axis to the earliest
 		// returned candle; bounded periods anchor to the requested window start.
 		const windowStartNs = startTimeNs ?? response[0]?.bucket_start_ns ?? endTimeNs;
@@ -165,7 +165,7 @@ export const getSeriesTradeVolume = async ({
 	let startAfter: bigint | undefined;
 
 	for (;;) {
-		const { items, next_cursor } = await listEngineSeriesTradesWeb2({
+		const { items, next_cursor } = await listEngineSeriesTradesApi({
 			seriesId,
 			startAfter,
 			limit: TRADE_HISTORY_PAGE_SIZE

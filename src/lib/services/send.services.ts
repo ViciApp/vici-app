@@ -1,10 +1,10 @@
 import type { Token } from '#lib/types/token.ts';
 import { findSendableAsset, type PendingSend } from '#lib/utils/send.utils.ts';
 import {
+	ApiError,
 	listWalletAssets,
 	requestWalletWithdrawal,
-	Web2ApiError,
-	type Web2WalletAsset
+	type ApiWalletAsset
 } from '#lib/web2/client.ts';
 import { isNullish } from '@dfinity/utils';
 
@@ -35,7 +35,7 @@ export class SendTokenError extends Error {
 /**
  * The custody catalog that gates the Send tab, fed to `filterSendableTokens`.
  */
-export const loadSendableWalletAssets = (): Promise<Web2WalletAsset[]> => listWalletAssets();
+export const loadSendableWalletAssets = (): Promise<ApiWalletAsset[]> => listWalletAssets();
 
 /**
  * The wallet send: a self-custody withdrawal of `amount` to `to`. The key names
@@ -108,7 +108,7 @@ const isDefiniteSendError = (err: unknown): boolean => {
 	}
 
 	return (
-		err instanceof Web2ApiError &&
+		err instanceof ApiError &&
 		err.status >= 400 &&
 		err.status < 500 &&
 		err.status !== REQUEST_TIMEOUT_STATUS

@@ -229,7 +229,7 @@ describe.if(dbAvailable)('cutover email assignment', () => {
 		expect(await profileEmailOf(two.principal)).toBeUndefined();
 	});
 
-	test('refuses an address that already signs in to a web2 account', async () => {
+	test('refuses an address that already signs in to a live account', async () => {
 		const email = uniqueEmail();
 
 		await resolveIdentity({ provider: 'email', subject: email, email });
@@ -237,7 +237,7 @@ describe.if(dbAvailable)('cutover email assignment', () => {
 		const account = await seedImportedAccount({ principal: uniquePrincipal() });
 		const [row] = await executeAssignments([request(account.userId, email)]);
 
-		expect(row?.outcome).toBe('email_has_web2_account');
+		expect(row?.outcome).toBe('email_has_live_account');
 		expect(await profileEmailOf(account.principal)).toBeUndefined();
 	});
 

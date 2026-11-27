@@ -5,11 +5,11 @@ import {
 	pendingSendFor,
 	type SendIntent
 } from '#lib/utils/send.utils.ts';
-import type { Web2WalletAsset } from '#lib/web2/client.ts';
+import type { ApiWalletAsset } from '#lib/web2/client.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-const asset = (overrides: Partial<Web2WalletAsset>): Web2WalletAsset => ({
+const asset = (overrides: Partial<ApiWalletAsset>): ApiWalletAsset => ({
 	id: `asset-${overrides.symbol ?? 'ICP'}`,
 	chain: 'ic',
 	symbol: 'ICP',
@@ -23,7 +23,7 @@ const asset = (overrides: Partial<Web2WalletAsset>): Web2WalletAsset => ({
 const token = (symbol: string): Token => ({ symbol }) as Token;
 
 // The custody catalog as the API serves it: VXP is listed but never withdrawable.
-const catalog: Web2WalletAsset[] = [
+const catalog: ApiWalletAsset[] = [
 	asset({ symbol: 'VXP', decimals: 4, withdrawable: false }),
 	asset({ symbol: 'ckUSDC', decimals: 6 })
 ];

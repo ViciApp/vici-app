@@ -10,7 +10,7 @@ import type { E2eBackend } from '../support/fixtures';
  * the signed-in shell. Copy is read from the English catalog so a wording
  * change updates one place.
  */
-export class Web2AppPage {
+export class AppPage {
 	readonly page: Page;
 	readonly emailInput: Locator;
 	readonly emailSubmit: Locator;

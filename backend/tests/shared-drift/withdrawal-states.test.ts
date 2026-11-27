@@ -11,7 +11,7 @@ describe('shared drift: withdrawal states', () => {
 		const app = quotedStrings(
 			extractBlock({
 				source: readRepoSource('src/lib/schema/web2-api.schema.ts'),
-				marker: 'const WEB2_WITHDRAWAL_STATES'
+				marker: 'const WITHDRAWAL_STATES'
 			})
 		);
 

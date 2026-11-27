@@ -172,7 +172,7 @@ export default defineConfig(({ mode }) => ({
 					write: 'public'
 				},
 				// `chats` and `comments` are dormant: nothing in the app reads or
-				// writes them (the web2 export still drains them), so their set
+				// writes them (the ETL export still drains them), so their set
 				// and delete asserts accept only a controller.
 				{
 					collection: JunoDatastoreCollection.CHATS,

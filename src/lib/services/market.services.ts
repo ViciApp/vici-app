@@ -37,12 +37,12 @@ import {
 import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
 import {
-	getEngineSeries as getEngineSeriesWeb2,
-	getEngineSettlementStatus as getEngineSettlementStatusWeb2,
-	listEngineSeriesVolumes as listEngineSeriesVolumesWeb2,
-	listEngineSeries as listEngineSeriesWeb2
+	getEngineSeries as getEngineSeriesApi,
+	getEngineSettlementStatus as getEngineSettlementStatusApi,
+	listEngineSeries as listEngineSeriesApi,
+	listEngineSeriesVolumes as listEngineSeriesVolumesApi
 } from '#lib/web2/client.ts';
-import { getWeb2User } from '#lib/web2/session.ts';
+import { getSessionUser } from '#lib/web2/session.ts';
 import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
@@ -51,7 +51,7 @@ import type { Identity } from '@icp-sdk/core/agent';
  * engine read through the HTTP bridge, which runs the anonymous registry query
  * server-side.
  */
-export const listSeriesCatalog = (): Promise<RegistryDid.Series[]> => listEngineSeriesWeb2();
+export const listSeriesCatalog = (): Promise<RegistryDid.Series[]> => listEngineSeriesApi();
 
 /**
  * Core market-loading logic: series + enrichment + resolution merge.
@@ -183,7 +183,7 @@ const fetchMarkets = async ({
 		[...settledIds]
 			.filter((id) => !activeSeriesIds.has(id))
 			.map(async (id) => {
-				const series = await getEngineSeriesWeb2(id);
+				const series = await getEngineSeriesApi(id);
 
 				if (isNullish(series)) {
 					return;
@@ -251,7 +251,7 @@ const fetchOpenBinaryMarketsLite = async ({
 		// The tradeable-now catalog equals the `only_unexpired` read for this
 		// app's series (none carries a future start gate, so tradeable-now
 		// reduces to unexpired).
-		listEngineSeriesWeb2({ tradeableNow: true }),
+		listEngineSeriesApi({ tradeableNow: true }),
 		getSettledSeriesIds()
 	]);
 
@@ -450,7 +450,7 @@ const enrichMarketsWithVolume = async ({ markets }: { markets: Market[] }): Prom
 	try {
 		// The HTTP bridge exposes the volumes read publicly (its server-side call
 		// is not anonymous).
-		const volumes = await listEngineSeriesVolumesWeb2(markets.map(({ id }) => id));
+		const volumes = await listEngineSeriesVolumesApi(markets.map(({ id }) => id));
 
 		const volumeById = new Map(volumes.map(({ series_id, volume }) => [series_id, volume]));
 
@@ -697,7 +697,7 @@ const fetchMarket = async ({
 	// no HTTP surface yet and stays an anonymous on-chain query (it is publicly
 	// readable).
 	const [s, rawOrders, settlementStatus] = await Promise.all([
-		getEngineSeriesWeb2(marketId),
+		getEngineSeriesApi(marketId),
 		// The book is the page's only on-chain read, next to two HTTP ones: a
 		// failed book read prices the market as unknown (empty book) instead of
 		// failing the whole detail and blanking the page.
@@ -706,7 +706,7 @@ const fetchMarket = async ({
 
 			return [];
 		}),
-		getEngineSettlementStatusWeb2(marketId)
+		getEngineSettlementStatusApi(marketId)
 	]);
 
 	const { midPrice, bids, asks } = calculateMarketStats({
@@ -984,7 +984,7 @@ export const getFlowQueue = async ({
 	const identity = anonymousIdentity();
 	// Profiles key on the session's account id; a signed-out visitor falls back
 	// to the anonymous principal, which owns no profile and reads empty.
-	const profileOwner = getWeb2User()?.id ?? identity.getPrincipal().toText();
+	const profileOwner = getSessionUser()?.id ?? identity.getPrincipal().toText();
 
 	const [markets, profile, resolvedTags, resolvedMeta] = await Promise.all([
 		// The Flow deck is a read-only preview: ranking candidates only needs

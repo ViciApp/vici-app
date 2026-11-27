@@ -1,5 +1,5 @@
 import type { UserProfile } from '#lib/types/profile.ts';
-import { listLeaderboard as listLeaderboardWeb2 } from '#lib/web2/client.ts';
+import { listLeaderboard as listLeaderboardApi } from '#lib/web2/client.ts';
 
 /**
  * Fetches the top profiles of the server's global ranking (settled history,
@@ -10,4 +10,4 @@ import { listLeaderboard as listLeaderboardWeb2 } from '#lib/web2/client.ts';
  * see; the broader "who can see whom" gate is owned by the upcoming
  * user-visibility rework.
  */
-export const getLeaderboard = (): Promise<UserProfile[]> => listLeaderboardWeb2();
+export const getLeaderboard = (): Promise<UserProfile[]> => listLeaderboardApi();

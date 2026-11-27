@@ -1,6 +1,6 @@
 import { TURNSTILE_ACTION_EMAIL_CODE } from '#lib/constants/turnstile.constants.ts';
 import { acquireTurnstileToken } from '#lib/services/turnstile.services.ts';
-import { requestOtp, Web2ApiError } from '#lib/web2/client.ts';
+import { ApiError, requestOtp } from '#lib/web2/client.ts';
 
 /**
  * Why a sign-in code was not sent:
@@ -31,7 +31,7 @@ const REFUSALS: Partial<Record<string, EmailSignInCodeRefusal>> = {
 };
 
 /**
- * Ask the API to email a one-time sign-in code (web2 mode). The API sends a
+ * Ask the API to email a one-time sign-in code. The API sends a
  * code only behind a bot check, so every request solves one fresh Turnstile
  * token for the email-code action, invisible unless Cloudflare asks the visitor
  * to act. Every caller that sends a sign-in code goes through here.
@@ -60,7 +60,7 @@ export const requestEmailSignInCode = async ({
 
 		return {
 			ok: false,
-			reason: (err instanceof Web2ApiError ? REFUSALS[err.code] : undefined) ?? 'failed'
+			reason: (err instanceof ApiError ? REFUSALS[err.code] : undefined) ?? 'failed'
 		};
 	}
 };

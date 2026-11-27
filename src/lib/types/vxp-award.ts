@@ -44,7 +44,7 @@ export type VxpAwardType =
  * The award types collected again under the same key: `flow_overtime` is once per day key,
  * bounded by its rolling cap. Every other type is one-time per key, so an account's purge leaves an
  * anonymous marker of each one it was paid (`vxp_award_markers`), and the same identity signing up
- * again cannot collect it a second time. The web2 API keeps the same list, pinned by its drift test.
+ * again cannot collect it a second time. The API keeps the same list, pinned by its drift test.
  */
 export const REPEATABLE_VXP_AWARD_TYPES: readonly VxpAwardType[] = ['flow_overtime'];
 

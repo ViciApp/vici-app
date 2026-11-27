@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 // The inbox store imports SvelteKit modules, which this runner cannot load,
-// so the spec reads its source: a web2 account switch keeps the tab alive, so
+// so the spec reads its source: a session account switch keeps the tab alive, so
 // every store loaded from localStorage at import must be re-read when the
 // owner changes, or the previous account's read / dismissed ids are written
 // back under the next account.

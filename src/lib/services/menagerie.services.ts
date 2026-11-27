@@ -8,7 +8,7 @@ import {
 	myReferralCountStore
 } from '#lib/stores/menagerie.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
-import { getUserRankAndCount as getUserRankAndCountWeb2 } from '#lib/web2/client.ts';
+import { getUserRankAndCount as getUserRankAndCountApi } from '#lib/web2/client.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 import { get } from 'svelte/store';
@@ -73,7 +73,7 @@ export const loadMyMenagerieSignals = async (): Promise<void> => {
 						return;
 					}
 
-					const { rank, count } = await getUserRankAndCountWeb2({ userId: owner });
+					const { rank, count } = await getUserRankAndCountApi({ userId: owner });
 
 					if (isCurrent()) {
 						myGlobalRankStore.set({ rank, totalRanked: count });

@@ -68,8 +68,7 @@ export interface Transaction {
 
 /**
  * Ledger balances keyed by token id, with the account they were read for
- * (the principal on the default backend, the user id in web2 mode). `owner`
- * is absent when nobody is signed in.
+ * (the session account id). `owner` is absent when nobody is signed in.
  */
 export interface LedgerBalancesRead {
 	owner?: string;

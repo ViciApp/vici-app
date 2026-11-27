@@ -4,7 +4,7 @@
 // (case-insensitively) and refuses everyone else with the stable
 // `beta_closed` wire error, on both the OTP flow and the OAuth callback.
 // With `allowNewUsers` it also admits brand-new people and already
-// onboarded web2 accounts while holding legacy accounts back with the
+// onboarded accounts while holding legacy accounts back with the
 // distinct `legacy_account_pending` code (OAuth: `/signin?e=legacy`).
 
 import {
@@ -187,7 +187,7 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 		expect(await betaGateVerdict({ email: email.toUpperCase() })).toBe('legacy_account_pending');
 	});
 
-	test('an existing web2 identity passes even when the address is also legacy', async () => {
+	test('an existing sign-in identity passes even when the address is also legacy', async () => {
 		const email = uniqueEmail();
 
 		// Already onboarded (the legacy link was adopted at that first login):
@@ -231,7 +231,7 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 		expect(await betaGateVerdict({ email: legacy })).toBe('beta_closed');
 	});
 
-	test('an existing web2 identity does not bypass the strict allowlist', async () => {
+	test('an existing sign-in identity does not bypass the strict allowlist', async () => {
 		const email = uniqueEmail();
 
 		await resolveIdentity({ provider: 'email', subject: email, email });

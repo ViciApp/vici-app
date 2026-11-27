@@ -1,11 +1,11 @@
 import type { ExitSignalReason } from '#lib/types/exit-signal.ts';
 import {
-	deleteMyAccount as deleteMyAccountWeb2,
-	hibernateMyAccount as hibernateMyAccountWeb2,
-	listBlockingLeagues as listBlockingLeaguesWeb2,
-	recoverMyAccount as recoverMyAccountWeb2,
-	resumeMyAccount as resumeMyAccountWeb2,
-	type Web2DeleteAccountResult
+	deleteMyAccount as deleteMyAccountApi,
+	hibernateMyAccount as hibernateMyAccountApi,
+	listBlockingLeagues as listBlockingLeaguesApi,
+	recoverMyAccount as recoverMyAccountApi,
+	resumeMyAccount as resumeMyAccountApi,
+	type ApiDeleteAccountResult
 } from '#lib/web2/client.ts';
 
 /**
@@ -39,7 +39,7 @@ export interface LeagueResolution {
 
 export interface DeleteMyAccountResult {
 	ok: boolean;
-	reason?: Web2DeleteAccountResult['reason'];
+	reason?: ApiDeleteAccountResult['reason'];
 	blockingLeagueIds?: string[];
 	/** The league whose resolution failed (`reason === 'league_resolution_failed'`). */
 	failedLeagueId?: string;
@@ -57,7 +57,7 @@ export interface DeleteMyAccountResult {
  * guard surfaces in real time: a league that drained between
  * checks will unblock the user without a page reload.
  */
-export const listMyBlockingLeagues = async (): Promise<string[]> => await listBlockingLeaguesWeb2();
+export const listMyBlockingLeagues = async (): Promise<string[]> => await listBlockingLeaguesApi();
 
 /**
  * Fire the account-deletion endpoint. On success the caller should
@@ -77,7 +77,7 @@ export const deleteMyAccount = ({
 	reason: ExitSignalReason;
 	note: string;
 	leagueResolutions?: LeagueResolution[];
-}): Promise<DeleteMyAccountResult> => deleteMyAccountWeb2({ reason, note, leagueResolutions });
+}): Promise<DeleteMyAccountResult> => deleteMyAccountApi({ reason, note, leagueResolutions });
 
 export interface HibernateMyAccountResult {
 	ok: boolean;
@@ -91,7 +91,7 @@ export interface HibernateMyAccountResult {
  * the delete flow calls this instead of deleting so a user who only
  * wants a break never loses their record.
  */
-export const hibernateMyAccount = (): Promise<HibernateMyAccountResult> => hibernateMyAccountWeb2();
+export const hibernateMyAccount = (): Promise<HibernateMyAccountResult> => hibernateMyAccountApi();
 
 export interface ResumeMyAccountResult {
 	ok: boolean;
@@ -103,7 +103,7 @@ export interface ResumeMyAccountResult {
  * counterpart to {@link hibernateMyAccount}; the API no-ops
  * (`resumed: false`) when the account was never paused.
  */
-export const resumeMyAccount = (): Promise<ResumeMyAccountResult> => resumeMyAccountWeb2();
+export const resumeMyAccount = (): Promise<ResumeMyAccountResult> => resumeMyAccountApi();
 
 /**
  * Result of {@link recoverMyAccount}, a discriminated union mirroring the
@@ -128,4 +128,4 @@ export type RecoverMyAccountResult =
  * `{ ok: false, reason: 'expired' }`: the account is gone.
  */
 export const recoverMyAccount = async (): Promise<RecoverMyAccountResult> =>
-	await recoverMyAccountWeb2();
+	await recoverMyAccountApi();
