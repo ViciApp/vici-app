@@ -95,7 +95,7 @@ export const vxpBaseUnitsFromPoints = (points: number): bigint =>
  * shared {@link formatVxpBalance} so grouping / display decimals stay in
  * lock-step with non-playground VXP surfaces.
  */
-export const formatPlaygroundClearingAsVxp = (value: bigint): string =>
+const formatPlaygroundClearingAsVxp = (value: bigint): string =>
 	`${formatVxpBalance({ value, decimals: PLAYGROUND_CLEARING_MARGIN_DECIMALS })} ${PLAYGROUND_DISPLAY_SYMBOL}`;
 
 export const formatAvailableMarginForUi = ({

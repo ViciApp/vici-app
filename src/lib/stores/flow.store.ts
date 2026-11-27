@@ -111,7 +111,7 @@ const warm = async (): Promise<void> => {
  * inputs and would otherwise let `advanceFlow()` promote a
  * follow-up deck built for the wrong domain / event / interests.
  */
-export const invalidateFlow = (): void => {
+const invalidateFlow = (): void => {
 	if (!browser) {
 		return;
 	}
