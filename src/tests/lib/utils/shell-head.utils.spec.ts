@@ -59,8 +59,13 @@ describe('shell-head.utils', () => {
 			/<(?:meta|link)\s[^>]*>|<script type="application\/ld\+json">[^<]*<\/script>/g
 		);
 
+		const origins = (tags ?? [])
+			.flatMap((tag) => tag.match(/https?:\/\/[^\s"'<>]+/g) ?? [])
+			.map((url) => new URL(url).origin);
+
+		assert.ok(origins.length > 0);
 		assert.deepEqual(
-			(tags ?? []).filter((tag) => tag.includes(SOURCE_ORIGIN)),
+			origins.filter((origin) => origin === new URL(SOURCE_ORIGIN).origin),
 			[]
 		);
 	});
