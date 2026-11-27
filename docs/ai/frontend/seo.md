@@ -1,5 +1,10 @@
 # SEO / crawler surface
 
+> **Status:** the generator below ran as a `predeploy` step of the Juno
+> hosting deploy, which is retired. The web image (`Dockerfile.web`) does not
+> run it, so vici.app serves the SPA shell without the per-market pages and
+> sitemap until the generator is wired into the web build.
+
 > Higher up the chain: [`README.md`](./README.md) → [`docs/ai/`](../README.md).
 
 The app is a static SPA (`adapter-static`, `ssr = false`, `index.html`

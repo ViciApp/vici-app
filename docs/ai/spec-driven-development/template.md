@@ -11,7 +11,7 @@ Status: Draft
 
 ## Context
 
-<!-- Real file paths, components, collections, endpoints involved. Existing patterns to reuse (check the reusability.md of each area touched first: docs/ai/frontend/, docs/ai/satellite/, docs/ai/backend/). -->
+<!-- Real file paths, components, collections, endpoints involved. Existing patterns to reuse (check the reusability.md of each area touched first: docs/ai/frontend/, docs/ai/backend/). -->
 
 ## Scope
 
@@ -32,7 +32,7 @@ Status: Draft
 
 <!-- Required analysis for every spec: the default is to instrument (see workflow.md § Required content for every spec).
 - Propose the events + dimensional props; reuse names from src/lib/types/analytics-event.ts where one fits.
-- A new event name goes in the TS union (src/lib/types/analytics-event.ts), the Zod mirror (src/lib/schema/analytics-event.schema.ts) AND the API's ANALYTICS_EVENT_NAMES (backend/src/analytics/taxonomy.ts), with the satellite declarations regenerated and src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js} copied into backend/src/declarations/satellite/ (AGENTS.md rule 9); capture via track() in src/lib/services/analytics.services.ts.
+- A new event name goes in the TS union (src/lib/types/analytics-event.ts) AND the API's ANALYTICS_EVENT_NAMES (backend/src/analytics/taxonomy.ts), with the satellite declarations regenerated and src/declarations/satellite/{satellite.did.d.ts,satellite.factory.did.js} copied into backend/src/declarations/satellite/ (AGENTS.md rule 9); capture via track() in src/lib/services/analytics.services.ts.
 - Behavioural data only: bounded prop vocabularies, no free-form text, no PII.
 - If no analytics are warranted, keep this section and state why. -->
 
@@ -43,9 +43,9 @@ Interactive HTML mocks must (see docs/ai/spec-driven-development/workflow.md § 
 - include a theme switcher (data-theme on the root, light + dark) when the change touches theme-varying layout / styles / colors / sizing / icons / animations;
 - include a "copy instructions" button that copies the COMPLETE final instructions (every chosen variant and value) back to the agent chat. -->
 
-## Technical requirements (satellite / backend: mandatory)
+## Technical requirements (backend: mandatory)
 
-<!-- Required for any change touching src/satellite/**, collections, backend/** (routes, migrations, indexes, rate limits, worker jobs), or icdc-core-facing paths. Remove this section only for pure-frontend specs.
+<!-- Required for any change touching backend/** (routes, migrations, indexes, rate limits, worker jobs), or icdc-core-facing paths. Remove this section only for pure-frontend specs.
 - Performance: call frequency, instruction-budget impact.
 - Memory & storage: collections / doc shapes, count, size, growth, cleanup.
 - Scalability: behaviour at 10× / 100×; bulk reads over N+1.

@@ -55,10 +55,9 @@ Non-obvious points the codebase will not tell you:
 - The crawler-facing surface (sitemap + per-market meta pages) is generated
   at deploy time, not at runtime; see [`seo.md`](./seo.md) before touching
   `src/app.html` head tags, `robots.txt`, or the hosting `predeploy` chain.
-- A build-time backend seam (`VITE_BACKEND`) can route migrated domains to
-  the repo's HTTP API; the default is unchanged current behavior. Read
-  [`web2-backend-mode.md`](./web2-backend-mode.md) before adding any
-  `isWeb2Backend()` branch.
+- The one backend is the repo's HTTP API (`backend/`); the browser holds no
+  signing identity. Read [`web2-backend-mode.md`](./web2-backend-mode.md)
+  before adding an API call.
 
 ## What "good" looks like in this repo
 

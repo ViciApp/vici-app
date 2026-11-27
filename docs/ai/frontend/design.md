@@ -689,8 +689,8 @@ having it everywhere.
 
 ## 9. Market metadata
 
-The app stores VICI-side market context in the public-read
-`market_metadata` collection. This is a layer above the market engine:
+The API stores VICI-side market context in its public-read
+`market_metadata` table. This is a layer above the market engine:
 it does not change clearing, settlement, payouts, or registry state.
 It gives creators/admins a place to attach editorial and UX context used
 by Flow cards and market detail.
@@ -705,18 +705,15 @@ defines:
 | `whyNow`                  | Front-card curation chip (`closing`, `trending`, `new`, `topical`, `social` + text).                                                |
 | `events`                  | Up to two timeline annotations for compact sparklines / detail surfaces. Wire direction is `up` / `down`; UI may render +/- glyphs. |
 | `resolution`              | Human-readable resolution criteria, source, and optional settle timestamp.                                                          |
-| `updatedAt` / `updatedBy` | Audit fields set by the satellite update endpoint.                                                                                  |
+| `updatedAt` / `updatedBy` | Audit fields the API sets on every write.                                                                                           |
 
-The document key is the market/series id.
+The row key is the market/series id.
 
 ### 9.2 Authorization
 
-Writes go through the typed satellite update endpoint
-`upsertMarketMetadata`. The collection itself is configured as
-`read: public`, `write: controllers`; frontend code should never call
-`setDoc` directly for this collection.
-
-The satellite authorizes writes if:
+Writes go through `PUT /api/v1/markets/:seriesId/metadata`
+(`upsertMarketMetadata` in `market-metadata.services.ts`). The API
+authorizes a write if:
 
 - the caller has the app admin role, or
 - the caller is the market creator according to the registry canister.

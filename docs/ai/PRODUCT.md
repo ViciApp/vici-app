@@ -16,8 +16,8 @@ the code wins; fix the page in your PR (see the
 Vici is a social prediction-market platform on the Internet Computer.
 Users make predictions on binary markets by staking VXP (Vici's ICRC
 ledger token), and compete through leagues, leaderboards, and arena
-battles. The SvelteKit frontend and its TypeScript serverless
-functions run on a Juno satellite; order matching, clearing, and
+battles. The SvelteKit frontend talks to the HTTP API in `backend/`
+(Bun + Postgres, vici.app); order matching, clearing, and
 settlement run on the on-chain risk engine in the separate `icdc-core`
 repo, consumed here via generated Candid bindings (Vici is registered
 there as engine `eng_0`; see
@@ -78,8 +78,8 @@ never restate the numbers anywhere else (docs, specs, comments):
 - [`vxp-onboarding.constants.ts`](../../src/lib/constants/vxp-onboarding.constants.ts):
   registration grant
 
-Implementation invariants and the new-award-type checklist live in
-[`satellite/economy.md`](./satellite/economy.md).
+How the API grants and pays an award lives in
+[`backend/README.md`](../../backend/README.md).
 
 ## Behaviour index
 
@@ -434,10 +434,10 @@ showed the satellite points rank, which could read a phantom #1). Decision
 record:
 [`specs/2026-06-25-impr-leaderboard-integrity.md`](./spec-driven-development/specs/2026-06-25-impr-leaderboard-integrity.md).
 
-The server-side ranking behind the market's "Top predictors here"
-candidates (`GET /api/v1/leaderboard`), the viewer's rank and ranked
+The server-side ranking behind the global leaderboard
+(`GET /api/v1/leaderboard`), the viewer's rank and ranked
 population (`/leaderboard/rank/:userId`: the profile's "Top X%" line and
-the Goat trophy) use the same two guards on the web2 API: every visible
+the Goat trophy) use the same two guards: every visible
 profile with at least the qualify minimum of settled calls, ordered by
 the same shrinkage score over its all-time settled history read from the
 clearing canister (more settled calls, then the account id, break a
@@ -457,16 +457,13 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
   ranked and provisional lists **other people** see; ranks below them
   compress with no gap. They keep their own rank: their `You` row and
   the Arena "Global ranking" card (`ownGlobalStanding`) still resolve,
-  and their top-decile achievement (the satellite's stored ranking,
-  next section) is unaffected. Enforced FE-side by one predicate,
+  and their top-decile achievement is unaffected. Enforced FE-side by one predicate,
   `isShownOnGlobalLeaderboard` (`visibility.utils`), applied to the
-  global leaderboard (`globalStandingsRows`) and to the market detail's
-  "Top predictors here" candidates (`visibleLeaderboard`), **failing
-  closed**: a non-self row appears only once its profile is loaded and
+  global leaderboard (`globalStandingsRows`), **failing closed**: a non-self row appears only once its profile is loaded and
   not opted out, so an opted-out predictor never flashes onto a list
   before their preference is known. The preference is always read from
   the hydrated profile cache (`profilesStore`), never from a leaderboard
-  row: the satellite's leaderboard wire carries no sharing preferences.
+  row: the leaderboard wire carries no sharing preferences.
   Both surfaces hydrate every raw principal (not just visible rows), so
   opted-in rows fill in as profiles land rather than starving; the
   market detail waits for that hydration before it probes, and
@@ -486,23 +483,6 @@ ranking surfaces. Both default **on** (legacy / unset reads as on).
 Each toggle emits `privacy_sharing_toggled` (`source: leaderboard |
 worlds`, `label: on | off`). Decision record:
 [`specs/2026-06-28-feat-sharing-opt-out-enforcement.md`](./spec-driven-development/specs/2026-06-28-feat-sharing-opt-out-enforcement.md).
-
-### Satellite: stored global ranking
-
-On the satellite, the market's "Top predictors here" candidates
-(`listLeaderboard`), the viewer's rank and ranked population
-(`getUserRankAndCount`: the profile's "Top X%" line, the Goat trophy and
-the top-decile streak) and the rival (`getMyRival`) read one stored
-ranking, never the client-written `points`: every visible profile with at
-least the qualify minimum of settled calls, ordered by the board's
-shrinkage score over its all-time settled history (`compareRankScore` in
-[`leaderboard-score.utils.ts`](../../src/lib/utils/leaderboard-score.utils.ts)),
-then by principal. A query cannot call the clearing canister, so
-`refreshLeaderboardRanking` computes it in an update and stores it in the
-controllers-only `leaderboard_ranking` collection. The app asks for a
-refresh, fire-and-forget, on every leaderboard and rank load; a ranking
-younger than its TTL is served as is, so a new settlement moves a rank
-within minutes, not at once. Before the first refresh nobody is ranked.
 
 ### Privacy: what survives an account's deletion
 
@@ -736,25 +716,6 @@ farming. Earlier these grants were display-only by design (the
 deferred real-credit path. Decision record:
 [`specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md`](./spec-driven-development/specs/2026-06-20-feat-flow-milestone-overtime-vxp-credit.md).
 
-### Legacy app: new accounts move to vici.app
-
-The legacy build (vici.market) no longer creates accounts. Every sign-up
-entry (landing CTAs, "Create account" on the sign-in screen, invite and
-league links, `?ref=` share links) lands on `/signup`, which shows "VICI has
-moved to vici.app" with a link to the new app that keeps any invite or
-referral code, plus a "Sign in" link for existing accounts. A sign-in that
-resolves to an identity with no profile is signed straight back out and shown
-the same message; nothing is written for it. The satellite refuses to create
-a profile too (switchable, see the satellite patterns page). Existing
-accounts sign in and play exactly as before, and the "move your account"
-banner and Settings row stay hidden until the cutover switch
-(`CLAIM_HANDOFF_ENABLED`) is flipped. Until that flip, signed-in users see a
-dismissible notice instead: VICI is moving to vici.app, their account,
-predictions and VXP will be moved for them, keep playing here, and vici.market
-stays available until the end of September 2027. It has no move action and
-gives way to the "move your account" banner at cutover. The new app's own
-sign-up is unchanged.
-
 ### Onboarding: one screen, claim a handle and sign up
 
 The new-user flow is a single screen (`Onboarding`, in
@@ -971,9 +932,8 @@ preview, the Flow card front included, is the **net win** from `vxpNetWin` at
 the execution price, floored by `VXP_P_WIN_FLOOR` and shown as `<1` below one
 VXP; the market detail sheet's "If right" figure is that net win, not the gross
 return. Open positions at any earlier size stay as they are. The client refuses
-a size outside the set on both builds; the web2 API also refuses one, and an
-order whose notional disagrees with its declared size, with
-`invalid_call_size`. On the web3 build nothing on-chain bounds the size yet
-(see [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)).
+a size outside the set; the API also refuses one, and an order whose notional
+disagrees with its declared size, with `invalid_call_size`. Nothing on-chain
+bounds the size yet (see [`economy.md`](./economy.md#caps-and-gates-the-anti-farming-spine)).
 Decision record:
 [`specs/2026-11-26-impr-vxp-call-size-range.md`](./spec-driven-development/specs/2026-11-26-impr-vxp-call-size-range.md).

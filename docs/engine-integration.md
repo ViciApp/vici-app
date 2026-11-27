@@ -1,7 +1,7 @@
 # Vici ↔ icdc-core Engine Integration
 
 This document describes how the Vici app integrates with the `icdc-core` prediction-market
-registry as an **Engine**, and how user roles in Juno are automatically reflected as role
+registry as an **Engine**, and how app roles are automatically reflected as role
 grants on that engine.
 
 ## icdc-core deployments: `staging` and production (`ic`)
@@ -32,9 +32,9 @@ Both are wired into this repo's [`dfx.json`](../dfx.json) under `remote.id` (`ic
 The Vici **frontend** pins the production registry/clearing IDs in
 [`src/lib/constants/canisters.constants.ts`](../src/lib/constants/canisters.constants.ts), so
 the running app talks to icdc-core **production** regardless of which network you deploy or
-seed against. The Vici app's own Juno satellite (`ids.production` in
-[`juno.config.ts`](../juno.config.ts)) is production too: on every `v*` tag `deploy.yml`
-upgrades its functions when the satellite wasm has changed, then deploys hosting.
+seed against. The API (`backend/`) does the same: it signs every engine call itself (the
+service admin identity for role sync, each user's derived custodial identity for their own
+calls).
 
 ## Why an Engine?
 
@@ -50,8 +50,9 @@ upgrades its functions when the satellite wasm has changed, then deploys hosting
 Registering Vici as its own engine lets us:
 
 1. Scale the app beyond "only the deploy principal can create markets".
-2. Delegate market creation to app admins/creators through normal Juno auth flows.
-3. Keep Juno as the single source of truth for user roles; the registry just mirrors them.
+2. Delegate market creation to app admins/creators.
+3. Keep the API's role table as the single source of truth for user roles; the registry just
+   mirrors them.
 
 See [docs/architecture/engines.md](https://github.com/AntonioVentilii/icdc-core/blob/master/docs/architecture/engines.md)
 in `icdc-core` for the protocol-side design.
@@ -60,40 +61,39 @@ in `icdc-core` for the protocol-side design.
 
 ```mermaid
 flowchart LR
-    A[User / Admin] -->|assigns role| J[Juno Datastore<br/>ROLES collection]
-    J -->|onSetDoc / onDeleteDoc| H[Satellite hook<br/>syncRoleToEngine]
+    A[Admin] -->|assigns role| J[API<br/>role table]
+    J -->|engine-sync| H[API service admin identity]
     H -->|grant/revoke_engine_role| R[icdc-core Registry<br/>Vici Engine]
     H -->|manage_oracle_principals| O[icdc-core Registry<br/>VICI_ORACLE_V1]
     R -->|add_series / fork_series| M[Market created<br/>engine_id = Vici]
-    F[Frontend<br/>addSeries] -->|engine_id = eng_0| R
+    F[deploy-markets.sh<br/>add_series] -->|engine_id = eng_0| R
     O -. settle_series .-> M
 ```
 
 Responsibilities:
 
-| Component                                        | Role                                                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `scripts/init/init.icdc-engine.sh`               | Registers the Vici engine, adds the satellite + human admins                                         |
-| `src/satellite/services/engine-sync.services.ts` | Hook that grants/revokes engine roles in response to `roles` doc changes                             |
-| `src/lib/constants/icdc.constants.ts`            | Single place that pins the engine id (`eng_0`) used by the frontend + satellite                      |
-| `src/lib/services/market.services.ts`            | Passes `engine_id` to `add_series` so non-controller admins can create markets                       |
-| `scripts/init/init.registry.sh`                  | Registers the oracle + principals, then delegates market seeding to `deploy-markets.sh`              |
-| `scripts/deploy-markets.sh`                      | Deploys any JSON market deck via `add_series`, tagging each with `engine_id = opt "$VICI_ENGINE_ID"` |
-| `scripts/test/test-engine-sync.sh`               | Smoke test: verifies engine registration, admin list, allowed roles, grant flow                      |
+| Component                             | Role                                                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `scripts/init/init.icdc-engine.sh`    | Registers the Vici engine, adds its admins (still the retired satellite's principal + human admins)  |
+| `backend/src/admin/engine-sync.ts`    | Grants/revokes engine roles when an app role changes                                                 |
+| `src/lib/constants/icdc.constants.ts` | Single place that pins the engine id (`eng_0`) used by the frontend and the scripts                  |
+| `scripts/init/init.registry.sh`       | Registers the oracle + principals, then delegates market seeding to `deploy-markets.sh`              |
+| `scripts/deploy-markets.sh`           | Deploys any JSON market deck via `add_series`, tagging each with `engine_id = opt "$VICI_ENGINE_ID"` |
+| `scripts/test/test-engine-sync.sh`    | Smoke test: verifies engine registration, admin list, allowed roles, grant flow                      |
 
 ## Role mapping
 
-Regular users have **no role doc** in Juno. That state is what was previously encoded as
+Regular users have **no role** in the API. That state is what was previously encoded as
 `USER` / `MODERATOR` and grants nothing: no engine role, no entry in
 `VICI_ORACLE_V1.authorized_principals`. See `UserRole` in `src/lib/enums/user.ts` for the
 canonical list of grantable roles.
 
-| Juno `UserRole` | icdc-core `EngineRole`s granted | Added to `VICI_ORACLE_V1.authorized_principals`? |
-| --------------- | ------------------------------- | ------------------------------------------------ |
-| `CONTROLLER`    | _(none: controllers bypass)_    | _(no: controllers bypass)_                       |
-| `ADMIN`         | `Creator`, `OracleAdmin`        | yes                                              |
-| `SOLVER`        | `OracleAdmin`                   | yes                                              |
-| `CREATOR`       | `Creator`                       | no                                               |
+| App `UserRole` | icdc-core `EngineRole`s granted | Added to `VICI_ORACLE_V1.authorized_principals`? |
+| -------------- | ------------------------------- | ------------------------------------------------ |
+| `CONTROLLER`   | _(none: controllers bypass)_    | _(no: controllers bypass)_                       |
+| `ADMIN`        | `Creator`, `OracleAdmin`        | yes                                              |
+| `SOLVER`       | `OracleAdmin`                   | yes                                              |
+| `CREATOR`      | `Creator`                       | no                                               |
 
 The hook computes the **diff** between the previous and new role and issues only the needed
 `grant_engine_role` / `revoke_engine_role` calls, plus a single `manage_oracle_principals`
@@ -128,10 +128,11 @@ The engine's `admins` vec is the list of principals that can call `grant_engine_
 `revoke_engine_role` / `update_engine` on the Vici engine (`update_engine_allowed_roles` is
 registry controllers only). It contains:
 
-1. **The Juno satellite canister principal**, so the `syncRoleToEngine` hook can call
-   `grant_engine_role` as the caller. This is the hot path.
+1. **The API's service admin identity**, so the role sync can call `grant_engine_role` as
+   the caller. This is the hot path. `init:icdc-engine` still registers the retired
+   satellite's principal in this slot; add the API identity with `add_engine_admins`.
 2. **The 2 `SATELLITE_CONTROLLERS`** (from `src/lib/constants/controllers.constants.ts`):
-   human admins, so if the satellite hook is ever broken or a manual override is needed we
+   human admins, so if the role sync is ever broken or a manual override is needed we
    can still reach the engine directly via `dfx`.
 3. **The deploying `dfx identity`**: only meaningful on local, added for convenience.
 
@@ -163,8 +164,8 @@ read it with `npx tsx scripts/lib/engine-id.ts`. This works because:
 - There are no other tenants on the current registry deployments.
 
 If you ever reinstall the registry with a different first-engine ordering, the init script
-will warn you and you must update `VICI_ENGINE_ID` in the constant and redeploy the
-satellite.
+will warn you and you must update `VICI_ENGINE_ID` in the constant (and the API's copy in
+`backend/src/engine/registry.ts`) and redeploy.
 
 ## Runbooks
 
@@ -179,17 +180,18 @@ Operational procedures live as step-by-step workflows under [`.agents/workflows/
 ## Persistence across registry reinstalls
 
 `dfx deploy --mode reinstall registry` wipes `eng_0.role_grants`. The intended source of
-truth is the Juno `ROLES` collection, and `syncRoleToEngineOnSet` mirrors writes into the
-registry, but only on writes, not on startup. So after a reset the engine's `role_grants`
-starts empty until role docs are re-saved (or grants are replayed out-of-band via `dfx`).
+truth is the API's role table, and the role sync (`backend/src/admin/engine-sync.ts`)
+mirrors writes into the registry, but only on writes, not on startup. So after a reset the
+engine's `role_grants` starts empty until roles are re-saved (or grants are replayed
+out-of-band via `dfx`).
 
 Three options today, in order of durability:
 
 1. **Grant once via `dfx`** (fastest, ephemeral). See `icdc-engine-operations.md`. Wiped
    on the next reinstall.
-2. **Set a `roles` doc in Juno** (durable across reinstalls, but needs a manual re-save
-   after each reset to retrigger the hook). Set from the admin UI with value `ADMIN` or
-   `CREATOR`. Recommended for any principal that should survive long-term.
+2. **Set an app role through the API admin routes** (durable across reinstalls, but needs a
+   manual re-save after each reset to retrigger the sync). Recommended for any account that
+   should survive long-term.
 3. **Local dev bootstrap via `DEV_CREATOR_PRINCIPAL`** (recommended for a dev laptop):
 
    ```bash
@@ -211,24 +213,6 @@ Three options today, in order of durability:
    ```
 
 > [!NOTE]
-> Option 3 is intentionally out-of-band from Juno (no `roles` doc is written). The
-> cross-environment fix is a Juno-driven reconcile step on the satellite: either an
-> admin endpoint that re-fires the sync for every `roles` doc, or an init-script pass
-> that enumerates the collection and replays writes. Tracked as future work.
-
-## Frontend notes
-
-- `src/lib/services/market.services.ts` picks `engine_id` per-call based on the caller's
-  Juno role:
-  - `ADMIN` / `CREATOR` → `engine_id = opt "$VICI_ENGINE_ID"` so the registry routes the
-    call to `CreationTier::Creator` and runs the `has_engine_role_on` check against the
-    caller's grant on `eng_0`.
-  - Regular users (no role) → `engine_id = null` so the registry routes the call to
-    `CreationTier::Social`, which is the only tier available to users that hold no
-    engine role. This path only accepts Social markets (`BalanceDomain::Social` +
-    `NonMonetary` payout + `Restricted` trading access); anything else is rejected
-    with `EngineIdRequired`.
-- Market creation is still gated to `ADMIN` / `CREATOR` users in the UI via
-  `market.services.ts`; the engine-level `Creator` grant is a necessary, not sufficient,
-  condition for calling `add_series`. To open creation to a wider audience, relax the check
-  in `market.services.ts` **and** ensure the target users have the Juno `CREATOR` role.
+> Option 3 is intentionally out-of-band from the API (no app role is written). The
+> cross-environment fix is an API reconcile step that re-fires the sync for every stored
+> role. Tracked as future work.

@@ -15,12 +15,11 @@ The long-form pages behind [`AGENTS.md`](../../AGENTS.md). Do not read everythin
 
 ## Areas
 
-| Area                                  | README                                | Pages                                                                                                                                                                                               |
-| ------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SvelteKit frontend                    | [`frontend/`](./frontend/README.md)   | `structure`, `stack-and-patterns`, `reusability`, `testing`, `i18n`, `i18n-coverage`, `a11y`, `design`, `brand`, `seo`, `web2-backend-mode`, `workflows/{new-component,new-service,refactor-split}` |
-| Juno satellite                        | [`satellite/`](./satellite/README.md) | `structure`, `patterns`, `reusability`, `testing`, `economy`, `workflows/{new-hook,new-endpoint,engine-sync}`                                                                                       |
-| Web2 API (`backend/`)                 | [`backend/`](./backend/README.md)     | `structure`, `patterns`, `reusability`, `testing`, `custody`, `workflows/{new-route,new-migration,new-worker-job}`                                                                                  |
-| On-chain engine (icdc-core, external) | [`engine/`](./engine/README.md)       | pointer only: bindings, integration, what not to touch                                                                                                                                              |
+| Area                                  | README                              | Pages                                                                                                                                                                                               |
+| ------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SvelteKit frontend                    | [`frontend/`](./frontend/README.md) | `structure`, `stack-and-patterns`, `reusability`, `testing`, `i18n`, `i18n-coverage`, `a11y`, `design`, `brand`, `seo`, `web2-backend-mode`, `workflows/{new-component,new-service,refactor-split}` |
+| HTTP API (`backend/`)                 | [`backend/`](./backend/README.md)   | `structure`, `patterns`, `reusability`, `testing`, `custody`, `workflows/{new-route,new-migration,new-worker-job}`                                                                                  |
+| On-chain engine (icdc-core, external) | [`engine/`](./engine/README.md)     | pointer only: bindings, integration, what not to touch                                                                                                                                              |
 
 ## Elsewhere in the repo
 

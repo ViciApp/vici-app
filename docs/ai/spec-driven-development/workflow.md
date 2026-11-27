@@ -15,7 +15,6 @@ Skip it for small changes (typo, one-liner): implement directly.
 - **Read the guidance first.** Before authoring or implementing any
   spec: [`AGENTS.md`](../../../AGENTS.md), then the area README
   ([frontend](../frontend/README.md) /
-  [satellite](../satellite/README.md) /
   [API](../backend/README.md) /
   [engine](../engine/README.md)). A spec never overrides
   `docs/ai/**`; it sits below it in the
@@ -76,14 +75,9 @@ surface or behaviour without events is invisible to product analysis.
 The spec names the proposed events and their dimensional props,
 reusing names from the existing taxonomy where one fits. A new event
 name must land in the TS union
-(`src/lib/types/analytics-event.ts`), its runtime Zod mirror
-(`src/lib/schema/analytics-event.schema.ts`) and the API's
+(`src/lib/types/analytics-event.ts`) and the API's
 `ANALYTICS_EVENT_NAMES` (`backend/src/analytics/taxonomy.ts`, pinned to
-both by `backend/tests/shared-drift/analytics.test.ts`); svelte-check
-only catches the union, and an enum mismatch fails at runtime. The
-event is a Candid variant of the satellite, so its declarations are
-regenerated too, with the backend's vendored copy
-([`AGENTS.md`](../../../AGENTS.md#4-vici-specific-rules) rule 9).
+the union by `backend/tests/shared-drift/analytics.test.ts`).
 Capture goes through `track` in
 `src/lib/services/analytics.services.ts`. Behavioural data only:
 bounded prop vocabularies, no free-form text, no PII. If the spec
@@ -148,15 +142,14 @@ Interactive HTML mocks must additionally:
   full, not just the deltas the reviewer happens to remember. The
   copied text alone must be enough for the agent to act on.
 
-**Satellite / backend: technical requirements are mandatory.** Any
-spec touching `src/satellite/**`, collections, `backend/**` (routes,
+**Backend: technical requirements are mandatory.** Any
+spec touching `backend/**` (routes,
 migrations, indexes, rate limits, worker jobs) or icdc-core-facing
 paths must state, with numbers where possible:
 
-- **Performance**: expected call frequency; instruction-budget impact
-  of new hooks / endpoints (satellite code runs under IC instruction
-  caps).
-- **Memory & storage**: new collections or doc shapes, expected doc
+- **Performance**: expected call frequency; query cost of new routes
+  and worker jobs.
+- **Memory & storage**: new tables or row shapes, expected row
   count and size, growth rate, retention / cleanup story.
 - **Scalability**: behaviour at 10× / 100× current users / markets;
   bulk reads and pagination over N+1 fan-outs.

@@ -18,7 +18,7 @@ and production"): the `staging` dfx network → icdc-core staging, and the `ic` 
 
 ## Local
 
-Assumes the Juno emulator is running (see [deployment.md](./deployment.md)).
+Assumes the local replica is running (see [deployment.md](./deployment.md)).
 
 1. Reinstall the registry canister (wipes engine + role + oracle + series state):
    // turbo
@@ -78,24 +78,9 @@ VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)
 npm run init:registry -- --staging
 ```
 
-4. Rebuild and upgrade the satellite so the new `syncRoleToEngine` hooks are live:
-
-```bash
-npm run juno:functions:build
-juno functions upgrade -m production
-```
-
-`juno functions upgrade` needs an identity that administers the satellite (`juno login`, or
-an Administrator access key in `JUNO_TOKEN`, which is how `deploy.yml` runs the same step on
-every release). The Juno Console works too.
-
-5. Smoke-test, against the satellite principal the engine was registered with in step 2 (the
-   script defaults to the local dev id, and its admin check fails for any other):
-
-```bash
-VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
-  npm run test:engine-sync -- --staging
-```
+4. Re-apply the app's roles: the API mirrors each role assignment onto the engine
+   registry with its service admin identity (`backend/src/admin/engine-sync.ts`), so
+   re-save the roles through the API admin routes once the engine exists again.
 
 ## Production
 
@@ -120,20 +105,13 @@ Then, in this repo:
 VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
   npm run init:icdc-engine -- --production
 npm run init:registry -- --production
-npm run juno:functions:build
-juno functions upgrade -m production
-VICI_JUNO_SATELLITE_PRINCIPAL="$(npx tsx scripts/lib/satellite-id.ts production)" \
-  npm run test:engine-sync -- --production
 ```
+
+Then re-apply the roles through the API (step 4 above).
 
 ## Post-reset sanity check
 
-`npm run test:engine-sync` verifies:
-
-- The Vici engine exists at `eng_0`.
-- The satellite principal is in `admins`.
-- `allowed_roles` contains both `Creator` and `OracleAdmin`.
-- `grant_engine_role` / `revoke_engine_role` round-trip works (local only).
-
-If the script fails, see [icdc-engine-operations.md](./icdc-engine-operations.md) for
-manual reconciliation steps.
+Read the engine record back from the registry and check that the Vici engine exists at
+`eng_0`, that the API's service admin identity is in `admins`, and that `allowed_roles`
+contains both `Creator` and `OracleAdmin`. If anything is off, see
+[icdc-engine-operations.md](./icdc-engine-operations.md) for manual reconciliation steps.

@@ -9,7 +9,7 @@ and role-mapping reference.
 All commands assume the running `dfx` identity is either:
 
 - A **controller** of the registry canister, or
-- An **admin** of the Vici engine (e.g. one of the `SATELLITE_CONTROLLERS`).
+- An **admin** of the Vici engine (e.g. one of the `SATELLITE_CONTROLLERS`, the human admins `init:icdc-engine` registers).
 
 The kill-switch below (`update_engine_allowed_roles`) is the exception: the registry lets only
 its controllers call it, so an engine admin is refused.
@@ -25,11 +25,11 @@ and production".
 
 ## Reconcile a role grant manually
 
-The `syncRoleToEngine` hook should handle this automatically whenever the `roles`
-collection doc is written. Manual reconciliation is only needed if:
+The API mirrors every role assignment onto the engine (`backend/src/admin/engine-sync.ts`).
+Manual reconciliation is only needed if:
 
-- The satellite hook is broken (check Juno Console logs for `engine_sync_error`).
-- You need to grant a role to a principal that has no Juno profile yet.
+- The sync failed (check the API logs).
+- You need to grant a role to a principal that has no app account.
 
 ```bash
 dfx canister call --network staging registry grant_engine_role "(record {
@@ -55,22 +55,20 @@ Errors are idempotent: `RoleNotGranted` means the grant didn't exist (safe to ig
 
 ## Replay sync for a stuck user
 
-If a specific user's role was changed in Juno but the engine wasn't updated (e.g. the
-satellite was down at the time), re-save their `roles` doc via the admin UI. The hook is
-idempotent, so replaying is safe.
+If a specific user's role was changed but the engine wasn't updated, re-save their role
+through the API admin routes. The sync is idempotent, so replaying is safe.
 
 Alternatively, trigger the diff manually from `dfx` with the two calls above.
 
 ## Reconcile oracle settlers manually
 
-The `syncRoleToEngine` hook also mirrors `ADMIN` / `SOLVER` roles into
+The role sync also mirrors `ADMIN` / `SOLVER` roles into
 `VICI_ORACLE_V1.authorized_principals`, so this is only needed if:
 
-- The oracle didn't exist when a role was granted (look for `oracle_settler_skipped_missing_oracle`
-  in the Juno logs): bootstrap the oracle first via the admin UI, then re-save the user's
-  `roles` doc to replay.
+- The oracle didn't exist when a role was granted (the sync skips it and logs so):
+  bootstrap the oracle first, then re-save the user's role to replay.
 - You want to grant settlement rights to a one-off principal (e.g. a tester) without
-  assigning a Juno role.
+  assigning an app role.
 
 ```bash
 dfx canister call --network staging registry manage_oracle_principals "(record {
@@ -112,8 +110,8 @@ dfx canister call --network staging registry list_engines --query \
 ## Rotate engine admins
 
 Engine admins are the principals that can grant/revoke roles on the engine. The list lives
-on the engine itself and must include the Juno satellite principal (otherwise the hook
-breaks) plus at least one human admin for emergencies.
+on the engine itself and must include the API's service admin identity (otherwise the role
+sync breaks) plus at least one human admin for emergencies.
 
 Add admins:
 

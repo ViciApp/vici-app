@@ -1,6 +1,6 @@
 # VICI backend
 
-Bun + Elysia + Postgres API for the VICI app. It serves the web2 build (`VITE_BACKEND=web2`) at vici.app; the default build still talks to the Juno satellite and the canisters directly.
+Bun + Elysia + Postgres API for the VICI app, served at vici.app. It is the app's only backend: the browser holds no signing identity, and the API signs every account-scoped engine call with the caller's derived custodial identity.
 
 ## Local development
 
@@ -121,7 +121,7 @@ PUT /api/v1/admin/settings/beta_gate
 | Email matches `legacy_auth_identities.openid_email` or `profile_email` (case-insensitive, same match as the auto-link)  | `403 { "error": "legacy_account_pending" }`; OAuth callbacks bounce to `/signin?e=legacy` |
 | Anyone else                                                                                                             | admitted (a new person)                                                                   |
 
-Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine). `legacy_account_pending` necessarily tells the caller that the address has a legacy account, and nothing else about it; the OTP request is still refused before any code is sent. Legacy users whose old login carried no email (passkey, Internet Identity) cannot be recognised and are admitted as new; they can still carry their principal over with the signed claim flow, and if they have already populated the new account by then, the claim files an `account_not_empty` conflict for the admin queue (see [Provisional account adoption](#provisional-account-adoption)).
+Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine). `legacy_account_pending` necessarily tells the caller that the address has a legacy account, and nothing else about it; the OTP request is still refused before any code is sent. Legacy users whose old login carried no email (passkey, Internet Identity) cannot be recognised and are admitted as new; their imported data stays on its provisional account (see [Provisional account adoption](#provisional-account-adoption)).
 
 First verified login auto-links legacy on-chain identities: when the account has no `legacy_principals` row yet and the exported `legacy_auth_identities` table contains a row whose `openid_email` (first) or `profile_email` (fallback) matches the verified address, the principal links with the corresponding `matched_via`.
 
@@ -130,9 +130,8 @@ First verified login auto-links legacy on-chain identities: when the account has
 The ETL importer parks every legacy principal's data on a provisional `claim_pending` account linked with `matched_via = 'etl'` (see [Data migration](#data-migration-etl)). `src/auth/adoption.ts` hands those accounts to their owners:
 
 - **Login.** A first sign-in (no auth identity by subject or by email yet) whose email matches an `'etl'`-linked provisional account adopts it in place: the auth identity attaches to it, `claim_pending` clears, the link's `matched_via` becomes `openid_email` / `profile_email`, and no new users row is created. Still-unlinked principals carrying the same email link to it as well. `resolveIdentity` holds a per-email advisory lock and locks the provisional row, so concurrent first logins adopt once.
-- **Claim.** `POST /api/v1/claim` for a principal on a provisional account folds the caller's account into it when the caller's account is empty: auth identities, sessions and legacy links move over, analytics and market edit stamps are re-pointed, unused custody rows and the caller's users row are deleted, and the link becomes `matched_via = 'claim'`. The response carries `adopted: true`; the session cookie is unchanged but now resolves to the adopted user id. Empty means no row in any user-owned table (profiles, stats, feed, reactions, results, awards, referrals, leagues, battles, affiliations, school submissions, withdrawals, custody ledger or deposits) and no granted role.
-- **Never merged.** Two populated accounts are not merged automatically: user ids are embedded in activity and relation keys, and VXP was paid to each account's own derived principal. A claim from a non-empty account answers `409 { "error": "account_not_empty" }` and changes nothing; a login email matching several provisional accounts adopts one (openid match before profile match, then the most imported activity, then principal order) and leaves the rest provisional.
-- **Admin queue.** Both cases write a `legacy_adoption_conflicts` row (principal, provisional user, the account the person ended up with, reason). `GET /api/v1/admin/legacy-adoption-conflicts` lists the rows whose provisional account is still unadopted. Resolution is manual and per case: there is no merge endpoint, and moving the on-chain VXP between derived principals is out of scope here.
+- **Never merged.** Two populated accounts are not merged automatically: user ids are embedded in activity and relation keys, and VXP was paid to each account's own derived principal. A login email matching several provisional accounts adopts one (openid match before profile match, then the most imported activity, then principal order) and leaves the rest provisional.
+- **Admin queue.** A login that matches several provisional accounts writes a `legacy_adoption_conflicts` row (principal, provisional user, the account the person ended up with, reason). `GET /api/v1/admin/legacy-adoption-conflicts` lists the rows whose provisional account is still unadopted. Resolution is manual and per case: there is no merge endpoint, and moving the on-chain VXP between derived principals is out of scope here.
 
 ## Custody
 
@@ -316,7 +315,7 @@ backend/
     tournaments/    # monthly league tournament: draw, rounds, prizes
     vxp/            # award economy: grant core, payout, triggers, calibration, referral settlement
     worlds/         # affiliations, their stats and the monthly podium
-    declarations/   # vendored candid bindings for clearing + registry + satellite (generated, never hand-edited)
+    declarations/   # vendored candid bindings for clearing + registry (generated, never hand-edited); satellite/ is the retired satellite's frozen copy the ETL reads
     engine/         # actor provider, TTL cache, typed clearing/registry wrappers
     routes/         # /api/v1 route modules (auth, wallet, engine, markets, events, ...)
     lib/            # logger, crypto, keys (HKDF derivation), ic-agent, cookies, email, rate limiting

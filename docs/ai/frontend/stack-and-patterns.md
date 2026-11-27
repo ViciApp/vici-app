@@ -176,8 +176,8 @@ the service layer and let the service own caching.
   Always import request / response types from the `#declarations` barrel
   (`import type { ClearingDid } from '#declarations'`); never re-declare
   them.
-- **Schemas first.** When data crosses a boundary (network, storage, the
-  satellite), validate with the matching `zod` schema from
+- **Schemas first.** When data crosses a boundary (network, storage),
+  validate with the matching `zod` schema from
   `#lib/schema/`.
 - **Discriminated unions** for `Result<T>` flows. Look at the closest
   neighbour and follow the same shape.
@@ -208,71 +208,49 @@ the service layer and let the service own caching.
 ```
 Component (.svelte)
   ↳ #lib/services/*.services.ts          orchestration, state mutations, error handling
-       ↳ #lib/api/*.api.ts               wrappers around generated canister declarations
-       ↳ #lib/canisters/*.canister.ts    typed actor factories
-       ↳ @junobuild/core                 datastore + auth (used directly inside services)
+       ↳ #lib/web2/client.ts             typed wrappers around the HTTP API routes
+       ↳ #lib/api/*.api.ts               the public canister reads left (order book, ledger fee)
 ```
 
-- Components **do not** call `setDoc` / `getDoc` / `listDocs` / `fetch`
-  directly. Always go through the matching service module.
+- Components **do not** call `client.ts` or `fetch` directly. Always go
+  through the matching service module.
 - A `*.services.ts` function should:
   - Accept a typed input.
-  - Use the identity helpers from
-    [`#lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts)
-    (`getIdentityOrAnonymous` for read paths, `safeGetIdentityOnce` for
-    authenticated actions).
+  - Gate "signed in" on the session store (`getWeb2User()` from
+    `#lib/web2/session.ts`, or `isSignedIn` / `getSignedInOwner` from
+    [`#lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts));
+    a public canister read takes `anonymousIdentity()` from the same module.
   - Surface errors via the project's notification / toast pattern (`#lib/stores/notification.store.ts`).
   - Never throw to the caller for expected user errors; return an
     informative result.
-- Worker-bound logic (auth workers) lives under `static/workers/` and is
-  synced by `npm run postinstall`. Don't hand-edit those files.
 
-Example shape (compressed from
-[`#lib/services/market.services.ts`](../../../src/lib/services/market.services.ts)):
+Example shape (from
+[`#lib/services/worlds.services.ts`](../../../src/lib/services/worlds.services.ts)):
 
 ```ts
-import type { RegistryDid } from '#declarations';
-import { addSeries } from '#lib/api/registry.api.ts';
-import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
-import { UserRole } from '#lib/enums/user.ts';
-import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
-import { getProfile } from '#lib/services/profile.services.ts';
-import { toNullable } from '@dfinity/utils';
+import type { AffiliationDoc, AffiliationKind } from '#lib/types/affiliation.ts';
+import { withTimeout } from '#lib/utils/async.utils.ts';
+import { setAffiliation as setAffiliationWeb2 } from '#lib/web2/client.ts';
 
-export const createMarket = async ({
-	title,
-	resolution,
-	balanceDomain,
-	tradingAccess = [{ Open: null }]
+export const joinAffiliation = ({
+	kind,
+	affiliationIdentifier
 }: {
-	title: string;
-	resolution: string;
-	balanceDomain: RegistryDid.BalanceDomain;
-	tradingAccess?: RegistryDid.TradingAccess[];
-}): Promise<string> => {
-	const identity = await safeGetIdentityOnce();
-
-	const { role } = (await getProfile(identity.getPrincipal().toText())).data;
-	const isEngineCreator = role === UserRole.ADMIN || role === UserRole.CREATOR;
-
-	const params: RegistryDid.AddSeriesParams = {
-		// ...the other series fields
-		title,
-		resolution: { clause: resolution.trim() },
-		balance_domain: balanceDomain,
-		trading_access: tradingAccess,
-		engine_id: isEngineCreator ? toNullable(VICI_ENGINE_ID) : toNullable()
-	};
-
-	return await addSeries({ identity, params });
-};
+	kind: AffiliationKind;
+	affiliationIdentifier: string;
+}): Promise<AffiliationDoc> =>
+	withTimeout({
+		operation: setAffiliationWeb2({ kind, affiliationIdentifier }),
+		timeoutMs: AFFILIATION_WRITE_TIMEOUT_MS,
+		label: 'joinAffiliation'
+	});
 ```
 
 ## Engine integration (icdc-core)
 
 Vici talks to the on-chain Rust canisters in `../icdc-core/`. The Engine
 model (what `engine_id` to pass, who has `Creator` / `OracleAdmin`, how
-roles in Juno are mirrored to the Vici engine) is documented in
+app roles are mirrored to the Vici engine) is documented in
 [`docs/engine-integration.md`](../../engine-integration.md). When writing
 a new market / oracle path, **read that doc first**. The single place that
 pins `VICI_ENGINE_ID` is
@@ -314,67 +292,11 @@ top-of-book price.
 
 ## Identity & auth
 
-- Principal source of truth:
-  [`src/lib/services/identity.services.ts`](../../../src/lib/services/identity.services.ts).
-- Use `getIdentityOrAnonymous` for public-read views.
-- Use `safeGetIdentityOnce` for authenticated actions (it triggers the
-  sign-in flow once if the user is anonymous).
-- Auth uses Internet Identity + Google OpenID via Juno. The OpenID client
-  IDs and delegation duration live in
-  [`juno.config.ts`](../../../juno.config.ts).
-- Auth worker assets must be synced via `npm run postinstall` to
-  `./static/workers`; otherwise sign-in silently breaks.
-- **Apple sign-in bypasses Juno on purpose.** Juno's `signIn()` has no
-  Apple provider and no OpenID deep-link for its II provider, so
-  "Continue with Apple" goes straight to Internet Identity 2.0 (`id.ai`)
-  with `?openid=…appleid.apple.com` (see
-  [`apple-signin.services.ts`](../../../src/lib/services/apple-signin.services.ts)).
-  It drives the **ICRC-29 `Signer` / `PostMessageTransport` directly**
-  (not `AuthClient.signIn()`): `AuthClient` hard-codes the transport's 2s
-  `disconnectTimeout`, which drops the channel ("Connection closed") while
-  the popup is off on Apple's OIDC ceremony, so we build the transport
-  ourselves with a passkey-aware 60s timeout, request the delegation, and
-  persist it by hand. The signer / storage primitives come from
-  `@icp-sdk/auth` v6 + `@icp-sdk/signer`, installed under the
-  **`icp-auth-openid` npm alias** (`npm:@icp-sdk/auth@^6`) so Juno keeps
-  its own peer `@icp-sdk/auth` v5 untouched; never import `icp-auth-openid`
-  from anything Juno owns, and never bump Juno's peer to v6 (v6 dropped the
-  `AuthClient.create` / `login` API Juno calls). v5 and v6 share an
-  identical IndexedDB contract (`auth-client-db` / `ic-keyval`, ECDSA key
-  under `identity` + delegation JSON under `delegation`), so the
-  hand-persisted delegation is adopted by Juno on the next document load.
-  **Persisting the delegation is not enough**: Juno's boot-time
-  `loadAuth()` only _loads_ an existing `#user` doc (it never creates one;
-  that's done inside Juno's interactive `signIn()`), so the service also
-  creates the `#user` doc with the Apple identity (mirroring Juno's
-  `initUser`); skip this and `loadAuth()` finds a valid delegation but no
-  user and the app drops straight back to the signed-out screen. That
-  adoption is why Apple sign-in ends with a **full `window.location.assign`**
-  (not a client `goto`): only a fresh load re-runs `initSatellite()` /
-  `loadAuth()`, which resolves the user and fires `onAuthStateChange`. Flush
-  host state (e.g. the signup onboarding `onSuccess` that persists pending
-  picks to storage) before that reload.
-- **Passkey: `signUp` creates, `signIn` authenticates.** Juno's WebAuthn
-  provider splits the two, and only `signUp` accepts a display name for the
-  new credential. `SignInProviderStack` takes a `mode` (`signin` | `signup`)
-  prop and branches the passkey button on it: the onboarding flow passes
-  `mode="signup"` (plus the chosen `handle`) so a brand-new user registers a
-  passkey labelled `VICI · {handle}`; every other mount (the /signin gate,
-  the "sign in to continue" modals) defaults to `mode="signin"` and
-  authenticates an existing passkey. The label flips between
-  `authn.passkey.create_button` and `authn.passkey.signin_button` the same
-  way.
-- **Email sign-in is passkey-backed: there is no magic link.** The email
-  row in `SignInProviderStack` is a friendlier framing of the WebAuthn flow:
-  on sign-up it registers a passkey labelled by the address and merges that
-  address into the `vici:pending-onboarding` payload (same single-field merge
-  `/i/[code]` and `/league/[code]` do for their codes), so the post-sign-in
-  drain in [`(app)/+layout.svelte`](<../../../src/routes/(app)/+layout.svelte>)
-  persists it onto the new profile: the WebAuthn `User` carries no email of
-  its own. On sign-in it just authenticates the existing passkey. Because it
-  is WebAuthn under the hood it shares the passkey button's gating
-  (`isWebAuthnAvailable` + production-only). The settings "Sign-in method" row
-  reads `profile.email` to label these accounts.
+- The session is an HttpOnly cookie; `#lib/web2/session.ts` mirrors it and
+  `Authn.svelte` hydrates `userStore` from it. The browser holds no signing
+  identity: see "Auth" in [`web2-backend-mode.md`](./web2-backend-mode.md).
+- Sign-in is the email one-time code and the API-driven Google redirect
+  (`SignInProviderStack.svelte`); Apple and Passkey render as "coming soon".
 - **Identity-scoped browser storage must be dropped on a principal change.**
   `localStorage` is device-wide and shared across accounts on the same
   browser. Any key holding state that belongs to a specific signed-in user
