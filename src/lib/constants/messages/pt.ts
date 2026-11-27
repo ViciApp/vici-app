@@ -2585,6 +2585,7 @@ export const ptMessages = {
 	'landing.markets.detail.settles_on': 'Decide-se a {date}.',
 	'landing.markets.detail.sub': 'probabilidade · decide-se {when}',
 	'landing.markets.earns': 'ganha {amount} VXP',
+	'landing.markets.earns_unknown': 'ainda sem preço',
 	'landing.markets.lead.chance': 'A probabilidade do Sim segundo a comunidade.',
 	'landing.markets.lead.meta': '{category} · decide-se {when}',
 	'landing.markets.lead.payout':

@@ -26,7 +26,7 @@
 		seriesId: string;
 		/** Live YES price (0–100) the line ends on; the last trade when omitted. */
 		livePercent?: number;
-		/** When trading opened (ms): the axis start of the "All" window. */
+		/** When trading opened (ms): the axis start of an "All" window with no trades yet. */
 		openedAtMs?: number;
 		/** Show the window buttons; off draws the past month only. */
 		ranges?: boolean;
@@ -75,7 +75,7 @@
 		const requested = { seriesId, range };
 		const { startTimeNs, endTimeNs } = priceHistoryQueryWindow(requested.range);
 		const windowEndMs = Number(endTimeNs / MILLISECOND_IN_NANOSECONDS);
-		const windowStartMs = nonNullish(startTimeNs)
+		const coldStartMs = nonNullish(startTimeNs)
 			? Number(startTimeNs / MILLISECOND_IN_NANOSECONDS)
 			: openedAtMs;
 
@@ -84,15 +84,19 @@
 		void loadMarketPriceCandles({
 			seriesId: requested.seriesId,
 			period: requested.range,
-			onLoad: ({ response: { yes, xs } }) => {
+			// The points sit on the loader's axis ("All" starts at the first
+			// candle), so the dates read from the same start.
+			onLoad: ({ response: { yes, xs }, windowStartNs }) => {
 				if (isCurrent()) {
+					const windowStartMs =
+						xs.length > 0 ? Number(windowStartNs / MILLISECOND_IN_NANOSECONDS) : coldStartMs;
 					loaded = { ...requested, yes, xs, windowStartMs, windowEndMs };
 				}
 			},
 			// The read fails open: the chart keeps a flat cold-start line.
 			onUpdateError: () => {
 				if (isCurrent()) {
-					loaded = { ...requested, yes: [], xs: [], windowStartMs, windowEndMs };
+					loaded = { ...requested, yes: [], xs: [], windowStartMs: coldStartMs, windowEndMs };
 				}
 			}
 		});

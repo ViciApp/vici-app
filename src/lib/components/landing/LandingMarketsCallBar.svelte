@@ -12,9 +12,9 @@
 
 	/**
 	 * The Markets detail's call bar: the call-size slider and Yes / No, each
-	 * labelled with what a right call earns at the chosen size. Earnings use
-	 * the order-book execution price, the same preview the app's call flow
-	 * shows. Fixed under the side panel's body; `sticky` inside a front-page
+	 * labelled with what a right call earns at the chosen size (or that there
+	 * is no price yet). Earnings use the order-book execution price, the same
+	 * preview the app's call flow shows. Fixed under the side panel's body; `sticky` inside a front-page
 	 * row, so the call stays under the thumb while the row is in view.
 	 */
 	interface Props {
@@ -29,16 +29,20 @@
 
 	const percents = $derived(sidePercents(market.yesProbability));
 
+	// Without a live price there is nothing honest to earn against: the
+	// execution price would fall back to even odds and invent a payout.
 	const earns = (action: 'YES' | 'NO'): string =>
-		t({
-			locale: $localeStore,
-			key: 'landing.markets.earns',
-			params: {
-				amount: formatWholeVxpMagnitude(
-					vxpNetWin({ amount: size, pWin: resolveOutcomeExecutionPrice({ market, action }) })
-				)
-			}
-		});
+		isNullish(percents)
+			? t({ locale: $localeStore, key: 'landing.markets.earns_unknown' })
+			: t({
+					locale: $localeStore,
+					key: 'landing.markets.earns',
+					params: {
+						amount: formatWholeVxpMagnitude(
+							vxpNetWin({ amount: size, pWin: resolveOutcomeExecutionPrice({ market, action }) })
+						)
+					}
+				});
 </script>
 
 <div class="lmc" class:is-sticky={sticky}>

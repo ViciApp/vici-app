@@ -49,9 +49,20 @@
 		);
 	};
 
-	const isAbort = (err: unknown): boolean =>
-		err instanceof Error &&
-		(err.name === 'AbortError' || err.message.toLowerCase().includes('abort'));
+	// A dismissed share sheet rejects with a `DOMException` that is not an
+	// `Error` instance everywhere, so read `name` / `message` off any object.
+	const isAbort = (err: unknown): boolean => {
+		if (isNullish(err) || typeof err !== 'object') {
+			return false;
+		}
+
+		const { name, message } = err as { name?: unknown; message?: unknown };
+
+		return (
+			name === 'AbortError' ||
+			(typeof message === 'string' && message.toLowerCase().includes('abort'))
+		);
+	};
 
 	const share = async (): Promise<void> => {
 		// The link keeps the original title, so it reads the same for everyone.

@@ -36,6 +36,7 @@ export const jaMessages = {
 	'landing.markets.detail.settles_on': '{date} に決着。',
 	'landing.markets.detail.sub': 'の確率 · {when}に決着',
 	'landing.markets.earns': '{amount} VXP 獲得',
+	'landing.markets.earns_unknown': 'まだ価格なし',
 	'landing.markets.lead.chance': 'みんなが考える「はい」の確率。',
 	'landing.markets.lead.meta': '{category} · {when}に決着',
 	'landing.markets.lead.payout':

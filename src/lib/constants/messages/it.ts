@@ -2586,6 +2586,7 @@ export const itMessages = {
 	'landing.markets.detail.settles_on': 'Si chiude il {date}.',
 	'landing.markets.detail.sub': 'probabilità · si chiude {when}',
 	'landing.markets.earns': 'vinci {amount} VXP',
+	'landing.markets.earns_unknown': 'ancora senza prezzo',
 	'landing.markets.lead.chance': 'La probabilità del Sì secondo la community.',
 	'landing.markets.lead.meta': '{category} · si chiude {when}',
 	'landing.markets.lead.payout':

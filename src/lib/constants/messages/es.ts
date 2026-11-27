@@ -2596,6 +2596,7 @@ export const esMessages = {
 	'landing.markets.detail.settles_on': 'Se resuelve el {date}.',
 	'landing.markets.detail.sub': 'probabilidad · se resuelve {when}',
 	'landing.markets.earns': 'ganas {amount} VXP',
+	'landing.markets.earns_unknown': 'aún sin precio',
 	'landing.markets.lead.chance': 'La probabilidad del Sí según la comunidad.',
 	'landing.markets.lead.meta': '{category} · se resuelve {when}',
 	'landing.markets.lead.payout':

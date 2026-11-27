@@ -2598,6 +2598,7 @@ export const frMessages = {
 	'landing.markets.detail.settles_on': 'Tranché le {date}.',
 	'landing.markets.detail.sub': 'de probabilité · tranché {when}',
 	'landing.markets.earns': 'rapporte {amount} VXP',
+	'landing.markets.earns_unknown': 'pas encore de prix',
 	'landing.markets.lead.chance': 'La probabilité du Oui selon la communauté.',
 	'landing.markets.lead.meta': '{category} · tranché {when}',
 	'landing.markets.lead.payout':

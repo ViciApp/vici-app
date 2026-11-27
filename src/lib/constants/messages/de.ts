@@ -2616,6 +2616,7 @@ export const deMessages = {
 	'landing.markets.detail.settles_on': 'Entscheidung am {date}.',
 	'landing.markets.detail.sub': 'Chance · entschieden {when}',
 	'landing.markets.earns': 'bringt {amount} VXP',
+	'landing.markets.earns_unknown': 'noch kein Preis',
 	'landing.markets.lead.chance': 'Die Chance auf Ja laut Community.',
 	'landing.markets.lead.meta': '{category} · entschieden {when}',
 	'landing.markets.lead.payout':

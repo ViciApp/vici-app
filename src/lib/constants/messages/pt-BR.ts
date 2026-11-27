@@ -2236,6 +2236,7 @@ export const ptBRMessages = {
 	'landing.markets.detail.settles_on': 'Se decide em {date}.',
 	'landing.markets.detail.sub': 'de chance · se decide {when}',
 	'landing.markets.earns': 'ganha {amount} VXP',
+	'landing.markets.earns_unknown': 'ainda sem preço',
 	'landing.markets.lead.chance': 'A chance do Sim segundo a galera.',
 	'landing.markets.lead.meta': '{category} · se decide {when}',
 	'landing.markets.lead.payout':

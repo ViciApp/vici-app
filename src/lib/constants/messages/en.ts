@@ -2552,6 +2552,7 @@ export const enMessages = {
 	'landing.markets.detail.settles_on': 'Settles on {date}.',
 	'landing.markets.detail.sub': 'chance · settles {when}',
 	'landing.markets.earns': 'earns {amount} VXP',
+	'landing.markets.earns_unknown': 'no price yet',
 	'landing.markets.lead.chance': "The crowd's chance of Yes.",
 	'landing.markets.lead.meta': '{category} · settles {when}',
 	'landing.markets.lead.payout':

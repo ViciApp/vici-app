@@ -2456,6 +2456,7 @@ export const zhHansMessages = {
 	'landing.markets.detail.settles_on': '于 {date} 结算。',
 	'landing.markets.detail.sub': '概率 · {when}结算',
 	'landing.markets.earns': '赢得 {amount} VXP',
+	'landing.markets.earns_unknown': '暂无价格',
 	'landing.markets.lead.chance': '大家认为“是”的概率。',
 	'landing.markets.lead.meta': '{category} · {when}结算',
 	'landing.markets.lead.payout':

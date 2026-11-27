@@ -41,6 +41,25 @@ describe('landing-share.utils', () => {
 		});
 	});
 
+	it('reads back the bare-id link of a title with no slug', () => {
+		const title = '日本は来年のワールドカップで優勝しますか？';
+		const url = new URL(
+			landingMarketShareUrl({ origin: 'https://vici.app', title, seriesId: SERIES_ID })
+		);
+
+		assert.equal(url.search, `?m=${SERIES_ID}`);
+		assert.deepEqual(parseLandingMarketParam(url.search), {
+			param: SERIES_ID,
+			idPrefix: SERIES_ID
+		});
+	});
+
+	it('names no market for a bare param that is not a series id', () => {
+		assert.equal(parseLandingMarketParam('?m=barca'), undefined);
+		assert.equal(parseLandingMarketParam('?m=3fa9c2'), undefined);
+		assert.equal(parseLandingMarketParam('?m=3FA9C21B77E0'), undefined);
+	});
+
 	it('names no market for a missing, empty or malformed param', () => {
 		assert.equal(parseLandingMarketParam(''), undefined);
 		assert.equal(parseLandingMarketParam('?m='), undefined);
