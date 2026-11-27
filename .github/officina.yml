@@ -35,7 +35,7 @@ pull_request:
   copilot_review: true
 
 # What a merge into main deploys: nothing. A person merges the release-please PR to cut a `v*` tag,
-# then starts web2-deploy.yml from it by hand.
+# then starts deploy.yml from it by hand.
 release:
   on_merge: nothing
 

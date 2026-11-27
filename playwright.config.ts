@@ -7,7 +7,7 @@ import { E2E_API_URL, E2E_APP_URL } from './e2e/support/urls';
  * entrypoint (`backend/e2e/server.ts`), which swaps the on-chain engine and
  * the VXP ledger for deterministic fakes and keeps email in an in-memory
  * outbox, so the suite needs no mainnet access and no secrets. See
- * docs/ai/frontend/testing.md, "E2E against the web2 backend".
+ * docs/ai/frontend/testing.md, "E2E against the API".
  *
  * Postgres is the one external prerequisite: `E2E_DATABASE_URL` (default:
  * the backend docker-compose database) must reach a loopback instance, which
@@ -26,7 +26,7 @@ const FIVE_MINUTES_MS = 5 * 60 * 1000;
 export default defineConfig({
 	testDir: 'e2e',
 	testMatch: ['**/*.spec.ts'],
-	outputDir: 'test-results-web2',
+	outputDir: 'test-results',
 	timeout: 2 * 60 * 1000,
 	expect: {
 		timeout: 20_000
@@ -38,7 +38,7 @@ export default defineConfig({
 	// only hide flakes that should be fixed at the source.
 	retries: isCI ? 1 : 0,
 	workers: 1,
-	reporter: isCI ? [['html', { outputFolder: 'playwright-report-web2' }], ['list']] : 'list',
+	reporter: isCI ? [['html', { outputFolder: 'playwright-report' }], ['list']] : 'list',
 	use: {
 		baseURL: E2E_APP_URL,
 		testIdAttribute: 'data-tid',

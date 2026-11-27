@@ -26,8 +26,6 @@ target
 
 /playwright-report/
 /test-results/
-/playwright-report-web2/
-/test-results-web2/
 /playwright/.cache/
 
 

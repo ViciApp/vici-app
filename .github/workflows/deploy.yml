@@ -1,8 +1,10 @@
-name: Web2 Deploy
+name: Deploy
 
 # Manual-only: dispatch from a release tag to ship both apps
-# (`gh workflow run web2-deploy.yml --ref vX.Y.Z`). Each FLY_API_TOKEN_WEB2_*
+# (`gh workflow run deploy.yml --ref vX.Y.Z`). Each FLY_API_TOKEN_WEB2_*
 # secret is a `fly tokens create deploy` token scoped to ONE app (least privilege).
+# The secrets keep the names they were created with; renaming one means
+# re-creating it in the repo settings and here in the same change.
 # Per-app runtime secrets/env live on Fly; CI only ships the image. Backend
 # DB migrations run atomically as the fly.toml release_command. The web
 # image's VITE_* build args are baked from fly.web.toml.
@@ -11,7 +13,7 @@ on:
 
 # One deploy at a time; never cancel a deploy mid-flight.
 concurrency:
-  group: web2-deploy
+  group: deploy
   cancel-in-progress: false
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
           REF: ${{ github.ref }}
         run: |
           if [[ "${REF}" != refs/tags/v* ]]; then
-            echo "::error::web2-deploy ships production only from a release tag, got ${REF}. Dispatch it with: gh workflow run web2-deploy.yml --ref vX.Y.Z"
+            echo "::error::deploy ships production only from a release tag, got ${REF}. Dispatch it with: gh workflow run deploy.yml --ref vX.Y.Z"
             exit 1
           fi
 

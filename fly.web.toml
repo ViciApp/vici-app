@@ -1,13 +1,13 @@
 # VICI SPA (static, nginx) on Fly.io, served at vici.app. Sibling to the
 # backend app (vici-app-backend, api.vici.app); see Dockerfile.web. Deployed by
-# the manual workflow .github/workflows/web2-deploy.yml.
+# the manual workflow .github/workflows/deploy.yml.
 app = "vici-app-web"
 primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile.web"
   [build.args]
-    VITE_WEB2_API_URL = "https://api.vici.app"
+    VITE_API_URL = "https://api.vici.app"
     # Public Cloudflare Turnstile site key for the bot check on the anonymous
     # endpoints (the backend holds the matching TURNSTILE_SECRET_KEY). The
     # widget is "vici.app" in Cloudflare, managed mode, for vici.app and
