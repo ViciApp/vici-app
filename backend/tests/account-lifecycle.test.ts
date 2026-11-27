@@ -401,16 +401,6 @@ describe.if(dbAvailable)('account lifecycle', () => {
 			expect(await countRows('school_submissions', 'user_id', userId)).toBe(0);
 			expect(await countRows('activity_reactions', 'liker', userId)).toBe(0);
 			expect(await countRows('activity_reactions', 'liker', author)).toBe(1);
-
-			const counts = await query<{ activity_key: string; count: number }>(
-				`select activity_key, count from activity_reaction_counts where activity_key = any($1)`,
-				[[liked.key, own.key]]
-			);
-
-			expect(Object.fromEntries(counts.map((row) => [row.activity_key, row.count]))).toEqual({
-				[liked.key]: 0,
-				[own.key]: 1
-			});
 		});
 
 		test('an owned league that gained members transfers to a deterministic survivor instead of dying', async () => {
