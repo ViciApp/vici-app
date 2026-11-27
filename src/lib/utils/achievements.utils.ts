@@ -35,9 +35,9 @@ export const LEAGUE_FOUNDER_MIN_MEMBERS = 3;
 // bumped at most once per calendar day inside `calculateAndSyncStats`
 // (client-side, persisted to the profile doc); this evaluator only
 // reads the already-persisted value.
-export const TOP_DECILE_STREAK_TARGET = 7;
+const TOP_DECILE_STREAK_TARGET = 7;
 
-export interface AchievementsInput {
+interface AchievementsInput {
 	totalTrades: number;
 	/** Consecutive winning trades (motion-engine "streak"). */
 	winStreak: number;

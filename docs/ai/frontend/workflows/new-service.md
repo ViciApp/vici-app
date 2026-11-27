@@ -16,9 +16,9 @@ Component (.svelte)
 | You need…                                           | Layer                                                                                                                                                                                                                                                     |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | To call a new method on `clearing` / `registry`     | First add it in `../icdc-core/`, regenerate bindings via `npm run did`, then add a wrapper in `#lib/api/<canister>.api.ts`.                                                                                                                               |
-| To call a new method on the satellite canister      | First add it in `src/satellite/` (see [`../../satellite/workflows/new-endpoint.md`](../../satellite/workflows/new-endpoint.md)). Once `npm run juno:functions:build` regenerates `api-schemas.ts`, call it via `@junobuild/core` `call()` from a service. |
+| To call a new method on the satellite canister      | First add it in `src/satellite/` (see [`../../satellite/workflows/new-endpoint.md`](../../satellite/workflows/new-endpoint.md)), then call it in a service, through the `functions` export of the regenerated `#declarations/satellite/satellite.api.ts`. |
 | To read / write a Juno datastore document           | Use `setDoc` / `getDoc` / `listDocs` / `countDocs` / `deleteDoc` from `@junobuild/core` inside a service. Don't call them from a component.                                                                                                               |
-| To call an HTTP service                             | Wrap behind a service. There is no `#lib/rest/` layer today; introduce one only if you have ≥ 2 callers, with explicit approval.                                                                                                                          |
+| To call the web2 API                                | Add a typed wrapper in `#lib/web2/client.ts`, the HTTP layer, and branch the owning service on `isWeb2Backend()` ([`../web2-backend-mode.md`](../web2-backend-mode.md)).                                                                                  |
 | To orchestrate calls + notifications + side effects | `#lib/services/<thing>.services.ts`.                                                                                                                                                                                                                      |
 | To share reactive state across views                | A Svelte store in `#lib/stores/`.                                                                                                                                                                                                                         |
 | To compute derived state from stores                | A `derived(...)` Svelte store in `#lib/derived/`.                                                                                                                                                                                                         |
@@ -55,8 +55,9 @@ Component (.svelte)
 3. **`#lib/canisters/<canister>.canister.ts` actor factory** (only if
    adding a brand-new canister wrapper).
    - Existing files: `clearing.canister.ts`, `registry.canister.ts`.
-   - Use `@icp-sdk/canisters` and the generated `_SERVICE` type from
-     `#declarations/<canister>/<canister>.d.ts`.
+   - Extend `Canister` and build it with `createServices` from
+     `@dfinity/utils`, with the IDL factories and service type from the
+     `#declarations` barrel (see `clearing.canister.ts`).
 
 4. **`*.services.ts` orchestration.**
    - File: `#lib/services/<thing>.services.ts`.
