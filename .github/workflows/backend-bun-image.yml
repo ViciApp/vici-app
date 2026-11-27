@@ -6,18 +6,15 @@ name: Backend Bun Image
 # Dependabot lockfile repair resolves in that same image. A job's container
 # image cannot be read from a file, hence a called workflow with an output.
 #
-# The pin comes from the caller's tree, which on a pull request is
-# PR-controlled, so it must be a plain version before it names an image.
+# The pin is read from the commit the caller runs for, which on a
+# `pull_request` is PR-controlled, so it must be a plain version before it
+# names an image.
 # Callers reference this file with `./`, so it runs from the caller's own
-# commit: under `pull_request_target` that is the base branch, never the PR.
+# commit: under `pull_request_target` that is the base branch, never the PR,
+# for this file and for the pin it reads.
 
 on:
   workflow_call:
-    inputs:
-      ref:
-        description: Commit to read the pin from; empty means the caller's.
-        type: string
-        default: ''
     outputs:
       image:
         description: The pinned `oven/bun` Alpine image.
@@ -36,7 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.ref }}
           persist-credentials: false
 
       - name: Read the pinned Bun version
