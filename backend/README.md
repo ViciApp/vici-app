@@ -278,7 +278,7 @@ Production guards, independent of each other:
 Two Fly apps, both in `ams`:
 
 - `vici-app-backend` (`backend/fly.toml`): the API plus a `worker` process. DB migrations run atomically as the `release_command` before traffic shifts, so a failed migration aborts the deploy.
-- `vici-app-web` (`fly.web.toml` at the repo root): the static SPA behind nginx (`Dockerfile.web`, `nginx.web.conf`) with SPA fallback and immutable asset caching.
+- `vici-app-web` (`fly.web.toml` at the repo root): the static SPA behind nginx (`Dockerfile.web`, `nginx.web.conf`) with SPA fallback, immutable asset caching and the baseline security headers.
 
 Both apps exist. Recreating one from scratch:
 
