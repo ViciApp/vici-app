@@ -5,7 +5,7 @@
 import { toNullable } from '@dfinity/utils';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { fakeEngineActorProvider, fakeVxpLedgerProvider } from '../e2e/fake-engine';
-import { E2E_LIVE_SERIES, E2E_SETTLED_SERIES } from '../e2e/fixtures';
+import { E2E_LANDING_DECK_SERIES, E2E_LIVE_SERIES, E2E_SETTLED_SERIES } from '../e2e/fixtures';
 import { assertE2eEnvironment, e2eEnvironmentProblems } from '../e2e/guard';
 import { sendEmail, setEmailTransport, type EmailMessage } from '../src/lib/email';
 import { engineReaderIcIdentity } from '../src/lib/keys';
@@ -60,13 +60,13 @@ describe('fake engine', () => {
 			due: toNullable()
 		});
 
+		const live = [...E2E_LIVE_SERIES, ...E2E_LANDING_DECK_SERIES].map(({ seriesId }) => seriesId);
+
 		expect(all.items.map(({ series_id }) => series_id)).toEqual([
-			...E2E_LIVE_SERIES.map(({ seriesId }) => seriesId),
+			...live,
 			E2E_SETTLED_SERIES.seriesId
 		]);
-		expect(tradeable.items.map(({ series_id }) => series_id)).toEqual(
-			E2E_LIVE_SERIES.map(({ seriesId }) => seriesId)
-		);
+		expect(tradeable.items.map(({ series_id }) => series_id)).toEqual(live);
 	});
 
 	test('reads every account as the never-deposited one', async () => {

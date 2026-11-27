@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isNullish } from '@dfinity/utils';
 	import { initSatellite } from '@junobuild/core';
 	import { onMount, type Snippet } from 'svelte';
 	import Authn from '#lib/components/authn/Authn.svelte';
@@ -7,6 +8,7 @@
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import MaintenanceOverlay from '#lib/components/ui/MaintenanceOverlay.svelte';
 	import Notifications from '#lib/components/ui/Notifications.svelte';
+	import { userSignedOutResolved } from '#lib/derived/user.derived.ts';
 	import { initAnalytics } from '#lib/services/analytics.services.ts';
 	import {
 		initMaintenanceWatch,
@@ -16,8 +18,13 @@
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { previousPathStore } from '#lib/stores/previous-path.store.ts';
 	import { ensureLocaleCatalogs, t } from '#lib/utils/i18n.utils.ts';
+	import {
+		referralCodeFromSearch,
+		stashSharedReferralForSignup
+	} from '#lib/utils/pending-onboarding.utils.ts';
 	import { browser } from '$app/env';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	// eslint-disable-next-line import/no-relative-parent-imports
 	import '../app.css';
 
@@ -107,6 +114,30 @@
 		el.lang = $localeStore;
 		el.setAttribute('data-locale', $localeStore);
 		el.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+	});
+
+	// Share-link referral attribution. A market share link carries the
+	// sharer's code (`/m/{slug~id8}?ref={code}`) and lands a signed-out
+	// visitor on the landing, a signed-in one in the app: reading the param
+	// here, above both, credits the referral wherever the link leads. The code
+	// goes into the same pending-onboarding slot `/i/{code}` uses, which the
+	// sign-up drain redeems (first referrer wins). Incoming visitors only: a
+	// signed-in session opening a share link was never referred, and a stash
+	// would make the drain mis-fire a friendship claim for them. So it waits
+	// for the auth handshake to settle as signed out: while a returning
+	// session is still resolving, nobody is signed in yet either.
+	$effect(() => {
+		if (!browser || !$userSignedOutResolved) {
+			return;
+		}
+
+		const code = referralCodeFromSearch(page.url.search);
+
+		if (isNullish(code)) {
+			return;
+		}
+
+		stashSharedReferralForSignup(code);
 	});
 
 	afterNavigate(({ from, shallow, type }) => {

@@ -11,7 +11,8 @@
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 	import { sidePercents } from '#lib/utils/landing-markets.utils.ts';
-	import { landingMarketShareUrl, linkForHand } from '#lib/utils/landing-share.utils.ts';
+	import { linkForHand } from '#lib/utils/landing-share.utils.ts';
+	import { marketShareUrl } from '#lib/utils/market-slug.utils.ts';
 	import { appOrigin } from '#lib/utils/nav.utils.ts';
 
 	/**
@@ -66,7 +67,7 @@
 
 	const share = async (): Promise<void> => {
 		// The link keeps the original title, so it reads the same for everyone.
-		const url = landingMarketShareUrl({
+		const url = marketShareUrl({
 			origin: appOrigin(),
 			title: market.title,
 			seriesId: market.id

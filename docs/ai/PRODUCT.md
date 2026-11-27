@@ -748,8 +748,8 @@ deferred real-credit path. Decision record:
 A signed-out visitor on `/` gets the landing page; a signed-in session is
 sent on to Flow, and `/about` and `/welcome` redirect to `/`. The first
 view is a deck of up to three curated markets as fullscreen film cards
-(Yes / No / Pass, tap for the rule); a `/?m=` link opens it on the market
-the link names. After three calls the last card floats into **Markets**,
+(Yes / No / Pass, tap for the rule); a market's share link opens it on
+that market. After three calls the last card floats into **Markets**,
 every open market at its live price, also one tap away on the top bar's
 switch. A call on the landing places no order: it is kept on the device
 (the latest ten, a week at most) for the handle claim. "Claim your
@@ -762,6 +762,19 @@ opens on Markets alone. An existing account signs in through the "Sign in" link 
 screens, footer everywhere). In Markets the curated markets keep their
 film stills. Design contract:
 [`design.md` § 6](./frontend/design.md#6-landing-page).
+
+The landing's Markets is the public markets showcase: a signed-out visitor
+who opens `/markets` or the markets board (`/app`), follows "back to markets"
+from a market page, or follows a market link that names nothing (malformed,
+or a market that is gone) lands there. Signed-in sessions keep the app's own
+board. Every surface shares a market with one link, `/m/<slug~id8>`, with
+`?ref=<code>` when the sharer has a referral code: the landing's Markets, the
+Flow share sheet and the market page's share button. It opens the landing on
+that market as the deck's first card for a signed-out visitor and the market
+page in the app for a signed-in one, and the referral code is kept for the
+sign-up either way. `/?m=<slug~id8>` still works as an alias of it: a
+signed-in session opening it gets the market page too, and Flow shows that
+market first.
 
 ### Legacy app: new accounts move to vici.app
 
@@ -979,8 +992,10 @@ this layer adds only the install behaviour. Decision record:
 
 VICI is a static SPA, so its search presence is generated **at deploy
 time** (see [`frontend/seo.md`](./frontend/seo.md)). Search intent lands on
-**existing pages, not new ones**: a specific market → its detail page
-(`/m/{slug}` resolves there), category browsing → the in-app `/app` board.
+**existing pages, not new ones**: a specific market → its crawlable
+`/m/{slug}` page (a signed-out visitor is taken on to the landing with that
+market first, a signed-in one to its detail page), category browsing → the
+markets board (the landing's Markets view when signed out).
 On top of one crawlable page per market, the deploy emits schema.org
 **JSON-LD** (site-wide `Organization` + `WebSite`, plus a per-market
 `WebPage` + `BreadcrumbList`) and a **live-probability sentence** baked into each

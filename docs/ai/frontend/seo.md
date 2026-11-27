@@ -59,12 +59,24 @@ and `marketShareParam` (`slug~id8`). The 8-hex id suffix makes the param
 unique by construction: registry titles are immutable but not
 collision-proof after normalization, and the share sheet (one market in
 hand) and the SEO generator (whole catalog) must produce identical params
-with no coordination. `SharePopover` builds links from the **on-chain EN
-title, never `displayTitle`**: a translated slug would miss the emitted
-page. The `/m/[id]` route resolves incoming params: embedded
-`__viciSeriesId` (guarded for staleness against the param) → bare-id param
-→ catalog match on the `~id8` suffix (covers markets newer than the last
-deploy); unresolvable params land on the markets board.
+with no coordination. `marketShareUrl` is the one share link
+(`/m/{slug~id8}?ref=<code>`), used by every share surface (the landing's
+Markets, the Flow `SharePopover`, `MarketDetailShareButton`), and it is
+built from the **on-chain EN title, never `displayTitle`**: a translated slug
+would miss the emitted page. The `/m/[id]` route waits for the auth
+handshake. A signed-out visitor goes to the landing with the market as the
+deck's lead card (`/?m={param}`, the query string kept); the landing resolves
+the param itself and opens its Markets view when it names nothing. A
+signed-in session resolves the param (embedded `__viciSeriesId`, guarded for
+staleness against the param, then `resolveMarketShareSeriesId`: the
+`marketShareIdPrefix` of either form matched against the catalog, which
+covers markets newer than the last deploy) and opens the detail page;
+unresolvable params land on the markets board. `/?m=` is an alias: a
+signed-in session opening it is handed to `/m/`.
+
+A crawler that runs the page's script follows the same signed-out redirect to
+the landing. The emitted page's `<head>` (title, description, canonical
+`/m/{slug~id8}`, JSON-LD) is what it reads first.
 
 ## Non-obvious constraints
 

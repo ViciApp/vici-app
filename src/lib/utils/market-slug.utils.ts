@@ -91,6 +91,44 @@ export const parseBareMarketShareParam = (param: string): string | undefined =>
 	BARE_SERIES_ID_PATTERN.test(param) ? param : undefined;
 
 /**
+ * The one parser of a share param, whichever form it takes: the id prefix it
+ * carries (the 8-hex suffix of `slug~id8`, or the whole id of the bare form),
+ * or `undefined` for a malformed param. Callers match the prefix against the
+ * catalog with `uniqueSeriesIdWithPrefix`.
+ */
+export const marketShareIdPrefix = (param: string): string | undefined =>
+	parseMarketShareParam(param) ?? parseBareMarketShareParam(param);
+
+/** The path every market share link uses: `/m/{slug~id8}`. */
+export const MARKET_SHARE_PATH = '/m';
+
+/**
+ * The one share link of a market, from every surface (the landing's Markets,
+ * the Flow share sheet, the market detail page): `<origin>/m/{slug~id8}`,
+ * with `?ref=<code>` when the sharer has a referral code. `title` is the
+ * original (registry) title, never a translation: the deploy-time SEO page
+ * is emitted under the slug of that title, and a link must read the same
+ * for everyone.
+ */
+export const marketShareUrl = ({
+	origin,
+	title,
+	seriesId,
+	ref
+}: {
+	origin: string;
+	title: string;
+	seriesId: string;
+	ref?: string;
+}): string => {
+	// `encodeURIComponent`, not `URLSearchParams`: the latter escapes the `~`
+	// separator, which would make a link people read and retype uglier.
+	const path = `${origin}${MARKET_SHARE_PATH}/${encodeURIComponent(marketShareParam({ title, seriesId }))}`;
+
+	return notEmptyString(ref) ? `${path}?ref=${encodeURIComponent(ref)}` : path;
+};
+
+/**
  * The one series id that starts with `prefix` (the short-id suffix of a
  * share param, or a whole bare id), or `undefined` when none or more than
  * one does: a colliding prefix must never resolve to whichever market
