@@ -19,7 +19,7 @@
  * {@link lookupWcMarketSubtitle}).
  */
 
-export const WC_MARKET_SUBTITLES: Readonly<Record<string, string>> = {
+const WC_MARKET_SUBTITLES: Readonly<Record<string, string>> = {
 	// Winners + flagship classic outcomes
 	'wc-winner-brazil': 'Five-time champions · tournament favourite',
 	'wc-winner-spain': 'European champions · deep, in-form squad',

@@ -19,7 +19,7 @@ import { writable } from 'svelte/store';
  * on every mount.
  */
 
-export interface MyAffiliations {
+interface MyAffiliations {
 	university?: AffiliationDoc;
 	country?: AffiliationDoc;
 }
@@ -33,7 +33,7 @@ export const myAffiliationsStore = writable<MyAffiliations>({});
  * runs. Lets consumers gate a cold-load skeleton and switch to
  * stale-while-revalidate on every subsequent visit.
  */
-export const affiliationsLoadedStore = writable<boolean>(false);
+const affiliationsLoadedStore = writable<boolean>(false);
 
 // Invalidated by every `clearAffiliations()` (i.e. each auth transition).
 const epoch = createLoadEpoch();
