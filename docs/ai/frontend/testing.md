@@ -177,6 +177,13 @@ suite below is untouched and keeps covering the web3 build.
   real ETL importer (provisional, `matched_via = 'etl'`) with their exported
   legacy identities, and an admin account. Fixture values live in
   `backend/e2e/fixtures.ts`, import-free so the specs read the same data.
+  The catalog also serves the landing deck's curated markets
+  (`E2E_LANDING_DECK_SERIES`, mirroring `LANDING_DECK_SERIES`): a page that
+  opens the landing reads them, and a missing one is an engine 404 that fails
+  stack health. When the deck rotates, update the fixture too;
+  `landing-deck-e2e-fixtures.spec.ts` fails until you do. They are the only
+  hex-id series, so they are the ones a `/m/{slug~id8}` share link resolves
+  to.
 - **Sign-in:** the email one-time code, as a user does it. The specs read the
   code from `GET /__e2e/otp/:email`; the admin drives the beta gate through
   the real admin settings API after an OTP sign-in.
@@ -203,6 +210,7 @@ e2e-web2/
 ├── adoption.spec.ts        # legacy email adopts the imported account
 ├── beta-gate.spec.ts       # allowlist refusal, allowNewUsers, legacy hold, ?e=legacy
 ├── dash.spec.ts            # empty engine account renders, no failing reads
+├── landing-routing.spec.ts # signed-out markets + share links reach the landing, signed-in stay in the app
 ├── markets.spec.ts         # list + detail from the fake engine, settled outcome
 ├── sign-out.spec.ts        # session revoked server-side, app gated again
 └── signup.spec.ts          # new user: onboarding handle + email code

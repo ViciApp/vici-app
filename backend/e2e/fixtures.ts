@@ -84,4 +84,36 @@ export const E2E_SETTLED_SERIES: E2eSeries = {
 	settledOutcome: 'YES'
 };
 
-export const E2E_ALL_SERIES: E2eSeries[] = [...E2E_LIVE_SERIES, E2E_SETTLED_SERIES];
+/**
+ * The landing deck's curated markets (`LANDING_DECK_SERIES` in the app), live
+ * here so a spec that opens the landing reads real series instead of three
+ * engine 404s. Hex ids, unlike the series above, so a `/m/{slug~id8}` share
+ * link resolves to them. A unit spec (`e2e-fixtures.spec.ts`) fails when the
+ * deck changes and these do not.
+ */
+export const E2E_LANDING_DECK_SERIES: E2eSeries[] = [
+	{
+		seriesId: 'fbf8a877ad82426660f382415be1adb68c502f492fc20a2d9f1144a76e754ec8',
+		title: 'Will the E2E deck open on its first card?',
+		description: 'Landing deck fixture market served by the end-to-end fake engine.',
+		expiry: '2099-12-31T21:59:59.000Z'
+	},
+	{
+		seriesId: 'e3f25f5843d422a460bd7ba82501747032a22318bacce84feedfaa00c18de161',
+		title: 'Will the E2E deck reach its second card?',
+		description: 'Landing deck fixture market served by the end-to-end fake engine.',
+		expiry: '2099-12-31T21:59:59.000Z'
+	},
+	{
+		seriesId: 'acf88eb24cddee183bd10473a7dbb15157b072e1a8d348d9c416d7bcf31c9504',
+		title: 'Will the E2E deck reach its third card?',
+		description: 'Landing deck fixture market served by the end-to-end fake engine.',
+		expiry: '2099-12-31T21:59:59.000Z'
+	}
+];
+
+export const E2E_ALL_SERIES: E2eSeries[] = [
+	...E2E_LIVE_SERIES,
+	...E2E_LANDING_DECK_SERIES,
+	E2E_SETTLED_SERIES
+];

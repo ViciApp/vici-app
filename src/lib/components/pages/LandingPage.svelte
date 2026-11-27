@@ -147,9 +147,10 @@
 		});
 	};
 
+	// With no card to show, a linked market still leads: Markets opens on it.
 	const onDeckEmpty = (): void => {
 		deckEmpty = true;
-		void openMarkets();
+		void openMarkets({ seriesId: leadSeriesId });
 	};
 
 	const onMarketsCall = (call: LandingCall): void => {
