@@ -1,6 +1,8 @@
 import { nonNullish } from '@dfinity/utils';
 import { describe, expect, test } from 'bun:test';
 import { en } from '../src/waitlist/email-copy/en';
+import { es } from '../src/waitlist/email-copy/es';
+import { pt } from '../src/waitlist/email-copy/pt';
 import {
 	WAITLIST_EMAIL_COPY,
 	waitlistAlreadyMemberEmail,
@@ -40,8 +42,8 @@ describe('waitlist email copy', () => {
 	});
 
 	test('a regional locale falls back to its language, an unknown one to English', () => {
-		expect(waitlistEmailCopy('pt-BR')).toBe(WAITLIST_EMAIL_COPY.pt);
-		expect(waitlistEmailCopy('es-MX')).toBe(WAITLIST_EMAIL_COPY.es);
+		expect(waitlistEmailCopy('pt-BR')).toBe(pt);
+		expect(waitlistEmailCopy('es-MX')).toBe(es);
 		expect(waitlistEmailCopy('ja')).toBe(en);
 		expect(waitlistEmailCopy('xx')).toBe(en);
 	});
