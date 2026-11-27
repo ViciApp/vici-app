@@ -4,6 +4,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/handle.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
@@ -442,7 +443,7 @@
 	<div class="ob-wrap">
 		<div class="ob-body-wrap">
 			<div class="ob-beat">
-				<span class="ob-brand">{t({ locale: $localeStore, key: 'onboarding.brand' })}</span>
+				<span class="ob-brand"><Logo plain size="xs" /></span>
 
 				<h1 id="onboarding-handle-heading" class="ob-h1">
 					{t({ locale: $localeStore, key: 'onboarding.h1_pre' })}

@@ -2,6 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { onMount } from 'svelte';
 	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -110,9 +111,7 @@
 	<div class="signin-card">
 		<div class="signin-cluster">
 			<div class="signin-head">
-				<span class="signin-wordmark" aria-label="VICI">
-					<span class="signin-wordmark-letters">VICI</span>
-				</span>
+				<Logo plain size="md" />
 				{#if nonNullish(eyebrowKey)}
 					<p class="signin-eyebrow">{t({ locale: $localeStore, key: eyebrowKey })}</p>
 				{/if}

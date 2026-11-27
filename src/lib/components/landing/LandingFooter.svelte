@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { INFO_EMAIL } from '#lib/constants/contact.constants.ts';
-	import {
-		LANDING_CLAIM_PRIVACY_PATH,
-		LANDING_NAV_WORDMARK_SRC
-	} from '#lib/constants/landing-claim.constants.ts';
+	import { LANDING_CLAIM_PRIVACY_PATH } from '#lib/constants/landing-claim.constants.ts';
 	import { LANDING_TERMS_PATH } from '#lib/constants/landing-page.constants.ts';
 	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -31,7 +29,7 @@
 <footer class="lf">
 	<div class="lf-top">
 		<div class="lf-brand">
-			<img alt="VICI" draggable="false" height="274" src={LANDING_NAV_WORDMARK_SRC} width="1024" />
+			<Logo plain size="sm" tone="parchment" />
 			<button class="lf-cta" onclick={onclaim} type="button">
 				{t({ locale: $localeStore, key: 'landing.nav.claim' })}
 			</button>
@@ -92,12 +90,6 @@
 		display: grid;
 		gap: 14px;
 		justify-items: start;
-	}
-
-	.lf-brand img {
-		display: block;
-		width: auto;
-		height: 18px;
 	}
 
 	.lf-cta {

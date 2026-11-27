@@ -1759,7 +1759,6 @@ export const enMessages = {
 	'onboarding.handoff.referral_ok_title': 'Referral applied',
 	'onboarding.handoff.referral_ok': 'You and your referrer each get {amount} VXP.',
 	'onboarding.finish_cta': 'Finish setup',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Claim your',
 	'onboarding.h1_accent': 'handle.',
 	'onboarding.sub': 'Earned, not given. Your name on every leaderboard.',

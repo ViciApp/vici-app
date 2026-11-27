@@ -2153,25 +2153,6 @@ a.title-action::after {
 	text-align: left;
 	padding-top: 12px;
 }
-.signin-wordmark {
-	display: inline-flex;
-	align-items: baseline;
-	gap: 1px;
-	font-family: var(--font-serif);
-	font-style: italic;
-	font-weight: 400;
-	letter-spacing: -0.02em;
-	font-size: 24px;
-	line-height: 1;
-	color: var(--laurel);
-}
-.signin-wordmark .signin-wordmark-letters {
-	font-family: var(--font-sans);
-	font-style: normal;
-	font-weight: 700;
-	letter-spacing: 0.18em;
-	font-size: 18.72px;
-}
 .signin-eyebrow {
 	font-family: var(--font-mono);
 	font-size: 10px;
@@ -4000,12 +3981,7 @@ a.title-action::after {
 	color: var(--text-base);
 }
 .ob-brand {
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.32em;
-	text-transform: uppercase;
-	color: var(--laurel);
-	font-weight: 700;
+	display: flex;
 	margin-bottom: 18px;
 	flex-shrink: 0;
 }

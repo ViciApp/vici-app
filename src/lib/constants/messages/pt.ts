@@ -1760,7 +1760,6 @@ export const ptMessages = {
 	'notifications.section.new': 'Novas',
 	'notifications.title': 'Notificações',
 	'onboarding.finish_cta': 'Concluir configuração',
-	'onboarding.brand': 'VICI',
 	'onboarding.h1_pre': 'Reivindique o seu',
 	'onboarding.h1_accent': 'identificador.',
 	'onboarding.sub': 'Conquistado, não dado. Seu nome em cada ranking.',

@@ -2,6 +2,7 @@
 	import { Bell } from '@lucide/svelte/icons';
 	import { fade } from 'svelte/transition';
 	import StreakFlame from '#lib/components/characters/StreakFlame.svelte';
+	import Logo from '#lib/components/layout/Logo.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { combinedInboxUnreadCount } from '#lib/stores/inbox.store.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -66,14 +67,7 @@
 <header class="flow-topbar" in:fade>
 	<div class="flow-topbar-row">
 		<div class="flow-topbar-left">
-			<button
-				class="flow-wordmark"
-				aria-label={t({ locale: $localeStore, key: 'flow.exit_aria' })}
-				onclick={onExit}
-				type="button"
-			>
-				VICI
-			</button>
+			<Logo label={t({ locale: $localeStore, key: 'flow.exit_aria' })} onclick={onExit} size="xs" />
 			<button class="flow-deck-badge" onclick={openSettings} title={categoryLabel} type="button">
 				<span class="flow-deck-dot" aria-hidden="true"></span>
 				<span class="flow-deck-label">{categoryLabel}</span>
@@ -191,17 +185,6 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-	}
-
-	.flow-wordmark {
-		font-family: var(--font-display);
-		font-size: 11px;
-		font-weight: 700;
-		letter-spacing: 0.18em;
-		color: var(--color-primary);
-		line-height: 1;
-		padding: 2px 4px;
-		background: transparent;
 	}
 
 	/* Category deck badge: laurel-tinted pill that reads as the

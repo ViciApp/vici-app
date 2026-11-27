@@ -143,6 +143,15 @@ text. In product, it ships as a `<span>`
 ([`Logo.svelte`](../../../src/lib/components/layout/Logo.svelte)), not
 as artwork.
 
+- **Every wordmark in the DOM renders `<Logo>`**: the desktop nav, the
+  Flow top bar, sign-in, onboarding, the landing top bar and footer. A
+  surface that needs another size or the fixed reversed colour passes
+  `size` / `tone`; it never draws a second mark.
+- **The PNGs** (`static/branding/vici-wordmark-{black,parchment}.png`)
+  are for surfaces with no DOM font: share cards, OG images, email.
+- **The SVGs** next to them set the mark as a `<text>` element, so as an
+  `<img>` they render in a fallback face. Never use them that way.
+
 ### 3.1 Type-set spec
 
 | Property         | Value                                         |

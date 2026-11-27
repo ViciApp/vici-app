@@ -4,8 +4,8 @@
  * lives in exactly one place.
  */
 
-/** The wordmark, as document titles carry it. */
-const BRAND_WORDMARK = 'VICI';
+/** The wordmark, as document titles and the `Logo` mark carry it. */
+export const BRAND_WORDMARK = 'VICI';
 
 /**
  * The standard document title: the page's localized name, then the
