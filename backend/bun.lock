@@ -6,7 +6,7 @@
       "name": "vici-app-backend",
       "dependencies": {
         "@dfinity/utils": "^5.0.0",
-        "@elysiajs/cors": "^1.4.0",
+        "@elysiajs/cors": "^1.4.3",
         "@icp-sdk/canisters": "^4.0.0",
         "@icp-sdk/core": "^6.1.1",
         "@junobuild/core": "^5.4.0",
@@ -32,7 +32,7 @@
 
     "@dfinity/utils": ["@dfinity/utils@5.0.0", "", { "peerDependencies": { "@icp-sdk/core": "^6" } }, "sha512-b/kkzam3yu00YQ9a0jUI2AG08E2Si40zxcxn1bKRWmAoKKc/cJ7zMH3jKWc7bV+Ozq+ZVQphm69urZZnDdGUoQ=="],
 
-    "@elysiajs/cors": ["@elysiajs/cors@1.4.2", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-FTCcbH35brTLigF1W7BYySRZomgI/dBEMK9BgK9RP9Nez7zmpGh4koL/Yr1BFv8nYz7CfhRvcM8d/c+XnwMaVQ=="],
+    "@elysiajs/cors": ["@elysiajs/cors@1.4.3", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-UgsFfmR50A46QBa4WumJuLNA5yTTrNTyfegpI1BjA+i/PlrkWd15QWqeOzlvqD2P4AZdIty9zUTuRDSSs0XJNA=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.11.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
 
