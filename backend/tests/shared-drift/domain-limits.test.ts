@@ -36,6 +36,7 @@ import {
 	HANDLE_COOLDOWN_DAYS,
 	MAX_NICKNAME_LENGTH,
 	MIN_NICKNAME_LENGTH,
+	NICKNAME_CHECK_TURNSTILE_ACTION,
 	NICKNAME_PATTERN
 } from '../../src/profiles/nickname';
 import { MAX_PROFILE_POINTS } from '../../src/profiles/profile-write';
@@ -100,6 +101,7 @@ const appSource = {
 	relation: readRepoSource('src/lib/constants/relation.constants.ts'),
 	school: readRepoSource('src/lib/types/school.ts'),
 	schoolPicker: readRepoSource('src/lib/constants/school-picker.constants.ts'),
+	turnstile: readRepoSource('src/lib/constants/turnstile.constants.ts'),
 	userStats: readRepoSource('src/lib/types/user-stats.ts')
 };
 
@@ -160,6 +162,15 @@ describe('shared drift: profiles', () => {
 			source: app.source,
 			flags: app.flags
 		});
+	});
+
+	test('the Turnstile action of the anonymous handle probe', () => {
+		expect(NICKNAME_CHECK_TURNSTILE_ACTION).toBe(
+			extractStringConst({
+				source: appSource.turnstile,
+				constName: 'TURNSTILE_ACTION_HANDLE_CHECK'
+			})
+		);
 	});
 
 	test('Flow daily hard cap', () => {

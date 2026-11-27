@@ -55,7 +55,7 @@ export const vxpRoutes = new Elysia({ prefix: '/api/v1/vxp' })
 
 			const refereeUserId = body.refereeUserId ?? user.id;
 
-			if (refereeUserId !== user.id && user.role !== 'admin') {
+			if (refereeUserId !== user.id && isNullish(requireAdmin(user))) {
 				return forbidden(set);
 			}
 
