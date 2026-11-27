@@ -9,7 +9,7 @@ const DICEBEAR_VERSION = '9.x';
  * DiceBear URL for a given seed. Kept in one place so every surface in the app
  * renders the same default avatar artwork for the same user.
  */
-export const dicebearAvatarUrl = (seed: string): string =>
+const dicebearAvatarUrl = (seed: string): string =>
 	`https://api.dicebear.com/${DICEBEAR_VERSION}/${DICEBEAR_STYLE}/svg?seed=${encodeURIComponent(seed)}`;
 
 /**

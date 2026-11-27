@@ -21,7 +21,10 @@ substantive, read the canonical docs.
   [`../icdc-core/`](../../../icdc-core/); this repo only consumes its
   Candid surface via generated bindings. Don't modify it from this repo.
 - **Don't hand-edit `src/declarations/**` or `backend/src/declarations/**`**:
-  regenerate via `npm run did` and commit both trees with the wiring change.
+  regenerate (`npm run did` for the engine bindings,
+  `npm run juno:functions:build` for the satellite's, then copy the satellite
+  pair to the backend: [AGENTS.md](../../AGENTS.md#4-vici-specific-rules)
+  rule 9) and commit both trees with the wiring change.
 - **API tests need a real Postgres** and collision-free fixtures: the
   database is never reset between runs. See
   [`docs/ai/backend/testing.md`](../../docs/ai/backend/testing.md).

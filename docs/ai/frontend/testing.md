@@ -15,9 +15,10 @@
 
 ## Today
 
-- **Pure-logic specs are required by CI; component tests do not exist
-  yet.** The `checks.yml` workflow runs `format`, `lint`, `check` and
-  `test`.
+- **Pure-logic specs are required by CI; there is no component test
+  runner yet.** The `checks.yml` workflow runs `format`, `lint`, `check`
+  and `test`. The one spec under `src/tests/lib/components/`
+  (`authn/Authn.spec.ts`) reads the component's source as text.
 - **Pure-logic specs run on Node's built-in runner** until Vitest lands:
   `npm test` (`tsx --test`, which resolves the `#lib` alias) picks up
   `src/tests/**/*.spec.ts`. Use `node:test` + `node:assert/strict`, import
@@ -358,7 +359,7 @@ The CI script (`npm run e2e:ci`) runs Playwright with
   The reviewer sees the new screenshot in the PR diff and either
   accepts or rejects the visual change.
 - **Fork PRs** can't be pushed to, so the changed
-  baselines are still uploaded as the `snapshots-update` artifact;
+  baselines are still uploaded as the `snapshots-ubuntu-24.04` artifact;
   contributors can download them and commit manually.
 
 The snapshot commit re-triggers the workflow (the app token is what makes
@@ -560,7 +561,7 @@ with `gh run rerun <run-id> --failed`.
 
 Top-level `retries: 2` is **not** bumped to 3: the mid-run flake
 persists past Playwright-level retries (they share the same poisoned
-connection pool), so the cost (more runtime, harder 45-minute workflow
+connection pool), so the cost (more runtime, harder 90-minute workflow
 cap) outweighs the benefit. The fix has to be at the per-test recovery
 layer (the `signInAsDevUser` retry-with-reload above) or by replacing
 Vite's HTTP proxy with a more resilient connector, outside this

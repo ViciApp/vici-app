@@ -196,9 +196,17 @@ export type LeagueImageLocation =
 	{ kind: 'redirect'; url: string } | { kind: 'file'; path: string } | { kind: 'missing' };
 
 /** Where a GET for the cover goes: a short-lived presigned S3 URL, the local
- * file (dev), or 404. */
-export const locateLeagueImage = (leagueId: string): LeagueImageLocation => {
+ * file (dev), or 404. Only a live league whose row carries a cover has one:
+ * storage keys are league ids, which come back after a disband, so an object
+ * a gone league left behind (or one a failed delete kept) is never served. */
+export const locateLeagueImage = async (leagueId: string): Promise<LeagueImageLocation> => {
 	if (!SAFE_ID_PATTERN.test(leagueId)) {
+		return { kind: 'missing' };
+	}
+
+	const league = await getLeague(leagueId);
+
+	if (isNullish(league?.imageUrl)) {
 		return { kind: 'missing' };
 	}
 
