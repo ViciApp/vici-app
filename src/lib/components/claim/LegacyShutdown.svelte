@@ -24,12 +24,12 @@
 				<span class="signin-wordmark" aria-label="VICI">
 					<span class="signin-wordmark-letters">VICI</span>
 				</span>
-				<p class="signin-eyebrow">{t({ locale: $localeStore, key: 'claim.moved.eyebrow' })}</p>
+				<p class="signin-eyebrow">{t({ locale: $localeStore, key: 'claim.shutdown.eyebrow' })}</p>
 				<h1 class="signin-title">
-					{t({ locale: $localeStore, key: 'claim.moved.title', params: { domain } })}
+					{t({ locale: $localeStore, key: 'claim.shutdown.title', params: { domain } })}
 				</h1>
 				<p class="signin-sub">
-					{t({ locale: $localeStore, key: 'claim.moved.sub_shutdown', params: { domain } })}
+					{t({ locale: $localeStore, key: 'claim.shutdown.sub', params: { domain } })}
 				</p>
 			</div>
 

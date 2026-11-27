@@ -823,8 +823,6 @@ export const frMessages = {
 	'claim.moved.footer.prompt_signup': 'Tu as déjà un compte ici ?',
 	'claim.moved.sub_new_account':
 		"Cette connexion n'a pas de compte VICI sur ce site. Les nouveaux comptes se créent sur {domain}.",
-	'claim.moved.sub_shutdown':
-		'Ce site est fermé. Ton compte, tes prédictions et tes VXP sont sur {domain} : connecte-toi là-bas pour continuer à jouer.',
 	'claim.moved.sub_signup':
 		'Les nouveaux comptes se créent sur {domain}. Inscris-toi là-bas pour commencer tes prédictions.',
 	'claim.moved.title': 'VICI a déménagé sur {domain}',
@@ -853,6 +851,10 @@ export const frMessages = {
 	'claim.page.verifying': 'Liaison de ton compte…',
 	'claim.settings.label': 'Passer au nouveau VICI',
 	'claim.settings.sub': 'Emporte ce compte dans la nouvelle app',
+	'claim.shutdown.eyebrow': 'Ce site a fermé',
+	'claim.shutdown.sub':
+		'Ce site a fermé définitivement. {domain} est un tout nouveau VICI : inscris-toi là-bas pour commencer à faire des prédictions.',
+	'claim.shutdown.title': 'Découvre le nouveau VICI sur {domain}',
 	'common.error.generic': 'Une erreur est survenue. Veuillez réessayer.',
 	'companion.oracle.called_it': 'Bien vu.',
 	'cta.primary': 'Commencer à prédire',

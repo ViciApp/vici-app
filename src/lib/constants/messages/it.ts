@@ -818,8 +818,6 @@ export const itMessages = {
 	'claim.moved.footer.prompt_signup': 'Hai già un account qui?',
 	'claim.moved.sub_new_account':
 		'Questo accesso non ha un account VICI su questo sito. I nuovi account si creano su {domain}.',
-	'claim.moved.sub_shutdown':
-		'Questo sito è chiuso. Il tuo account, le tue previsioni e i tuoi VXP sono su {domain}: accedi lì per continuare a giocare.',
 	'claim.moved.sub_signup':
 		'I nuovi account si creano su {domain}. Registrati lì per iniziare a fare previsioni.',
 	'claim.moved.title': 'VICI si è trasferito su {domain}',
@@ -849,6 +847,10 @@ export const itMessages = {
 	'claim.page.verifying': 'Collegamento dell’account…',
 	'claim.settings.label': 'Passa al nuovo VICI',
 	'claim.settings.sub': 'Porta questo account nella nuova app',
+	'claim.shutdown.eyebrow': 'Questo sito ha chiuso',
+	'claim.shutdown.sub':
+		'Questo sito ha chiuso per sempre. {domain} è un VICI tutto nuovo: iscriviti lì per iniziare a fare previsioni.',
+	'claim.shutdown.title': 'Scopri il nuovo VICI su {domain}',
 	'common.error.generic': 'Qualcosa è andato storto. Riprova.',
 	'companion.oracle.called_it': 'Ci hai visto giusto.',
 	'cta.primary': 'Inizia a prevedere',

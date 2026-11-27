@@ -819,8 +819,6 @@ export const esMessages = {
 	'claim.moved.footer.prompt_signup': '¿Ya tienes una cuenta aquí?',
 	'claim.moved.sub_new_account':
 		'Este inicio de sesión no tiene una cuenta de VICI en este sitio. Las cuentas nuevas se crean en {domain}.',
-	'claim.moved.sub_shutdown':
-		'Este sitio está cerrado. Tu cuenta, tus predicciones y tus VXP están en {domain}: inicia sesión allí para seguir jugando.',
 	'claim.moved.sub_signup':
 		'Las cuentas nuevas se crean en {domain}. Regístrate allí para empezar a hacer predicciones.',
 	'claim.moved.title': 'VICI se ha mudado a {domain}',
@@ -850,6 +848,10 @@ export const esMessages = {
 	'claim.page.verifying': 'Vinculando tu cuenta…',
 	'claim.settings.label': 'Múdate al nuevo VICI',
 	'claim.settings.sub': 'Lleva esta cuenta a la nueva app',
+	'claim.shutdown.eyebrow': 'Este sitio ha cerrado',
+	'claim.shutdown.sub':
+		'Este sitio ha cerrado definitivamente. {domain} es un VICI completamente nuevo: regístrate allí para empezar a hacer predicciones.',
+	'claim.shutdown.title': 'Descubre el nuevo VICI en {domain}',
 	'common.error.generic': 'Algo salió mal. Inténtalo de nuevo.',
 	'companion.oracle.called_it': 'Acertaste.',
 	'cta.primary': 'Empieza a predecir',
