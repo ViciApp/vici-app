@@ -19,7 +19,7 @@ export type TransactionHistoryBonusTag =
 	| 'worlds_podium'
 	| 'unknown';
 
-export type TransactionHistoryKind =
+type TransactionHistoryKind =
 	| 'bonus'
 	| 'prediction'
 	| 'won'

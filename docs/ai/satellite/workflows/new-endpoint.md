@@ -86,10 +86,10 @@ datastore SDK gives you.
    `satellite-schema` job ([`checks.yml`](../../../../.github/workflows/checks.yml))
    re-runs `juno functions build` and fails on any drift.
 
-5. **Call it from the FE** via `@junobuild/core`'s `call()` (or whatever
-   wrapper the project ends up exposing). Wrap the call in a service
-   under `#lib/services/` so components don't talk to the satellite
-   directly.
+5. **Call it from the FE** through the `functions` export of the
+   regenerated `#declarations/satellite/satellite.api.ts`. Wrap the call
+   in a service under `#lib/services/` so components don't talk to the
+   satellite directly.
 
 6. **Don't break the interface.** If you change an existing endpoint's
    schema, treat it as a breaking change to the satellite Candid:

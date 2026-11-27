@@ -1,9 +1,9 @@
 import { initStorageStore } from '#lib/stores/storage.store.ts';
 import type { BalanceDomainKey } from '#lib/types/balance-domain.ts';
 
-export const BALANCE_DOMAIN_STORE_KEY = 'vici-balance-domain';
+const BALANCE_DOMAIN_STORE_KEY = 'vici-balance-domain';
 
-export interface BalanceDomainData {
+interface BalanceDomainData {
 	value: BalanceDomainKey;
 }
 

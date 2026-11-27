@@ -27,17 +27,17 @@ import { derived, get, writable, type Readable } from 'svelte/store';
  */
 
 /** Lifetime calls at/above which the primary install window opens. */
-export const A2HS_PRIMARY_CALLS = 15;
+const A2HS_PRIMARY_CALLS = 15;
 
 /**
  * Fallback window: a returning visitor (`sessionCount >= 2`) who has placed
  * at least this many lifetime calls.
  */
-export const A2HS_FALLBACK_CALLS = 10;
+const A2HS_FALLBACK_CALLS = 10;
 const A2HS_FALLBACK_SESSIONS = 2;
 
 /** Re-ask no sooner than 14 days after a dismissal. */
-export const A2HS_COOLOFF_MS = 14 * DAY_IN_MS;
+const A2HS_COOLOFF_MS = 14 * DAY_IN_MS;
 
 const KEY_SESSIONS = 'vici.a2hs.sessions';
 const KEY_DISMISSED = 'vici.a2hs.dismissed';
@@ -138,7 +138,7 @@ export const platform = (): A2hsPlatform => {
  * `app.html` bootstrap: the legacy iOS-only `navigator.standalone` plus the
  * standard `display-mode: standalone` media query.
  */
-export const isStandalone = (): boolean => {
+const isStandalone = (): boolean => {
 	if (!browser) {
 		return false;
 	}
@@ -151,7 +151,7 @@ export const isStandalone = (): boolean => {
 };
 
 /** A mobile-like surface (iOS or Android): desktop is never prompted. */
-export const isMobileLike = (): boolean => {
+const isMobileLike = (): boolean => {
 	const p = platform();
 
 	return p === 'ios' || p === 'android';
@@ -173,9 +173,6 @@ export const canInstall: Readable<boolean> = derived(state, ($state) => {
 
 	return nonNullish($state.deferredPrompt);
 });
-
-/** Reactive distinct-visit counter. */
-export const sessionCount: Readable<number> = derived(state, ($state) => $state.sessionCount);
 
 /**
  * Trigger predicate for the contextual FlowEnd nudge. Primary window at
@@ -212,7 +209,7 @@ export const markDismissed = (): void => {
 };
 
 /** Record an install: suppresses every future prompt. */
-export const markInstalled = (): void => {
+const markInstalled = (): void => {
 	storageSet({ key: KEY_INSTALLED, value: '1' });
 	state.update((s) => ({ ...s, installed: true, deferredPrompt: null }));
 };
