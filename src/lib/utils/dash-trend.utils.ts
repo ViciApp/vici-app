@@ -10,9 +10,9 @@
  * shifting on each load.
  */
 
-export type TrendWindowKey = 'd7' | 'd30' | 'd90';
+type TrendWindowKey = 'd7' | 'd30' | 'd90';
 
-export interface TrendWindow {
+interface TrendWindow {
 	/** Window key: drives the ordered nav + dots. */
 	key: TrendWindowKey;
 	/** Days spanned by this window (7 / 30 / 90). */
@@ -71,7 +71,7 @@ export const buildAccuracyTrend = (accuracyPct: number): Record<TrendWindowKey, 
 	};
 };
 
-export interface TrendPath {
+interface TrendPath {
 	/** SVG `d` for the stroked line. */
 	line: string;
 	/** SVG `d` for the filled area beneath the line. */

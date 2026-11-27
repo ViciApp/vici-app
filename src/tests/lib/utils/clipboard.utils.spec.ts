@@ -1,5 +1,6 @@
 import { notificationsStore } from '#lib/stores/notification.store.ts';
 import { copyToClipboard, writeToClipboard } from '#lib/utils/clipboard.utils.ts';
+import { ensureLocaleCatalogs } from '#lib/utils/i18n.utils.ts';
 import { isNullish } from '@dfinity/utils';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
@@ -77,7 +78,7 @@ describe('clipboard.utils', () => {
 		it('shows the success toast for two seconds', async () => {
 			mockClipboard(() => Promise.resolve());
 
-			await copyToClipboard({ value: '0xabc', text: 'Address' });
+			await copyToClipboard({ value: '0xabc', text: 'Address', locale: 'en' });
 
 			assert.deepEqual(
 				get(notificationsStore).map(({ title, message, type }) => ({ title, message, type })),
@@ -92,11 +93,23 @@ describe('clipboard.utils', () => {
 		it('shows the failure toast when the write is refused', async () => {
 			mockClipboard(() => Promise.reject(new DOMException('denied', 'NotAllowedError')));
 
-			await copyToClipboard({ value: '0xabc', text: 'Address' });
+			await copyToClipboard({ value: '0xabc', text: 'Address', locale: 'en' });
 
 			assert.deepEqual(
 				get(notificationsStore).map(({ title, message, type }) => ({ title, message, type })),
 				[{ title: 'Copy failed', message: 'Could not copy Address to clipboard.', type: 'error' }]
+			);
+		});
+
+		it('writes the toast in the given locale', async () => {
+			mockClipboard(() => Promise.resolve());
+			await ensureLocaleCatalogs('it');
+
+			await copyToClipboard({ value: '0xabc', text: 'Principal', locale: 'it' });
+
+			assert.deepEqual(
+				get(notificationsStore).map(({ title, message }) => ({ title, message })),
+				[{ title: 'Copiato', message: 'Principal copiato negli appunti.' }]
 			);
 		});
 	});

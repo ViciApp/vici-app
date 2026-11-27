@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isNullish } from '@dfinity/utils';
+	import { isNullish, nonNullish } from '@dfinity/utils';
 	import FlowCardSparkline from '#lib/components/market/FlowCardSparkline.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
@@ -16,11 +16,11 @@
 		crowdSide: CallSide;
 		// Real, market-wide 7d price history (0–100 YES series, oldest first)
 		// from the clearing canister. Absent until FlowMode resolves it for the
-		// focused card: the sparkline and the weekly delta then fall back to
-		// the seed-based shape / prior heuristic.
+		// focused card: the sparkline is then flat at the live price and the
+		// weekly delta is hidden.
 		points?: number[];
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
-		// axis. Present alongside real history; absent for the seed shape.
+		// axis. Present alongside real history.
 		pointXs?: number[];
 	}
 
@@ -33,9 +33,9 @@
 	// market needs `noPct` here or the figure contradicts its own label.
 	const crowdSidePct = $derived(crowdSide === 'YES' ? yesPct : noPct);
 
-	// Weekly change: when real 7d history has resolved, the true move (last
-	// close − first close of the window); otherwise the prior heuristic, so an
-	// unloaded / untraded card reads exactly as before.
+	// Weekly change: the true move over the real 7d history (last close −
+	// first close of the window). Without at least two closes there is no
+	// move to report, so the delta is hidden rather than guessed.
 	const weekChange = $derived.by(() => {
 		if (isNullish(points) || points.length < 2) {
 			return;
@@ -43,12 +43,8 @@
 
 		return points[points.length - 1] - points[0];
 	});
-	const weekUp = $derived(isNullish(weekChange) ? yesPct >= 50 : weekChange >= 0);
-	const weekDeltaPct = $derived(
-		isNullish(weekChange)
-			? Math.abs(yesPct - Math.max(5, yesPct - 12))
-			: Math.abs(Math.round(weekChange))
-	);
+	const weekUp = $derived(nonNullish(weekChange) && weekChange >= 0);
+	const weekDeltaPct = $derived(nonNullish(weekChange) ? Math.abs(Math.round(weekChange)) : 0);
 </script>
 
 <section class="flow-back-block flow-community">
@@ -57,19 +53,21 @@
 			{crowdSidePct}%
 			<span class="flow-community-side">{crowdSide}</span>
 		</span>
-		<span class={`flow-community-delta num ${weekUp ? 'flow-delta-yes' : 'flow-delta-no'}`}>
-			{weekUp ? '▲' : '▼'}
-			{weekDeltaPct}% {t({
-				locale: $localeStore,
-				key: 'card.back.this_week'
-			})}
-		</span>
+		{#if nonNullish(weekChange)}
+			<span class={`flow-community-delta num ${weekUp ? 'flow-delta-yes' : 'flow-delta-no'}`}>
+				{weekUp ? '▲' : '▼'}
+				{weekDeltaPct}% {t({
+					locale: $localeStore,
+					key: 'card.back.this_week'
+				})}
+			</span>
+		{/if}
 	</div>
 	<!-- Real market-wide history when FlowMode has resolved it for this card
 	     (one bounded candle query, fetched only for the focused card); until
-	     then `points` is absent and the sparkline falls back to its seed-based
-	     shape. Event markers ("this week" days) are fed through on the seed
-	     fallback and on real history (the deck card is always the 7d window,
+	     then `points` is absent and the sparkline is flat at the live price.
+	     Event markers ("this week" days) are fed through while loading and on
+	     real history (the deck card is always the 7d window,
 	     so the sparkline anchors them on its time axis); the true cold-start
 	     (real but empty) suppresses them. -->
 	<FlowCardSparkline

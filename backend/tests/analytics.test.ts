@@ -2,9 +2,10 @@
 // stamps, pseudonymous user link), the public ingest route's limits, transactional rollup math, the server-side capture bridge, the keyset
 // export with its idempotent drain, and the admin summary reads.
 
+import { nonNullish } from '@dfinity/utils';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import { captureServerEvents, trackEvents } from '../src/analytics/events';
+import { captureServerEvents, SERVER_SESSION_ID, trackEvents } from '../src/analytics/events';
 import {
 	deleteAnalyticsEvents,
 	getAnalyticsEvents,
@@ -216,6 +217,54 @@ describe.if(dbAvailable)('analytics ingest', () => {
 		expect(rows).toHaveLength(2);
 		expect(rows[0]?.props).toEqual({ value: 25, label: 'streak' });
 		expect(await rollupCount('vxp_awarded')).toBe(baseline + 2);
+	});
+
+	test('server-event keys from two processes carry different process ids', async () => {
+		const userId = await createTestUser();
+		const eventsModule = new URL('../src/analytics/events.ts', import.meta.url).pathname;
+
+		await captureServerEvents({ events: [{ name: 'vxp_awarded', userId }] });
+
+		// A second process, as the worker is to the app: its stamp and sequence
+		// are its own, so only the process id keeps the keys apart.
+		const otherProcess = Bun.spawn(
+			[
+				process.execPath,
+				'-e',
+				`const { captureServerEvents } = await import(${JSON.stringify(eventsModule)});
+				await captureServerEvents({ events: [{ name: 'vxp_awarded', userId: ${JSON.stringify(userId)} }] });
+				process.exit(0);`
+			],
+			// The preload's DATABASE_URL lives in process.env only, not in the
+			// environment Bun hands a child by default.
+			{ env: { ...process.env }, stdout: 'ignore', stderr: 'inherit' }
+		);
+
+		expect(await otherProcess.exited).toBe(0);
+
+		const rows = await query<{ key: string }>(
+			`select key from analytics_events where session_id = $1 and user_id = $2`,
+			[SERVER_SESSION_ID, userId]
+		);
+		const processIds = rows.map(({ key }) => /^\d+-server-(.+)-\d+-\d+$/.exec(key)?.[1]);
+
+		expect(processIds).toHaveLength(2);
+		expect(processIds.every(nonNullish)).toBe(true);
+		expect(new Set(processIds).size).toBe(2);
+	});
+
+	test('rejects a client sessionId that claims the server session, writing nothing', async () => {
+		for (const sessionId of [SERVER_SESSION_ID, `${SERVER_SESSION_ID}-0`]) {
+			await expect(trackEvents({ events: [{ name: 'app_error', sessionId }] })).rejects.toThrow(
+				'sessionId is reserved'
+			);
+		}
+
+		const lookalike = `${SERVER_SESSION_ID}${uniqueSession()}`;
+
+		expect(await trackEvents({ events: [{ name: 'app_error', sessionId: lookalike }] })).toEqual({
+			accepted: 1
+		});
 	});
 
 	test('summary flattens the trailing days, newest first', async () => {
@@ -447,6 +496,15 @@ describe.if(dbAvailable)('analytics ingest route', () => {
 		expect(longPath.status).toBe(400);
 		expect(longSession.status).toBe(400);
 		expect(await rowsForSession(sessionId)).toHaveLength(0);
+	});
+
+	test('a batch claiming the server session is a 400', async () => {
+		const res = await postEvents({
+			ip: '203.0.113.16',
+			events: [{ name: 'app_error', sessionId: SERVER_SESSION_ID }]
+		});
+
+		expect(res.status).toBe(400);
 	});
 
 	test('answers 429 with Retry-After once an IP spends its bucket', async () => {
