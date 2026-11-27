@@ -404,23 +404,40 @@ is the reference shape:
   runs `Principal.fromText` + the cascade **outside** the malformed-row
   try/catch so a purge failure is logged + counted as an under-purge
   instead of being silently swallowed as a skipped bad row. One call
-  reads one keyset page of `profiles` and purges a single account (a
-  purge deletes every doc the account owns, see the bulk-rewrite budget
-  note below); a failed purge is counted in `failed` and the walk moves
-  past it. The operator passes `nextAfterKey` back as `afterKey` until
-  `done`.
+  reads one keyset page of `profiles` and works on a single account; a
+  failed purge is counted in `failed` and the walk moves past it. The
+  operator passes `nextAfterKey` back as `afterKey` until `done`.
+- **The purge runs in bounded calls.** `hardDeleteAccountFn` makes at
+  most `ACCOUNT_PURGE_BATCH` writes per call (the bulk-write budget
+  below) and answers `{ deleted, pending }`; the caller calls again until
+  `pending` is false. Every call walks `ACCOUNT_PURGE_PHASES` from the
+  first in a fixed order, each phase listing what is still left of the
+  account in its collection by a key matcher (`^${principal}(/|$)`,
+  `^${principal}#`, `#${principal}$`, ...), never a whole collection, so a
+  finished phase costs reads only. The award markers come first, so they
+  exist before any award doc goes; owned leagues are found from the
+  account's own membership rows and resolved before its other
+  memberships go; the profile goes last, so the account stays findable
+  until nothing else of it is left. That is how both callers track a
+  purge in progress: a late `recoverMyAccount` still lands in its expired
+  branch and answers `pending` (the FE sends it again), and the sweep
+  visitor answers `stop` on a pending purge, so the cursor stays before
+  the account and the next call carries it on (it counts in `swept` on
+  the call that removes the profile). `referral_codes` is the one phase
+  that still lists its whole collection: a code doc is keyed by the code,
+  its owner only in the data.
 - **Hard-delete must not orphan others: transfer, don't just delete.**
   The cascade's owned-league step deletes a league only when no other
   member remains; if members self-joined during the recovery window it
   **transfers** ownership to a deterministic survivor (first remaining
-  `LEAGUE_MEMBERS` row in iteration order): version-locked re-encode of
+  `LEAGUE_MEMBERS` row in key order): version-locked re-encode of
   `league.owner` + a version-locked bump of that member row's `role` to
   `owner`. The interactive `deleteMyAccount` has an up-front
   `owns_non_empty_league` guard; the guard-less recovery-expiry + sweep
   paths rely on this transfer.
 - **Purge the data, keep the one-time awards one-time.** The cascade
   deletes every award doc, so it first records an anonymous marker per
-  one-time award the account was paid (`recordAccountAwardMarkers`, see
+  one-time award the account was paid (`missingAccountAwardMarkers`, see
   [economy invariants](./economy.md#invariants)); a principal that signs
   up again starts over everywhere but there.
 - **Keep the marker monotonic + the side effects once-only.**
@@ -484,7 +501,7 @@ owner-leagues guard:
   assert too, so once the endpoint has checked the caller owns the league
   it signs the deletes with `controllerCaller(...)`, as the account purge
   (`hardDeleteAccountFn`) does for every row it removes. Distinct from the cascade's
-  `disbandOrTransferOwnedLeagues`, which only drops leagues that are
+  `ownedLeaguesPhase`, which only drops leagues that are
   _already_ empty and hands the others to a remaining member.
 - **The disband runs in bounded calls.** `deleteLeagueFn` deletes at
   most `LEAGUE_DISBAND_BATCH` docs per call (the bulk-write budget
@@ -653,7 +670,9 @@ collection keys themselves, plus the clearing leaderboard). The pattern:
   treat the month as unfrozen until then, and the FE claims again while
   the answer says `freezePending`.
 - **Add the collection to the hard-delete cascade**
-  (`hardDeleteAccountFn`): a private doc must not outlive its account.
+  (a key-matched phase of `ACCOUNT_PURGE_PHASES` in
+  `hardDeleteAccountFn`, before the profile): a private doc must not
+  outlive its account.
 - **Page a bulk walk through `walkKeysetPage`**
   (`keyset-walk.services.ts`), the keyset paging the budget note above
   asks for: the endpoint takes `KeysetWalkArgsSchema` (`afterKey`,

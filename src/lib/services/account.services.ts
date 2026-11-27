@@ -169,7 +169,9 @@ export type RecoverMyAccountResult =
  * `deleteMyAccount`'s soft-delete: a returning user whose profile still
  * carries `deletedAtMs` calls this to come back. If the window has
  * already passed the satellite hard-deletes instead and returns
- * `{ ok: false, reason: 'expired' }`: the account is gone.
+ * `{ ok: false, reason: 'expired' }`: the account is gone. The satellite
+ * purges a bounded batch of docs per call and answers `pending` while more
+ * is left, so the call is sent again until the purge is done.
  */
 export const recoverMyAccount = async (): Promise<RecoverMyAccountResult> => {
 	// The HTTP result already carries the flat discriminated shape.
@@ -177,7 +179,11 @@ export const recoverMyAccount = async (): Promise<RecoverMyAccountResult> => {
 		return await recoverMyAccountWeb2();
 	}
 
-	const result = await functions.recoverMyAccount();
+	let result: Awaited<ReturnType<typeof functions.recoverMyAccount>>;
+
+	do {
+		result = await functions.recoverMyAccount();
+	} while (!result.ok && result.pending === true);
 
 	if (!result.ok) {
 		return { ok: false, reason: 'expired' };

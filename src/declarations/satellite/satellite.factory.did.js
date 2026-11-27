@@ -1266,6 +1266,7 @@ export const idlFactory = ({ IDL }) => {
 	const AppRecoverMyAccountResult = IDL.Record({
 		ok: IDL.Bool,
 		recovered: IDL.Opt(IDL.Bool),
+		pending: IDL.Opt(IDL.Bool),
 		reason: IDL.Opt(IDL.Variant({ expired: IDL.Null }))
 	});
 	const AppRedeemReferralCodeArgs = IDL.Record({ code: IDL.Text });

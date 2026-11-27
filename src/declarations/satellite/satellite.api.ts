@@ -2036,7 +2036,8 @@ const recordFlowSwipe = async (
 const AppRecoverMyAccountResultSchema = j.strictObject({
 	ok: j.boolean(),
 	recovered: j.optional(j.boolean()),
-	reason: j.optional(j.enum(['expired']))
+	reason: j.optional(j.enum(['expired'])),
+	pending: j.optional(j.boolean())
 });
 
 const recoverMyAccount = async (): Promise<j.infer<typeof AppRecoverMyAccountResultSchema>> => {

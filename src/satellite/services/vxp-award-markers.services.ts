@@ -11,7 +11,7 @@ import {
 	vxpAwardMarkerPrefix,
 	type VxpAwardMarkerType
 } from '#satellite/utils/award-marker.utils.ts';
-import { nonNullish } from '@dfinity/utils';
+import { isNullish, nonNullish } from '@dfinity/utils';
 import {
 	countDocsStore,
 	decodeDocData,
@@ -81,51 +81,35 @@ export const countAwardMarkers = ({
 		})
 	);
 
-/** Writes one marker unless it exists, so a purge that runs again writes nothing new. */
-const writeMarker = ({
-	writer,
+/** The marker key of one award, or nothing for a repeatable type. */
+const oneTimeMarkerKey = ({
 	principalText,
 	awardType,
 	awardKey
 }: {
-	writer: Uint8Array;
 	principalText: string;
 	awardType: VxpAwardMarkerType;
 	awardKey: string;
-}): number => {
-	if (!isOneTimeAwardType(awardType)) {
-		return 0;
-	}
-
-	const key = vxpAwardMarkerKey({ principalText, awardType, awardKey });
-
-	if (nonNullish(getDocStore({ collection: Collection.VXP_AWARD_MARKERS, key, caller: writer }))) {
-		return 0;
-	}
-
-	setDocStore({
-		collection: Collection.VXP_AWARD_MARKERS,
-		key,
-		caller: writer,
-		doc: { data: encodeDocData({}) }
-	});
-
-	return 1;
-};
+}): string | undefined =>
+	isOneTimeAwardType(awardType)
+		? vxpAwardMarkerKey({ principalText, awardType, awardKey })
+		: undefined;
 
 /**
- * The account purge's first step, before the award docs go: a marker for every one-time award the
- * account was paid, from its `vxp_awards` docs and its onboarding ladder. Reads and writes as
- * `writer`, a satellite controller. Returns the number of markers written.
+ * The account purge's first phase, before the award docs go: the key of every marker still to
+ * write, one per one-time award the account was paid, from its `vxp_awards` docs and its onboarding
+ * ladder. A marker already stored is left out, so a purge that runs again writes nothing new. Reads
+ * as `writer`, a satellite controller; the purge writes each key with {@link recordAwardMarker}, a
+ * bounded batch per call.
  */
-export const recordAccountAwardMarkers = ({
+export const missingAccountAwardMarkers = ({
 	callerText,
 	writer
 }: {
 	callerText: string;
 	writer: Uint8Array;
-}): number => {
-	let written = 0;
+}): string[] => {
+	const keys = new Set<string>();
 
 	const { items } = listDocsStore({
 		collection: Collection.VXP_AWARDS,
@@ -135,9 +119,10 @@ export const recordAccountAwardMarkers = ({
 
 	for (const [, item] of items) {
 		const { recipient, awardType, awardKey, status } = decodeDocData<VxpAwardDoc>(item.data);
+		const key = oneTimeMarkerKey({ principalText: callerText, awardType, awardKey });
 
-		if (recipient === callerText && PAID_AWARD_STATUSES.includes(status)) {
-			written += writeMarker({ writer, principalText: callerText, awardType, awardKey });
+		if (recipient === callerText && PAID_AWARD_STATUSES.includes(status) && nonNullish(key)) {
+			keys.add(key);
 		}
 	}
 
@@ -151,16 +136,29 @@ export const recordAccountAwardMarkers = ({
 		const { milestones } = decodeDocData<VxpOnboardingDoc>(onboarding.data);
 
 		for (const [milestone, { status }] of Object.entries(milestones)) {
-			if (PAID_MILESTONE_STATUSES.includes(status)) {
-				written += writeMarker({
-					writer,
-					principalText: callerText,
-					awardType: 'onboarding',
-					awardKey: milestone
-				});
+			const key = oneTimeMarkerKey({
+				principalText: callerText,
+				awardType: 'onboarding',
+				awardKey: milestone
+			});
+
+			if (PAID_MILESTONE_STATUSES.includes(status) && nonNullish(key)) {
+				keys.add(key);
 			}
 		}
 	}
 
-	return written;
+	return [...keys].filter((key) =>
+		isNullish(getDocStore({ collection: Collection.VXP_AWARD_MARKERS, key, caller: writer }))
+	);
+};
+
+/** Writes one marker {@link missingAccountAwardMarkers} named, as `writer`. */
+export const recordAwardMarker = ({ key, writer }: { key: string; writer: Uint8Array }): void => {
+	setDocStore({
+		collection: Collection.VXP_AWARD_MARKERS,
+		key,
+		caller: writer,
+		doc: { data: encodeDocData({}) }
+	});
 };

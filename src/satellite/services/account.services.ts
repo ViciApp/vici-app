@@ -24,11 +24,17 @@ import {
 	walkKeysetPage
 } from '#satellite/services/keyset-walk.services.ts';
 import { deleteLeagueInvite } from '#satellite/services/league-invite.services.ts';
-import { leagueDisbandsInProgress } from '#satellite/services/league-member.services.ts';
+import {
+	leagueDisbandsInProgress,
+	leagueMemberRows
+} from '#satellite/services/league-member.services.ts';
 import { deleteLeagueFn, transferLeagueOwnershipFn } from '#satellite/services/league.services.ts';
 import { isHibernated, isSoftDeleted } from '#satellite/services/profile.services.ts';
 import { isReferralPayoutRecord } from '#satellite/services/referral.services.ts';
-import { recordAccountAwardMarkers } from '#satellite/services/vxp-award-markers.services.ts';
+import {
+	missingAccountAwardMarkers,
+	recordAwardMarker
+} from '#satellite/services/vxp-award-markers.services.ts';
 import { logError } from '#satellite/utils/logger.utils.ts';
 import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
@@ -165,7 +171,7 @@ export interface DeleteMyAccountResult {
 
 /** Result of {@link recoverMyAccountFn}, discriminated by `ok`. */
 export type RecoverMyAccountResult =
-	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired' };
+	{ ok: true; recovered: boolean } | { ok: false; reason: 'expired'; pending: boolean };
 
 /**
  * Result of {@link sweepExpiredDeletionsFn}: how many accounts this call
@@ -173,7 +179,9 @@ export type RecoverMyAccountResult =
  * the stable `sweep_expired_deletions_purge_failed` tag), plus where the
  * walk over `PROFILES` left off. A failed account keeps its profile and
  * the walk moves past it, so it cannot hold up the others; the next walk
- * from the first doc tries it again.
+ * from the first doc tries it again. A call that only got part way through
+ * an account's purge counts it in neither and answers `done: false` with
+ * the cursor still before that account.
  */
 export interface SweepExpiredDeletionsResult extends KeysetWalk {
 	swept: number;
@@ -396,11 +404,20 @@ const findOwnedNonEmptyLeagues = ({
 };
 
 /**
- * One step of the account purge ({@link hardDeleteAccountFn}). It reads as
- * the purged account (`callerBytes`) and deletes or rewrites as `writer`, a
- * satellite controller: serverless writes run the collection asserts too, and
- * the purge removes rows the account itself may not (a locked affiliation, a
- * league owner row, a referral record, an award) or hands a league over.
+ * How many writes one {@link hardDeleteAccountFn} call makes. Each serverless
+ * write costs billions of instructions, so a call stays a few writes under the
+ * update limit and an account with many docs is purged over several calls (see
+ * the bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ */
+const ACCOUNT_PURGE_BATCH = 5;
+
+/**
+ * What every phase of the account purge ({@link hardDeleteAccountFn}) works
+ * from. It reads as the purged account (`callerBytes`) and deletes or rewrites
+ * as `writer`, a satellite controller: serverless writes run the collection
+ * asserts too, and the purge removes rows the account itself may not (a locked
+ * affiliation, a league owner row, a referral record, an award) or hands a
+ * league over.
  */
 interface CascadeStep {
 	callerText: string;
@@ -409,480 +426,406 @@ interface CascadeStep {
 }
 
 /**
- * Drop every doc whose key starts with `${callerText}/` from the
- * collection. Used for collections that prefix-key on the user's
- * principal (`affiliations`, `vxp_awards`, `vxp_onboarding`).
+ * One write of the purge, made only when its call still has room for it:
+ * `cost` is how many serverless writes it makes, `deletes` how many of the
+ * account's docs it removes.
  */
-const deletePrefixedDocs = ({
-	collection,
-	callerText,
-	callerBytes,
-	writer
-}: CascadeStep & { collection: Collection }): number => {
-	const { items } = listDocsStore({
-		collection,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const prefix = `${callerText}/`;
-	let deleted = 0;
-
-	for (const [docKey, item] of items) {
-		if (docKey === callerText || docKey.startsWith(prefix)) {
-			deleteDocStore({
-				collection,
-				key: docKey,
-				caller: writer,
-				doc: {
-					version: item.version
-				}
-			});
-			deleted += 1;
-		}
-	}
-
-	return deleted;
-};
+interface PurgeWrite {
+	cost: number;
+	deletes: number;
+	run: () => void;
+}
 
 /**
- * Drop every doc whose key matches `keyPattern`, listed by the datastore's key
- * matcher so the scan never decodes other accounts' rows. Returns the deleted
- * keys.
+ * One phase of the purge: the writes still left for it, read afresh on every
+ * call, so a phase that is done costs reads only.
  */
-const deleteMatchingDocs = ({
+type PurgePhase = (step: CascadeStep) => PurgeWrite[];
+
+const deleteWrite = ({
+	collection,
+	entry: [key, { version }],
+	writer
+}: {
+	collection: Collection;
+	entry: ListedDocEntry;
+	writer: Uint8Array;
+}): PurgeWrite => ({
+	cost: 1,
+	deletes: 1,
+	run: () => deleteDocStore({ collection, key, caller: writer, doc: { version } })
+});
+
+/**
+ * The docs of `collection` whose key matches `keyPattern`, listed as `listAs`
+ * by the datastore's key matcher, so the scan never reads other accounts' rows.
+ */
+const matchingDocs = ({
 	collection,
 	keyPattern,
-	listAs,
-	writer
+	listAs
 }: {
 	collection: Collection;
 	keyPattern: string;
 	listAs: Uint8Array;
-	writer: Uint8Array;
-}): string[] => {
-	const { items } = listDocsStore({
-		collection,
-		caller: listAs,
-		params: { matcher: { key: keyPattern } }
-	});
-
-	for (const [docKey, item] of items) {
-		deleteDocStore({ collection, key: docKey, caller: writer, doc: { version: item.version } });
-	}
-
-	return items.map(([docKey]) => docKey);
-};
+}): ListedDocEntry[] =>
+	listDocsStore({ collection, caller: listAs, params: { matcher: { key: keyPattern } } }).items;
 
 /**
- * Drop the caller's resolved results (`resolved_results` is keyed
- * `${principal}#${marketId}`), listed as `writer`: the collection is
- * controllers-only.
+ * Whether a listed doc decodes and passes `keep`; a malformed doc is skipped.
  */
-const deleteOwnResolvedResults = ({ callerText, writer }: CascadeStep): number =>
-	deleteMatchingDocs({
-		collection: Collection.RESOLVED_RESULTS,
-		keyPattern: `^${escapeRegex(callerText)}#`,
-		listAs: writer,
-		writer
-	}).length;
+const decodesAnd =
+	<T>(keep: (data: T) => boolean) =>
+	([, item]: ListedDocEntry): boolean => {
+		try {
+			return keep(decodeDocData<T>(item.data));
+		} catch {
+			return false;
+		}
+	};
 
 /**
- * Drop the likes the caller gave (`activity_reactions` is keyed by the liked
- * activity's key plus `#${liker}`) and move each liked activity's counter down,
- * as an unlike would. Likes on the caller's own activities stay with them.
+ * Deletes every doc keyed by the principal itself or under `${principal}/`:
+ * `profiles`, `vxp_awards`, `vxp_onboarding`, `affiliations`, the stats and the
+ * controllers-scoped collections keyed that way (listed as the controller).
  */
-const deleteOwnReactions = ({ callerText, callerBytes, writer }: CascadeStep): number => {
-	const deleted = deleteMatchingDocs({
-		collection: Collection.ACTIVITY_REACTIONS,
-		keyPattern: `#${escapeRegex(callerText)}$`,
-		listAs: callerBytes,
-		writer
-	});
-
-	for (const reactionKey of deleted) {
-		releaseReactionCount(reactionKey);
-	}
-
-	return deleted.length;
-};
+const ownPrefixedDocs = ({
+	collection,
+	listAs,
+	callerText,
+	writer
+}: CascadeStep & { collection: Collection; listAs: Uint8Array }): PurgeWrite[] =>
+	matchingDocs({ collection, keyPattern: `^${escapeRegex(callerText)}(/|$)`, listAs }).map(
+		(entry) => deleteWrite({ collection, entry, writer })
+	);
 
 /**
- * Drop the caller's profile (`profiles` is keyed by principal text,
- * one doc per user). The doc may not exist if the user never
- * completed onboarding: silently no-op in that case.
+ * The marker of each one-time award the account was paid, written before any
+ * award doc goes: what keeps the same principal, signing up again, from
+ * collecting a one-time award twice.
  */
-const deleteOwnProfile = ({ callerText, callerBytes, writer }: CascadeStep): number =>
-	deletePrefixedDocs({
-		collection: Collection.PROFILES,
-		callerText,
-		callerBytes,
-		writer
-	});
+const awardMarkersPhase: PurgePhase = ({ callerText, writer }) =>
+	missingAccountAwardMarkers({ callerText, writer }).map((key) => ({
+		cost: 1,
+		deletes: 0,
+		run: () => recordAwardMarker({ key, writer })
+	}));
 
 /**
- * Drop the caller's owner-private `profile_private` doc (the account
- * email). Exactly one doc keyed by the principal, so this is a direct
- * versioned read + delete; no collection scan. Silently no-ops when the
- * account never stored one.
+ * The owner-private `profile_private` doc (the account email): one doc keyed by
+ * the principal, read directly.
  */
-const deleteOwnPrivateProfile = ({ callerText, callerBytes, writer }: CascadeStep): number => {
+const privateProfilePhase: PurgePhase = ({ callerText, callerBytes, writer }) => {
 	const doc = getDocStore({
 		collection: Collection.PROFILE_PRIVATE,
 		key: callerText,
 		caller: callerBytes
 	});
 
-	if (isNullish(doc)) {
-		return 0;
-	}
-
-	deleteDocStore({
-		collection: Collection.PROFILE_PRIVATE,
-		key: callerText,
-		caller: writer,
-		doc: { version: doc.version }
-	});
-
-	return 1;
+	return isNullish(doc)
+		? []
+		: [deleteWrite({ collection: Collection.PROFILE_PRIVATE, entry: [callerText, doc], writer })];
 };
 
 /**
- * Drop the caller's relations (friend / follow rows): keyed by
- * relation id, not principal, so we scan + filter by
- * `participants[*] === callerText`. Deletes the row entirely; the
- * other participant loses the relation too (mirrors the
- * `cancelFriendRequest` / `unfollow` semantics).
+ * The account's resolved results (`resolved_results` is keyed
+ * `${principal}#${marketId}`), listed as `writer`: the collection is
+ * controllers-only.
  */
-const deleteOwnRelations = ({ callerText, callerBytes, writer }: CascadeStep): number => {
-	const { items } = listDocsStore({
-		collection: Collection.RELATIONS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	let deleted = 0;
-
-	for (const [docKey, item] of items) {
-		try {
-			const relation = decodeDocData<Relation>(item.data);
-
-			if (relation.participants.includes(callerText)) {
-				deleteDocStore({
-					collection: Collection.RELATIONS,
-					key: docKey,
-					caller: writer,
-					doc: {
-						version: item.version
-					}
-				});
-				deleted += 1;
-			}
-		} catch {
-			// skip malformed
-		}
-	}
-
-	return deleted;
-};
+const resolvedResultsPhase: PurgePhase = ({ callerText, writer }) =>
+	matchingDocs({
+		collection: Collection.RESOLVED_RESULTS,
+		keyPattern: `^${escapeRegex(callerText)}#`,
+		listAs: writer
+	}).map((entry) => deleteWrite({ collection: Collection.RESOLVED_RESULTS, entry, writer }));
 
 /**
- * Drop the caller's referral code (`referral_codes` is reverse-
- * indexed: key is the code, value is the owner). One row max per
- * user; iterate to find theirs, listed as `writer` because the
- * collection is controllers-only.
+ * The likes the account gave (`activity_reactions` is keyed by the liked
+ * activity's key plus `#${liker}`), each moving the liked activity's counter
+ * down as an unlike would: two writes. Likes on the account's own activities
+ * stay with them.
  */
-const deleteOwnReferralCode = ({ callerText, writer }: CascadeStep): number => {
-	const { items } = listDocsStore({
-		collection: Collection.REFERRAL_CODES,
-		caller: writer,
-		params: {}
-	});
-
-	let deleted = 0;
-
-	for (const [docKey, item] of items) {
-		try {
-			const codeDoc = decodeDocData<ReferralCodeDoc>(item.data);
-
-			if (codeDoc.owner === callerText) {
-				deleteDocStore({
-					collection: Collection.REFERRAL_CODES,
-					key: docKey,
-					caller: writer,
-					doc: {
-						version: item.version
-					}
-				});
-				deleted += 1;
-			}
-		} catch {
-			// skip malformed
-		}
-	}
-
-	return deleted;
-};
-
-/**
- * Drop the caller's referral-redemption row (`referrals` is keyed
- * by the *referee* principal, so the caller's row lives at their
- * own principal text) unless it has started paying: that row keeps
- * its slot in the referrer's lifetime count, so deleting referred
- * accounts can never reset the referrer's tier. Other users' rows
- * whose `referrer` equals the caller are left in place (they
- * document the referee's payout history, which is auditable
- * independent of the referrer).
- */
-const deleteOwnReferralRedemption = ({ callerText, callerBytes, writer }: CascadeStep): number => {
-	const { items } = listDocsStore({
-		collection: Collection.REFERRALS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	let deleted = 0;
-
-	for (const [docKey, item] of items) {
-		if (docKey === callerText) {
-			try {
-				if (!isReferralPayoutRecord(decodeDocData<ReferralDoc>(item.data))) {
-					deleteDocStore({
-						collection: Collection.REFERRALS,
-						key: docKey,
-						caller: writer,
-						doc: {
-							version: item.version
-						}
-					});
-					deleted += 1;
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-
-	return deleted;
-};
-
-/**
- * Drop affiliation rows (`${member}/${kind}/${affiliationIdentifier}`:
- * prefix-keyed), whatever their 90-day lock: `assertDeleteAffiliation`
- * lets the controller `writer` through.
- */
-const deleteOwnAffiliations = deletePrefixedDocs;
-
-/**
- * Drop league memberships where the caller is the member (key
- * suffix `/${callerText}`). Owner rows are removed too: the
- * owned-empty leagues themselves are dropped in the next step.
- */
-const deleteOwnLeagueMemberships = ({ callerText, callerBytes, writer }: CascadeStep): number => {
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const suffix = `/${callerText}`;
-	let deleted = 0;
-
-	for (const [docKey, item] of items) {
-		if (docKey.endsWith(suffix)) {
-			try {
-				const member = decodeDocData<LeagueMemberDoc>(item.data);
-
-				if (member.member === callerText) {
-					deleteDocStore({
-						collection: Collection.LEAGUE_MEMBERS,
-						key: docKey,
-						caller: writer,
-						doc: {
-							version: item.version
-						}
-					});
-					deleted += 1;
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-
-	return deleted;
-};
-
-/**
- * Resolve every league the caller owns, one of two ways:
- *
- *  - **No other members left** → delete the league. By the time the
- *    `deleteMyAccount` path reaches here the owner-non-empty guard
- *    already passed and `deleteOwnLeagueMemberships` dropped the
- *    caller's own membership row, so the league is a genuine orphan.
- *  - **Other members remain** → transfer ownership instead of
- *    deleting, so self-joiners during the recovery window aren't
- *    orphaned. This branch only triggers on the guard-less paths
- *    (recovery-expiry purge + admin sweep), where membership may have
- *    grown after the soft-delete. A deterministic survivor, the first
- *    remaining member row in `LEAGUE_MEMBERS` iteration order, becomes
- *    the new owner: `league.owner` is re-encoded onto the league doc
- *    (version-locked) and that member's row `role` is bumped to
- *    `'owner'` (also version-locked).
- *
- * The caller's own membership row is excluded from the survivor scan:
- * it was already dropped by `deleteOwnLeagueMemberships` earlier in the
- * cascade, but we filter defensively in case ordering ever changes.
- *
- * Idempotent: a re-run finds no leagues still owned by the caller
- * (deleted or transferred away) and returns 0.
- *
- * Returns the number of leagues deleted (transfers are not counted as
- * deletions).
- */
-const disbandOrTransferOwnedLeagues = ({
-	callerText,
-	callerBytes,
-	writer
-}: CascadeStep): number => {
-	const { items: leagueItems } = listDocsStore({
-		collection: Collection.LEAGUES,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const { items: memberItems } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	return leagueItems.reduce(
-		(deleted, [leagueKey, leagueItem]) =>
-			deleted + resolveOwnedLeague({ leagueKey, leagueItem, memberItems, callerText, writer }),
-		0
-	);
-};
-
-/**
- * Resolve a single league for {@link disbandOrTransferOwnedLeagues}.
- * No-op (returns 0) unless the caller owns it; malformed league rows are
- * skipped. Deletes the league and returns 1 when no other member
- * remains; otherwise transfers ownership to the first surviving member
- * row and returns 0. Split out so the parent loop stays free of
- * `continue`.
- */
-const resolveOwnedLeague = ({
-	leagueKey,
-	leagueItem,
-	memberItems,
-	callerText,
-	writer
-}: {
-	leagueKey: string;
-	leagueItem: ListedDocEntry[1];
-	memberItems: ReadonlyArray<ListedDocEntry>;
-	callerText: string;
-	writer: Uint8Array;
-}): number => {
-	let league: LeagueDoc;
-
-	try {
-		league = decodeDocData<LeagueDoc>(leagueItem.data);
-	} catch {
-		// skip malformed
-		return 0;
-	}
-
-	if (league.owner !== callerText) {
-		return 0;
-	}
-
-	const prefix = `${league.id}/`;
-
-	// First remaining member row that isn't the caller: deterministic
-	// survivor in `LEAGUE_MEMBERS` iteration order.
-	const survivor = memberItems.find(([docKey, item]) => {
-		if (!docKey.startsWith(prefix)) {
-			return false;
-		}
-
-		try {
-			const member = decodeDocData<LeagueMemberDoc>(item.data);
-
-			return member.leagueId === league.id && member.member !== callerText;
-		} catch {
-			return false;
-		}
-	});
-
-	if (isNullish(survivor)) {
-		// No other members: drop the orphaned league and its invite code.
-		deleteDocStore({
-			collection: Collection.LEAGUES,
-			key: leagueKey,
-			caller: writer,
-			doc: {
-				version: leagueItem.version
-			}
+const reactionsPhase: PurgePhase = ({ callerText, callerBytes, writer }) =>
+	matchingDocs({
+		collection: Collection.ACTIVITY_REACTIONS,
+		keyPattern: `#${escapeRegex(callerText)}$`,
+		listAs: callerBytes
+	}).map((entry) => {
+		const reactionDelete = deleteWrite({
+			collection: Collection.ACTIVITY_REACTIONS,
+			entry,
+			writer
 		});
 
-		deleteLeagueInvite({ leagueId: league.id });
+		return {
+			cost: 2,
+			deletes: 1,
+			run: () => {
+				reactionDelete.run();
+				releaseReactionCount(entry[0]);
+			}
+		};
+	});
 
-		return 1;
+/**
+ * The account's referral code. `referral_codes` is keyed by the code, its
+ * owner held in the data, so nothing narrows the scan by key; it is listed as
+ * `writer` because the collection is controllers-only.
+ */
+const referralCodePhase: PurgePhase = ({ callerText, writer }) =>
+	listDocsStore({ collection: Collection.REFERRAL_CODES, caller: writer, params: {} })
+		.items.filter(decodesAnd<ReferralCodeDoc>(({ owner }) => owner === callerText))
+		.map((entry) => deleteWrite({ collection: Collection.REFERRAL_CODES, entry, writer }));
+
+/**
+ * The account's referral-redemption row (`referrals` is keyed by the referee
+ * principal) unless it has started paying: that row keeps its slot in the
+ * referrer's lifetime count, so deleting referred accounts can never reset the
+ * referrer's tier. Other users' rows whose `referrer` is the account stay (they
+ * document the referee's payout history, auditable apart from the referrer).
+ */
+const referralRedemptionPhase: PurgePhase = ({ callerText, callerBytes, writer }) => {
+	const doc = getDocStore({
+		collection: Collection.REFERRALS,
+		key: callerText,
+		caller: callerBytes
+	});
+
+	if (isNullish(doc)) {
+		return [];
 	}
 
-	// Other members remain: transfer ownership instead of deleting. Both
-	// writes are signed as the controller, which `assertSetLeague` and
-	// `assertSetLeagueMember` accept as the owner.
-	const [survivorKey, survivorItem] = survivor;
-	const survivorMember = decodeDocData<LeagueMemberDoc>(survivorItem.data);
+	const entry: ListedDocEntry = [callerText, doc];
 
-	setDocStore({
-		collection: Collection.LEAGUES,
-		key: leagueKey,
-		caller: writer,
-		doc: {
-			data: encodeDocData<LeagueDoc>({ ...league, owner: survivorMember.member }),
-			version: leagueItem.version
-		}
-	});
-
-	setDocStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		key: survivorKey,
-		caller: writer,
-		doc: {
-			data: encodeDocData<LeagueMemberDoc>({ ...survivorMember, role: 'owner' }),
-			version: survivorItem.version
-		}
-	});
-
-	return 0;
+	return decodesAnd<ReferralDoc>((referral) => !isReferralPayoutRecord(referral))(entry)
+		? [deleteWrite({ collection: Collection.REFERRALS, entry, writer })]
+		: [];
 };
 
 /**
- * Cascade hard-delete for a single account. Removes every row
+ * The account's relations (friend rows keyed `${a}#${b}`, follow rows
+ * `follow#${sender}#${target}`), matched on a key segment naming the account
+ * and kept to rows whose `participants` hold it. The other participant loses
+ * the relation too (mirrors the `cancelFriendRequest` / `unfollow` semantics).
+ */
+const relationsPhase: PurgePhase = ({ callerText, callerBytes, writer }) =>
+	matchingDocs({
+		collection: Collection.RELATIONS,
+		keyPattern: `(^|#)${escapeRegex(callerText)}(#|$)`,
+		listAs: callerBytes
+	})
+		.filter(decodesAnd<Relation>(({ participants }) => participants.includes(callerText)))
+		.map((entry) => deleteWrite({ collection: Collection.RELATIONS, entry, writer }));
+
+/**
+ * The account's own `league_members` rows (keys end in `/${principal}`) whose
+ * payload names it as the member.
+ */
+const ownMembershipRows = ({ callerText, callerBytes }: CascadeStep): ListedDocEntry[] =>
+	matchingDocs({
+		collection: Collection.LEAGUE_MEMBERS,
+		keyPattern: `${escapeRegex(`/${callerText}`)}$`,
+		listAs: callerBytes
+	}).filter(decodesAnd<LeagueMemberDoc>(({ member }) => member === callerText));
+
+/**
+ * Every league the account owns, found from its own membership rows, resolved
+ * one of two ways together with that row, in one write of up to three:
+ *
+ *  - **No other members left** → delete the league and its invite code. On the
+ *    `deleteMyAccount` path the owner-non-empty guard already passed, so the
+ *    league is a genuine orphan.
+ *  - **Other members remain** → transfer ownership instead of deleting, so
+ *    self-joiners during the recovery window aren't orphaned. This branch only
+ *    triggers on the guard-less paths (recovery-expiry purge + admin sweep),
+ *    where membership may have grown after the soft-delete. A deterministic
+ *    survivor, the first other member row in key order, becomes the new owner:
+ *    `league.owner` is re-encoded onto the league doc (version-locked) and that
+ *    member's row `role` is bumped to `'owner'` (also version-locked). Both
+ *    writes are signed as the controller, which `assertSetLeague` and
+ *    `assertSetLeagueMember` accept as the owner.
+ *
+ * A league resolved this way no longer names the account as its owner, and its
+ * row is gone, so a later call finds nothing left.
+ */
+const ownedLeaguesPhase: PurgePhase = (step) => {
+	const { callerText, callerBytes, writer } = step;
+	const suffix = `/${callerText}`;
+
+	return ownMembershipRows(step).flatMap((ownRow): PurgeWrite[] => {
+		const leagueId = ownRow[0].slice(0, -suffix.length);
+		const leagueDoc = getDocStore({
+			collection: Collection.LEAGUES,
+			key: leagueId,
+			caller: callerBytes
+		});
+
+		if (isNullish(leagueDoc)) {
+			return [];
+		}
+
+		let league: LeagueDoc;
+
+		try {
+			league = decodeDocData<LeagueDoc>(leagueDoc.data);
+		} catch {
+			// skip malformed
+			return [];
+		}
+
+		if (league.owner !== callerText) {
+			return [];
+		}
+
+		const ownRowDelete = deleteWrite({
+			collection: Collection.LEAGUE_MEMBERS,
+			entry: ownRow,
+			writer
+		});
+		const survivor = leagueMemberRows({ leagueId, caller: callerBytes }).find(
+			decodesAnd<LeagueMemberDoc>(
+				(member) => member.leagueId === leagueId && member.member !== callerText
+			)
+		);
+
+		if (isNullish(survivor)) {
+			return [
+				{
+					cost: 3,
+					deletes: 2,
+					run: () => {
+						deleteDocStore({
+							collection: Collection.LEAGUES,
+							key: leagueId,
+							caller: writer,
+							doc: { version: leagueDoc.version }
+						});
+						deleteLeagueInvite({ leagueId });
+						ownRowDelete.run();
+					}
+				}
+			];
+		}
+
+		const [survivorKey, survivorItem] = survivor;
+		const survivorMember = decodeDocData<LeagueMemberDoc>(survivorItem.data);
+
+		return [
+			{
+				cost: 3,
+				deletes: 1,
+				run: () => {
+					setDocStore({
+						collection: Collection.LEAGUES,
+						key: leagueId,
+						caller: writer,
+						doc: {
+							data: encodeDocData<LeagueDoc>({ ...league, owner: survivorMember.member }),
+							version: leagueDoc.version
+						}
+					});
+					setDocStore({
+						collection: Collection.LEAGUE_MEMBERS,
+						key: survivorKey,
+						caller: writer,
+						doc: {
+							data: encodeDocData<LeagueMemberDoc>({ ...survivorMember, role: 'owner' }),
+							version: survivorItem.version
+						}
+					});
+					ownRowDelete.run();
+				}
+			}
+		];
+	});
+};
+
+/** The account's remaining league memberships, once its owned leagues are resolved. */
+const membershipsPhase: PurgePhase = (step) =>
+	ownMembershipRows(step).map((entry) =>
+		deleteWrite({ collection: Collection.LEAGUE_MEMBERS, entry, writer: step.writer })
+	);
+
+/**
+ * The purge, in the order it runs. The award markers come first, so they exist
+ * before any award doc goes; owned leagues come before the other memberships,
+ * since they are found from the account's own rows; the profile comes last, so
+ * the account stays findable (by the sweep, by a late recovery) until nothing
+ * else of it is left.
+ */
+const ACCOUNT_PURGE_PHASES: readonly PurgePhase[] = [
+	awardMarkersPhase,
+	privateProfilePhase,
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.VXP_AWARDS, listAs: step.callerBytes }),
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.VXP_ONBOARDING, listAs: step.callerBytes }),
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.CALIBRATION_ATTEMPTS, listAs: step.writer }),
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.USER_STATS, listAs: step.callerBytes }),
+	(step) =>
+		ownPrefixedDocs({
+			...step,
+			collection: Collection.USER_MONTHLY_STATS,
+			listAs: step.callerBytes
+		}),
+	resolvedResultsPhase,
+	reactionsPhase,
+	// Controllers-scoped, and holds the school email.
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.SCHOOL_SUBMISSIONS, listAs: step.writer }),
+	referralCodePhase,
+	referralRedemptionPhase,
+	(step) =>
+		ownPrefixedDocs({
+			...step,
+			collection: Collection.LEAGUE_INVITE_ATTEMPTS,
+			listAs: step.writer
+		}),
+	// Whatever their 90-day lock: `assertDeleteAffiliation` lets the controller through.
+	(step) =>
+		ownPrefixedDocs({ ...step, collection: Collection.AFFILIATIONS, listAs: step.callerBytes }),
+	relationsPhase,
+	ownedLeaguesPhase,
+	membershipsPhase,
+	(step) => ownPrefixedDocs({ ...step, collection: Collection.PROFILES, listAs: step.callerBytes })
+];
+
+/** Result of one {@link hardDeleteAccountFn} call. */
+export interface AccountPurgeBatch {
+	/** How many of the account's docs this call deleted. */
+	deleted: number;
+	/** More is left: call again until this is `false`. */
+	pending: boolean;
+}
+
+/**
+ * Cascade hard-delete for a single account, at most
+ * {@link ACCOUNT_PURGE_BATCH} writes per call: `pending` means more is left,
+ * and the caller calls again until it is `false`. Removes every row
  * identity-keyed to the principal: profile, VXP awards / onboarding (an
  * anonymous marker of each paid one-time award stays, see
- * {@link recordAccountAwardMarkers}),
- * calibration attempts, user stats and monthly stats, resolved results, the
- * likes it gave, school-email submissions, referral code + redemption record,
- * missed league invite codes, affiliations, relations, league memberships. Owned leagues are then either deleted (no other members
- * left) or transferred to a surviving member: see
- * {@link disbandOrTransferOwnedLeagues}; self-joiners during the recovery
- * window are never orphaned. Shared audit rows (activities, battles,
- * comments) are left in place: the principal is gone, so they're
- * orphaned but immutable (decision 4.1).
+ * {@link missingAccountAwardMarkers}), calibration attempts, user stats and
+ * monthly stats, resolved results, the likes it gave, school-email
+ * submissions, referral code + redemption record, missed league invite codes,
+ * affiliations, relations, league memberships. Owned leagues are either
+ * deleted (no other members left) or transferred to a surviving member: see
+ * {@link ownedLeaguesPhase}; self-joiners during the recovery window are never
+ * orphaned. Shared audit rows (activities, battles, comments) are left in
+ * place: the principal is gone, so they're orphaned but immutable (decision
+ * 4.1).
  *
- * Order matters only between league memberships → owned leagues (the
- * latter scans the surviving membership rows, so the caller's own row
- * must be gone first to compute the right survivor).
+ * Every call walks {@link ACCOUNT_PURGE_PHASES} from the first, so a phase
+ * finished in an earlier call costs reads only and a doc stored since (an award
+ * paid mid-purge) is still caught in order. The profile goes last: until the
+ * purge is done the account keeps its soft-deleted profile, so the sweep and a
+ * late recovery both find it again and carry on.
  *
  * Takes the principal explicitly (does NOT call `msgCaller()`) so the
- * admin sweep can run it for any account, not just the caller. Returns
- * the number of docs deleted. Idempotent: a re-run on an
- * already-purged account finds nothing and returns 0.
+ * admin sweep can run it for any account, not just the caller. Idempotent: a
+ * call on an already-purged account finds nothing, writes nothing and
+ * answers `{ deleted: 0, pending: false }`.
  */
 export const hardDeleteAccountFn = ({
 	callerText,
@@ -890,53 +833,29 @@ export const hardDeleteAccountFn = ({
 }: {
 	callerText: string;
 	callerBytes: Uint8Array;
-}): number => {
+}): AccountPurgeBatch => {
 	const step: CascadeStep = {
 		callerText,
 		callerBytes,
 		writer: controllerCaller('account purge')
 	};
 
-	let docsDeleted = 0;
+	let spent = 0;
+	let deleted = 0;
 
-	// Before the award history goes: what keeps the same principal, signing up
-	// again, from collecting a one-time award twice.
-	recordAccountAwardMarkers({ callerText, writer: step.writer });
+	for (const phase of ACCOUNT_PURGE_PHASES) {
+		for (const write of phase(step)) {
+			if (spent > 0 && spent + write.cost > ACCOUNT_PURGE_BATCH) {
+				return { deleted, pending: true };
+			}
 
-	docsDeleted += deleteOwnProfile(step);
-	docsDeleted += deleteOwnPrivateProfile(step);
-	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_AWARDS });
-	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.VXP_ONBOARDING });
-	// Controllers-scoped: listed as the controller too.
-	docsDeleted += deletePrefixedDocs({
-		...step,
-		callerBytes: step.writer,
-		collection: Collection.CALIBRATION_ATTEMPTS
-	});
-	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.USER_STATS });
-	docsDeleted += deletePrefixedDocs({ ...step, collection: Collection.USER_MONTHLY_STATS });
-	docsDeleted += deleteOwnResolvedResults(step);
-	docsDeleted += deleteOwnReactions(step);
-	// Controllers-scoped, and holds the school email.
-	docsDeleted += deletePrefixedDocs({
-		...step,
-		callerBytes: step.writer,
-		collection: Collection.SCHOOL_SUBMISSIONS
-	});
-	docsDeleted += deleteOwnReferralCode(step);
-	docsDeleted += deleteOwnReferralRedemption(step);
-	// Controllers-scoped: listed as the controller too.
-	docsDeleted += deletePrefixedDocs({
-		...step,
-		callerBytes: step.writer,
-		collection: Collection.LEAGUE_INVITE_ATTEMPTS
-	});
-	docsDeleted += deleteOwnAffiliations({ ...step, collection: Collection.AFFILIATIONS });
-	docsDeleted += deleteOwnRelations(step);
-	docsDeleted += deleteOwnLeagueMemberships(step);
-	docsDeleted += disbandOrTransferOwnedLeagues(step);
+			write.run();
+			spent += write.cost;
+			deleted += write.deletes;
+		}
+	}
 
-	return docsDeleted;
+	return { deleted, pending: false };
 };
 
 /**
@@ -1213,8 +1132,11 @@ const softDeleteProfile = ({
  *    `{ ok: true, recovered: true }`.
  *  - Soft-deleted past the window → the grace period is over, so we
  *    hard-delete the account now and report `{ ok: false, reason:
- *    'expired' }` (a late recovery attempt is the natural trigger to
- *    finally purge the data).
+ *    'expired', pending }` (a late recovery attempt is the natural trigger
+ *    to finally purge the data). The purge writes a bounded batch per
+ *    call ({@link hardDeleteAccountFn}): `pending` means more is left and
+ *    the caller calls again until it is `false`. The profile goes last,
+ *    so every one of those calls still lands in this branch.
  *
  * No profile at all (never onboarded, or already hard-deleted) is a
  * clean no-op `{ ok: true, recovered: false }`. Idempotent.
@@ -1255,9 +1177,9 @@ export const recoverMyAccountFn = (): RecoverMyAccountResult => {
 
 	if (expired) {
 		// Window elapsed: purge now and refuse the recovery.
-		hardDeleteAccountFn({ callerText, callerBytes });
+		const { pending } = hardDeleteAccountFn({ callerText, callerBytes });
 
-		return { ok: false, reason: 'expired' };
+		return { ok: false, reason: 'expired', pending };
 	}
 
 	return { ok: true, recovered: result.status === 'written' };
@@ -1365,11 +1287,11 @@ export const resumeMyAccountFn = (): ResumeMyAccountResult => {
 };
 
 /**
- * How many purges one `sweepExpiredDeletions` call attempts. A purge runs
- * a dozen collection scans and deletes every doc the account owns, each
- * delete a serverless write costing billions of instructions, so a call
- * purges a single account and the sweep goes in rounds (see the
- * bulk-rewrite budget note in docs/ai/satellite/patterns.md).
+ * How many accounts one `sweepExpiredDeletions` call purges. A purge call
+ * runs a dozen key-matched scans on top of its batch of writes, each a
+ * serverless write costing billions of instructions, so a call works on a
+ * single account and the sweep goes in rounds (see the bulk-rewrite budget
+ * note in docs/ai/satellite/patterns.md).
  */
 const SWEEP_EXPIRED_DELETIONS_BATCH = 1;
 
@@ -1377,10 +1299,15 @@ const SWEEP_EXPIRED_DELETIONS_BATCH = 1;
  * Admin sweep that hard-deletes soft-deleted accounts whose recovery
  * window has elapsed (Delete account v2). One call reads one keyset page
  * of `PROFILES` after `afterKey` (at most `limit` docs, see
- * {@link walkKeysetPage}) and runs {@link hardDeleteAccountFn} for at most
- * {@link SWEEP_EXPIRED_DELETIONS_BATCH} profile with `deletedAtMs` older
- * than {@link ACCOUNT_RECOVERY_WINDOW_MS}. The operator passes the
+ * {@link walkKeysetPage}) and runs one {@link hardDeleteAccountFn} batch for
+ * at most {@link SWEEP_EXPIRED_DELETIONS_BATCH} profile with `deletedAtMs`
+ * older than {@link ACCOUNT_RECOVERY_WINDOW_MS}. The operator passes the
  * returned `nextAfterKey` to the next call until `done`.
+ *
+ * A purge with more left than one batch keeps the account's profile (it
+ * goes last), so the call stops there with the cursor before it and the
+ * next call carries the same purge on; the account counts in `swept` on
+ * the call that removes its profile.
  *
  * **Admin-only**: refuses non-admins via the shared `isAdmin` check.
  *
@@ -1426,10 +1353,18 @@ export const sweepExpiredDeletionsFn = ({
 				return 'stop';
 			}
 
-			if (purgeSweptAccount({ docKey }) === 'swept') {
+			const outcome = purgeSweptAccount({ docKey });
+
+			if (outcome === 'swept') {
 				swept += 1;
 
 				return 'removed';
+			}
+
+			// The profile goes last, so a purge with more left keeps it: stopping
+			// leaves the cursor before the account and the next call carries on.
+			if (outcome === 'pending') {
+				return 'stop';
 			}
 
 			failed += 1;
@@ -1476,15 +1411,16 @@ const isExpiredDeletion = ({
  * the wrong principal. Runs OUTSIDE the malformed-row guard: a bad key
  * or a cascade error is logged via `logError` and reported as
  * `'failed'` so the run can't under-purge silently. Returns `'swept'`
- * on success, `'failed'` otherwise.
+ * once the account is gone, `'pending'` when this call's batch left more
+ * of it, `'failed'` otherwise.
  */
-const purgeSweptAccount = ({ docKey }: { docKey: string }): 'swept' | 'failed' => {
+const purgeSweptAccount = ({ docKey }: { docKey: string }): 'swept' | 'pending' | 'failed' => {
 	try {
 		const ownerBytes = Principal.fromText(docKey).toUint8Array();
 
-		hardDeleteAccountFn({ callerText: docKey, callerBytes: ownerBytes });
+		const { pending } = hardDeleteAccountFn({ callerText: docKey, callerBytes: ownerBytes });
 
-		return 'swept';
+		return pending ? 'pending' : 'swept';
 	} catch (err) {
 		logError({
 			message: 'sweep_expired_deletions_purge_failed',
