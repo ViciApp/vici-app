@@ -9,9 +9,9 @@ import type {
 	LandingClaimStep,
 	LandingClaimSubmit
 } from '#lib/types/landing-claim.ts';
+import { sanitizeHandleInput } from '#lib/utils/handle.utils.ts';
 import {
 	cleanClaimCode,
-	cleanClaimHandle,
 	isLikelyEmail,
 	landingClaimRefusalOf,
 	localClaimCheck
@@ -48,9 +48,9 @@ export class LandingClaimFlow {
 		this.#submit = submit;
 	}
 
-	/** Sets the typed handle, cleaned and capped by the handle rule, and probes it. */
+	/** Sets the typed handle, lowercased, stripped and capped by the handle rule, and probes it. */
 	inputHandle(raw: string): string {
-		this.handle = cleanClaimHandle(raw);
+		this.handle = sanitizeHandleInput(raw);
 		this.typed = true;
 		this.notice = { kind: 'none' };
 		this.#scheduleProbe();

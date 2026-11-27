@@ -2,19 +2,15 @@ import {
 	LANDING_CLAIM_CODE_LENGTH,
 	LANDING_CLAIM_HANDLE_STORAGE_KEY
 } from '#lib/constants/landing-claim.constants.ts';
-import {
-	MAX_HANDLE_LENGTH,
-	MIN_HANDLE_LENGTH,
-	sanitizeNickname
-} from '#lib/constants/profile.constants.ts';
+import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/profile.constants.ts';
 import type {
 	LandingClaimCheck,
 	LandingClaimNotice,
 	LandingClaimRefusal,
 	LandingClaimStep
 } from '#lib/types/landing-claim.ts';
+import { handleFormatIssue } from '#lib/utils/handle.utils.ts';
 import type { MessageKey } from '#lib/utils/i18n.utils.ts';
-import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 import { isNullish, nonNullish } from '@dfinity/utils';
 
 export type LandingClaimTone = 'quiet' | 'yes' | 'no';
@@ -43,39 +39,9 @@ export const isLikelyEmail = (email: string): boolean => /^\S+@\S+\.\S+$/.test(e
 export const cleanClaimCode = (raw: string): string =>
 	raw.replace(/\D/g, '').slice(0, LANDING_CLAIM_CODE_LENGTH);
 
-/**
- * The typed handle as the field keeps it: the shared charset rule strips what
- * it refuses, and the length is capped at the handle editor's maximum, so a
- * handle reserved here is also one the handle editor accepts.
- */
-export const cleanClaimHandle = (raw: string): string =>
-	sanitizeNickname(raw).slice(0, MAX_HANDLE_LENGTH);
-
-/**
- * The first rule `handle` breaks before the network is asked: the handle
- * editor's length bounds, then the shared charset / reserved check.
- */
-export const claimHandleIssue = (handle: string): NicknameFormatIssue | undefined => {
-	const { length } = handle.trim();
-
-	if (length === 0) {
-		return 'required';
-	}
-
-	if (length < MIN_HANDLE_LENGTH) {
-		return 'too_short';
-	}
-
-	if (length > MAX_HANDLE_LENGTH) {
-		return 'too_long';
-	}
-
-	return nicknameFormatIssue(handle);
-};
-
 /** The probe state a typed handle starts in before the network answers. */
 export const localClaimCheck = (handle: string): LandingClaimCheck => {
-	const issue = claimHandleIssue(handle);
+	const issue = handleFormatIssue(handle);
 
 	if (isNullish(issue)) {
 		return { kind: 'checking' };

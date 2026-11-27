@@ -369,7 +369,7 @@ export const esMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'tunombre',
 	'landing.claim.intro': 'Asegura tu handle y únete a la lista de espera.',
-	'landing.claim.invalid': 'Solo letras, números, puntos, guiones y guiones bajos.',
+	'landing.claim.invalid': 'Solo letras minúsculas y números.',
 	'landing.claim.privacy': 'Política de privacidad',
 	'landing.claim.rate_limited': 'Demasiados intentos. Espera un minuto.',
 	'landing.claim.send_failed': 'No se pudo enviar el código. Inténtalo de nuevo.',

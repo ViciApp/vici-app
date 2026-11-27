@@ -368,7 +368,7 @@ export const itMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'iltuonome',
 	'landing.claim.intro': "Blocca il tuo handle ed entra in lista d'attesa.",
-	'landing.claim.invalid': 'Solo lettere, numeri, punti, trattini e underscore.',
+	'landing.claim.invalid': 'Solo lettere minuscole e numeri.',
 	'landing.claim.privacy': 'Informativa sulla privacy',
 	'landing.claim.rate_limited': 'Troppi tentativi. Aspetta un minuto.',
 	'landing.claim.send_failed': 'Invio del codice non riuscito. Riprova.',

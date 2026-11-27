@@ -360,7 +360,7 @@ export const enMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'yourname',
 	'landing.claim.intro': 'Secure your handle and join the waitlist.',
-	'landing.claim.invalid': 'Letters, numbers, dots, dashes and underscores only.',
+	'landing.claim.invalid': 'Lowercase letters and numbers only.',
 	'landing.claim.privacy': 'Privacy Policy',
 	'landing.claim.rate_limited': 'Too many tries. Wait a minute.',
 	'landing.claim.send_failed': "Couldn't send the code. Try again.",

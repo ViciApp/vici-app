@@ -1,10 +1,8 @@
 import { LANDING_CLAIM_CODE_LENGTH } from '#lib/constants/landing-claim.constants.ts';
-import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/profile.constants.ts';
+import { MIN_HANDLE_LENGTH } from '#lib/constants/profile.constants.ts';
 import type { LandingClaimCheck, LandingClaimNotice } from '#lib/types/landing-claim.ts';
 import {
-	claimHandleIssue,
 	cleanClaimCode,
-	cleanClaimHandle,
 	isLikelyEmail,
 	landingClaimLine,
 	landingClaimRefusalOf,
@@ -68,35 +66,6 @@ describe('cleanClaimCode', () => {
 	});
 });
 
-describe('claimHandleIssue', () => {
-	it('holds a claimed handle to the handle editor length bounds', () => {
-		assert.equal(MIN_HANDLE_LENGTH, 3);
-		assert.equal(MAX_HANDLE_LENGTH, 15);
-		assert.equal(claimHandleIssue(''), 'required');
-		assert.equal(claimHandleIssue('ab'), 'too_short');
-		assert.equal(claimHandleIssue('a'.repeat(MIN_HANDLE_LENGTH)), undefined);
-		assert.equal(claimHandleIssue('a'.repeat(MAX_HANDLE_LENGTH)), undefined);
-		assert.equal(claimHandleIssue('a'.repeat(MAX_HANDLE_LENGTH + 1)), 'too_long');
-	});
-
-	it('keeps the shared charset and reserved check', () => {
-		assert.equal(claimHandleIssue('bad name'), 'invalid');
-		assert.equal(claimHandleIssue('José_99'), undefined);
-		assert.equal(claimHandleIssue('admin'), 'reserved');
-	});
-});
-
-describe('cleanClaimHandle', () => {
-	it('strips what the rule refuses, then caps the length', () => {
-		assert.equal(cleanClaimHandle('@anna!'), 'anna');
-		assert.equal(cleanClaimHandle('a'.repeat(MAX_HANDLE_LENGTH + 4)).length, MAX_HANDLE_LENGTH);
-		assert.equal(
-			cleanClaimHandle(`@${'b'.repeat(MAX_HANDLE_LENGTH)}`),
-			'b'.repeat(MAX_HANDLE_LENGTH)
-		);
-	});
-});
-
 describe('localClaimCheck', () => {
 	it('waits for the network on a well-formed handle', () => {
 		assert.deepEqual(localClaimCheck('anna'), { kind: 'checking' });
@@ -105,6 +74,8 @@ describe('localClaimCheck', () => {
 	it('answers the format rules locally', () => {
 		assert.deepEqual(localClaimCheck(''), { kind: 'idle' });
 		assert.deepEqual(localClaimCheck('ab'), { kind: 'format', issue: 'too_short' });
+		assert.deepEqual(localClaimCheck('Anna'), { kind: 'format', issue: 'invalid' });
+		assert.deepEqual(localClaimCheck('admin'), { kind: 'format', issue: 'reserved' });
 	});
 });
 

@@ -345,7 +345,7 @@ export const zhHansMessages = {
 	'landing.claim.handle_label': '用户名',
 	'landing.claim.handle_placeholder': 'yourname',
 	'landing.claim.intro': '锁定你的用户名，加入候补名单。',
-	'landing.claim.invalid': '只能使用字母、数字、点、连字符和下划线。',
+	'landing.claim.invalid': '只能使用小写字母和数字。',
 	'landing.claim.privacy': '隐私政策',
 	'landing.claim.rate_limited': '尝试次数过多，请稍等一分钟。',
 	'landing.claim.send_failed': '验证码发送失败，请重试。',

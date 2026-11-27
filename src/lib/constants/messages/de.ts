@@ -374,7 +374,7 @@ export const deMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'deinname',
 	'landing.claim.intro': 'Sichere dein Handle und komm auf die Warteliste.',
-	'landing.claim.invalid': 'Nur Buchstaben, Zahlen, Punkte, Bindestriche und Unterstriche.',
+	'landing.claim.invalid': 'Nur Kleinbuchstaben und Zahlen.',
 	'landing.claim.privacy': 'Datenschutzerklärung',
 	'landing.claim.rate_limited': 'Zu viele Versuche. Warte eine Minute.',
 	'landing.claim.send_failed': 'Code konnte nicht gesendet werden. Versuch es noch einmal.',

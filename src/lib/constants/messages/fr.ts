@@ -366,7 +366,7 @@ export const frMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'tonnom',
 	'landing.claim.intro': "Sécurise ton handle et rejoins la liste d'attente.",
-	'landing.claim.invalid': 'Lettres, chiffres, points, tirets et underscores uniquement.',
+	'landing.claim.invalid': 'Lettres minuscules et chiffres uniquement.',
 	'landing.claim.privacy': 'Politique de confidentialité',
 	'landing.claim.rate_limited': 'Trop de tentatives. Attends une minute.',
 	'landing.claim.send_failed': "Impossible d'envoyer le code. Réessaie.",

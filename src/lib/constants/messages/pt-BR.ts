@@ -338,7 +338,7 @@ export const ptBRMessages = {
 	'landing.claim.handle_label': 'Handle',
 	'landing.claim.handle_placeholder': 'seunome',
 	'landing.claim.intro': 'Garanta seu handle e entre na lista de espera.',
-	'landing.claim.invalid': 'Só letras, números, pontos, hífens e underlines.',
+	'landing.claim.invalid': 'Só letras minúsculas e números.',
 	'landing.claim.privacy': 'Política de Privacidade',
 	'landing.claim.rate_limited': 'Tentativas demais. Espere um minuto.',
 	'landing.claim.send_failed': 'Não deu para enviar o código. Tente de novo.',

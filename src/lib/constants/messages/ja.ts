@@ -26,7 +26,7 @@ export const jaMessages = {
 	'landing.claim.handle_label': 'ハンドル',
 	'landing.claim.handle_placeholder': 'yourname',
 	'landing.claim.intro': 'ハンドルを確保して、ウェイトリストに登録しよう。',
-	'landing.claim.invalid': '使えるのは文字、数字、ピリオド、ハイフン、アンダースコアのみです。',
+	'landing.claim.invalid': '使えるのは英小文字と数字のみです。',
 	'landing.claim.privacy': 'プライバシーポリシー',
 	'landing.claim.rate_limited': '試行回数が多すぎます。1分ほど待ってください。',
 	'landing.claim.send_failed': 'コードを送信できませんでした。もう一度どうぞ。',
