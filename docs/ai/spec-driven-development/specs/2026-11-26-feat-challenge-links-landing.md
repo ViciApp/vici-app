@@ -14,7 +14,7 @@ Opening `https://vici.app/c/<id>` shows the landing with the challenged market a
 ## Context
 
 - **Landing.** The signed-out landing (a swipe deck of curated cards, components under `src/lib/components/landing/` with the `LandingDeck*` prefix, plus an attract demo that plays the deck by itself for a first-time visitor) is delivered by the landing page PR and is not on `main` at authoring time. That PR also adds the "share this question" button to the deck.
-- **From A1.** `getChallenge(id)` in `src/lib/services/challenge.services.ts` returns the view (`seriesId`, `position` or null, `sideChanged`, `challenger` or null, `marketOpen`) or not found; `redeemChallenge`, `answerChallenge`; the id pattern in `src/lib/constants/challenge.constants.ts`.
+- **From A1.** `getChallenge(id)` in `src/lib/services/challenge.services.ts` returns the view (`seriesId`, `position` or null, `sideChanged`, `challenger` or null, `marketOpen`) or not found; `redeemChallenge`, `answerChallenge`; the id pattern in `src/lib/constants/challenge.constants.ts`. The view says nothing about who is reading it: `GET /api/v1/challenges/:id` (`backend/src/routes/challenges.ts`, PR #1732) is public and does not look at the session. With consent off `challenger` is null, and a matching handle would not prove identity anyway, so the client cannot tell the challenger from anyone else. A4 needs a small A1 addition for that (section 1).
 - **Sign-up handoff.** `src/lib/components/arena/InviteLanding.svelte` (behind `src/routes/i/[code]` and `src/routes/join/[code]`) stashes `referralCode` into the `PENDING_ONBOARDING_STORAGE_KEY` payload; `drainPendingOnboarding` in `src/lib/services/onboarding-handoff.services.ts` redeems it after sign-in with a bounded retry (`MAX_DRAIN_ATTEMPTS`, `settlePendingSlot`); `src/routes/(app)/+layout.svelte` captures `?ref=` for signed-out visitors only.
 - **Market share params.** `marketShareParam` / `parseMarketShareParam` in `src/lib/utils/market-slug.utils.ts` define the `slug~id8` shape; `src/routes/m/[id]/+page.svelte` shows how a param is resolved against the catalog, degrading to "no match" on a collision.
 - **Market art.** `src/lib/components/market/MarketArtwork.svelte` renders a market's own artwork from its taxonomy category.
@@ -29,6 +29,7 @@ Opening `https://vici.app/c/<id>` shows the landing with the challenged market a
 
 - **Signed-out:** fetch the challenge view, render the landing with the lead card and the line, stash the attribution (section 4).
 - **Signed-in:** go to the market detail (`/markets/{seriesId}`) with a banner carrying the same line and a "Predict in Flow" action (`setPinnedFlowMarket`). The challenger opening their own link gets the market detail with no banner.
+- **The owner marker (A1 addition).** The view gains `isOwner: boolean`. The read keeps working signed out; when the request carries a valid session the route resolves it (the session lookup `requireUser` uses, without refusing an anonymous caller) and sets `isOwner` to whether the session's account is the link's challenger; signed out it is always `false`. A response computed for a session is sent `Cache-Control: private` with `Vary: Cookie`, so a shared cache never hands one viewer's marker to another; the preview (A2) reads signed out and is unaffected. The client type in `challenge.services.ts` and its schema gain the field. This is a follow-up PR on A1 (already implemented in #1732), landing before A4; the banner is hidden on `isOwner` and on nothing else.
 - **Not found** (unknown, revoked, pruned, challenger hidden), a malformed id, or the API unreachable: the standard landing, no line, no attribution, no error screen.
 - **Web3 build:** redirect to the same path on `NEW_APP_ORIGIN`.
 
@@ -67,7 +68,7 @@ The handle is shown exactly when the server sends one (the challenger consented 
 ### 6. The plain "share this question" link
 
 - The deck's share button (added by the landing page PR) produces `https://vici.app/?m=<slug~id8>`: a market and nothing else. No handle, no price, no attribution, no server verification, because it asserts nothing about anyone.
-- The landing resolves `m` with `parseMarketShareParam` against the catalog, exactly as `/m/[id]` does (one match or none), and uses that market as the lead card with the attract demo off. No line is shown. An unresolvable or closed market gives the standard landing.
+- The landing resolves `m` with `parseLandingMarketParam` (`src/lib/utils/landing-share.utils.ts`, added by the Markets PR #1730), which accepts both shapes `marketShareParam` hands out: `slug~id8`, and the bare full series id it falls back to when a title yields no slug (through `parseBareMarketShareParam` in `market-slug.utils.ts`; `parseMarketShareParam` alone answers `undefined` for that form). The id prefix it returns is matched against the catalog as `/m/[id]` does (one match or none), and that market is the lead card with the attract demo off. No line is shown. An unresolvable or closed market gives the standard landing.
 - It sets nothing in the pending-onboarding payload and clears nothing.
 - A signed-in visitor on `/?m=` is taken to the market detail.
 - Its preview is the generic share card (no server work, A2 not involved).
@@ -97,21 +98,22 @@ Instrument. `challenge_opened` is already in the taxonomy once A1 is merged; thi
 
 ## Implementation outline
 
+0. **A1 addition, its own PR before this one:** `isOwner` on the challenge view (section 1), the optional session read and cache headers in `backend/src/routes/challenges.ts`, the field in the client type, a test in `backend/tests/challenges.test.ts` (signed out `false`, the challenger `true`, another account `false`, consent off still `true` for the challenger).
 1. `src/routes/c/[id]/+page.svelte`, thin: resolve, branch on session, render the landing page component with a `lead` input or redirect.
 2. The landing deck accepts `leadSeriesId` and an `attract` switch (coordinate the prop names with the landing page PR); a non-curated lead card renders with `MarketArtwork`.
 3. `src/lib/components/landing/LandingDeckChallengeLine.svelte`; `challengeLineKey(view)` in `src/lib/utils/challenge.utils.ts` (shared with A3; whichever merges first adds it).
 4. A banner on the market detail page for a signed-in visitor (`src/lib/components/market/MarketDetailChallengeBanner.svelte`).
 5. `challengeId` in `PendingOnboarding`, its strict parsing, the redeem branch in the drain and in `settlePendingSlot`; the last-touch clears in `InviteLanding.svelte`, `src/routes/league/[code]` and the `?ref=` capture in `src/routes/(app)/+layout.svelte`.
 6. `src/lib/utils/challenge-context.utils.ts` (read, write, expiry) and the answer hook after `placeOrder`, in `order.services.ts`.
-7. The `m` parameter on the landing route (`src/routes/+page.svelte`).
+7. The `m` parameter on the landing route (`src/routes/+page.svelte`), read through `parseLandingMarketParam`; if #1730 has not merged, this PR adds that function and `parseBareMarketShareParam` as #1730 defines them.
 8. The `/c` path next to `PublicPath` in `src/lib/constants/routes.constants.ts`; the context key and expiry in `src/lib/constants/challenge.constants.ts`.
 9. i18n keys in every catalog: `landing.deck.challenge.*`, `market.detail.challenge.*`.
 10. **Docs in the same PR:** `PRODUCT.md` (the receiving end, last-touch attribution in "Friendship rules", the plain question link), `frontend/reusability.md`.
 
 **Tests**
 
-- **Pure logic** (`src/tests/`): `challengeLineKey` for every row of the table; the last-touch merge of the pending payload in both directions; context expiry; `m` resolution (match, collision, unknown).
-- **E2E** (`e2e-web2/challenge-landing.spec.ts`, fake engine, links created through the API): the lead card and line for a live link; adding a handle, a side or a price as query parameters changes nothing; a link whose owner flipped side shows "now says"; a closed position shows the neutral line; consent off shows "A friend"; a revoked link shows the standard landing; the attract demo does not start; sign-up through the link makes the challenger the referrer, and an invite link opened afterwards replaces it; a call on the market after sign-up records an answer; a signed-in visitor lands on the market detail with the banner; `/?m=` puts that market first with no line and no attribution.
+- **Pure logic** (`src/tests/`): `challengeLineKey` for every row of the table; the last-touch merge of the pending payload in both directions; context expiry; `m` resolution (a `slug~id8` match, a bare full id from an unsluggable title, a collision, unknown).
+- **E2E** (`e2e-web2/challenge-landing.spec.ts`, fake engine, links created through the API): the lead card and line for a live link; adding a handle, a side or a price as query parameters changes nothing; a link whose owner flipped side shows "now says"; a closed position shows the neutral line; consent off shows "A friend"; a revoked link shows the standard landing; the attract demo does not start; sign-up through the link makes the challenger the referrer, and an invite link opened afterwards replaces it; a call on the market after sign-up records an answer; a signed-in visitor lands on the market detail with the banner, and the challenger opening their own link, with consent on or off, gets no banner; `/?m=` puts that market first with no line and no attribution.
 
 **Rollout.** Web build only, with the landing go-live. Before it, `/c/<id>` falls through to the SPA fallback. Rollback: the previous web image.
 
@@ -131,14 +133,14 @@ Instrument. `challenge_opened` is already in the taxonomy once A1 is merged; thi
 - [ ] A sign-up after opening a link credits that challenger once; a later invite link replaces it, and the reverse.
 - [ ] A call on the challenged market by the visitor records an answer without the client sending side or price.
 - [ ] A signed-in visitor gets the market detail with the banner; the challenger gets it without.
-- [ ] `/?m=<slug~id8>` opens the landing with that market first, no line, no attribution.
+- [ ] `/?m=<slug~id8>`, and `/?m=<series id>` for a title with no slug, open the landing with that market first, no line, no attribution.
 - [ ] The web3 build redirects `/c/<id>` to vici.app.
 - [ ] Every string is in every catalog; `npm run quality`, `npm run check`, `npm test` and `npm run e2e:web2` pass.
 
 ## Open questions
 
 1. **Landing deck contract.** Confirm with the landing page PR: the prop that sets a lead series, how a non-curated series is rendered, and how the attract demo is switched off.
-2. **Share button URL.** Confirm the landing page PR's share button emits `/?m=<slug~id8>` built with `marketShareParam`; if it already emits another shape, this spec adopts it.
+2. **Share button URL.** Confirm the landing page PR's share button emits `/?m=` built with `marketShareParam` (#1730's `landingMarketShareUrl` does); if it already emits another shape, this spec adopts it.
 3. **Landing go-live switch.** The route must follow the same switch as the landing.
 4. **Open issues.** Run the issue search that was not possible at authoring time.
 
