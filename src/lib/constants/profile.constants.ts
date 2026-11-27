@@ -2,11 +2,13 @@ import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 import { isNullish } from '@dfinity/utils';
 
 /**
- * Nickname (= handle) rules. The STORED value keeps the owner's form: case
- * and accents preserved (`José`, `CaféOwner`). Allowed charset: letters (any
- * language) + digits + `. _ -`; everything else (whitespace, `@`, symbols,
- * emoji) is forbidden. Uniqueness is case- AND accent-insensitive: see
- * {@link nicknameUniqueKey}. 2–16 chars; the satellite is the authority.
+ * The legacy nickname rules, enforced by the satellite (vici.market) only.
+ * Every handle picked or changed on vici.app follows the handle rule in
+ * `#lib/constants/handle.constants.ts` instead; these stay until the
+ * satellite moves to that rule. The STORED value keeps the owner's form:
+ * case and accents preserved. Allowed charset: letters (any language) +
+ * digits + `. _ -`. Uniqueness is case- AND accent-insensitive: see
+ * {@link nicknameUniqueKey}. 2–16 chars.
  */
 export const MIN_NICKNAME_LENGTH = 2;
 export const MAX_NICKNAME_LENGTH = 16;
@@ -28,18 +30,6 @@ const buildNicknamePattern = (): RegExp => {
 export const NICKNAME_PATTERN = buildNicknamePattern();
 
 /**
- * Input-time inverse of {@link NICKNAME_PATTERN}: NFC-normalise, strip the
- * forbidden chars (whitespace, `@`, symbols), clamp to
- * {@link MAX_NICKNAME_LENGTH}: **keeping case + accents**. FE-only, so the
- * `\p{L}` literal is safe. Used by the onboarding picker + sign-in bootstrap.
- */
-export const sanitizeNickname = (raw: string): string =>
-	raw
-		.normalize('NFC')
-		.replace(/[^\p{L}\p{M}0-9._-]/gu, '')
-		.slice(0, MAX_NICKNAME_LENGTH);
-
-/**
  * Case- + accent-insensitive uniqueness key: `José` / `JOSE` / `jose` →
  * `jose`. Trim, NFKD, strip combining marks (U+0300–U+036F range, engine-safe,
  * no property escape), lowercase. Separators `. _ -` are kept (`a_b` ≠ `ab`).
@@ -52,28 +42,6 @@ export const nicknameUniqueKey = (raw: string): string =>
 	raw.trim().normalize('NFKD').replace(COMBINING_DIACRITICAL_MARKS, '').toLowerCase();
 
 export const PENDING_ONBOARDING_STORAGE_KEY = 'vici:pending-onboarding';
-
-/**
- * Handle (public @-name) editing rules: the same field as the nickname,
- * surfaced through the {@link HandleEditor} sheet with a slightly stricter
- * charset (no `.` / `-`), 3–15 chars. Case + accents are preserved like the
- * nickname; uniqueness folds them ({@link nicknameUniqueKey}).
- */
-export const MIN_HANDLE_LENGTH = 3;
-export const MAX_HANDLE_LENGTH = 15;
-
-/**
- * The handle rule a visitor claims a handle under on the landing: lowercase
- * `a-z` and `0-9` only, {@link MIN_HANDLE_LENGTH} to {@link MAX_HANDLE_LENGTH}
- * characters. No accents, no other scripts, no `.` / `_` / `-`, so two
- * handles never differ only by a lookalike. Checked by `handleFormatIssue`
- * (`#lib/utils/handle.utils.ts`); `HANDLE_DISALLOWED_CHARS` is its input-time
- * inverse.
- */
-export const HANDLE_PATTERN = new RegExp(`^[a-z0-9]{${MIN_HANDLE_LENGTH},${MAX_HANDLE_LENGTH}}$`);
-
-/** Every character {@link HANDLE_PATTERN} refuses, for stripping as the visitor types. */
-export const HANDLE_DISALLOWED_CHARS = /[^a-z0-9]/g;
 
 /**
  * A handle can be changed once every {@link HANDLE_COOLDOWN_DAYS} days.
@@ -89,135 +57,6 @@ export const HANDLE_DISALLOWED_CHARS = /[^a-z0-9]/g;
  * both sides agree on the window.
  */
 export const HANDLE_COOLDOWN_DAYS = 30;
-
-/**
- * Handles only VICI may use, so nobody can pass for the company, its
- * products or its staff. Entries are folded keys; test a typed handle with
- * {@link isReservedHandle}. Exact match, no prefix rule, because "vici..."
- * also starts ordinary words. Names already held by real accounts are left
- * out: reserving them would lock their owners.
- */
-export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
-	// Brand and company
-	'vici',
-	'viciai',
-	'viciapp',
-	'vicibot',
-	'vicihq',
-	'vicilabs',
-	'vicilabsltd',
-	'vicimarket',
-	'vicimarkets',
-	'vicinews',
-	'viciofficial',
-	'viciteam',
-	'vicitoken',
-	'vicixp',
-	'venividivici',
-	'wholesome',
-	'official',
-	'team',
-	// Products, features and characters
-	'archivist',
-	'arena',
-	'battles',
-	'flow',
-	'flowmode',
-	'league',
-	'leagues',
-	'oracle',
-	'trickster',
-	'vxp',
-	'worlds',
-	// Staff, roles and mailboxes
-	'abuse',
-	'admin',
-	'admins',
-	'administrator',
-	'billing',
-	'careers',
-	'ceo',
-	'cfo',
-	'compliance',
-	'coo',
-	'cto',
-	'founder',
-	'founders',
-	'giovannitosi',
-	'hello',
-	'help',
-	'hostmaster',
-	'info',
-	'investors',
-	'legal',
-	'mod',
-	'moderation',
-	'moderator',
-	'mods',
-	'noreply',
-	'postmaster',
-	'press',
-	'privacy',
-	'reply',
-	'resolution',
-	'safety',
-	'security',
-	'staff',
-	'support',
-	'sysadmin',
-	'timschwartz',
-	'trustandsafety',
-	'viciadmin',
-	'viciantonio',
-	'vicigio',
-	'vicisupport',
-	'vicitim',
-	'webmaster',
-	// System voices and technical names
-	'announcements',
-	'anonymous',
-	'api',
-	'bot',
-	'everyone',
-	'guest',
-	'leaderboard',
-	'markets',
-	'news',
-	'notifications',
-	'null',
-	'payments',
-	'payouts',
-	'rewards',
-	'root',
-	'status',
-	'system',
-	'treasury',
-	'undefined',
-	'updates',
-	'www'
-]);
-
-const NOT_HANDLE_KEY_CHARS = new RegExp('[^a-z0-9]', 'g');
-
-/**
- * Whether a typed handle is one of {@link RESERVED_HANDLES} once case,
- * accents and separators are folded away, so `VÍCI` and `vi.ci` count as
- * `vici`.
- */
-export const isReservedHandle = (raw: string): boolean =>
-	RESERVED_HANDLES.has(nicknameUniqueKey(raw).replace(NOT_HANDLE_KEY_CHARS, ''));
-
-/**
- * {@link sanitizeNickname} for the HandleEditor: same idea (NFC, strip
- * forbidden chars, keep case + accents) but a stricter charset (no `.` / `-`)
- * and clamped to {@link MAX_HANDLE_LENGTH}. FE-only, so the `\p{L}` literal is
- * safe.
- */
-export const cleanHandle = (raw: string): string =>
-	raw
-		.normalize('NFC')
-		.replace(/[^\p{L}\p{M}0-9_]/gu, '')
-		.slice(0, MAX_HANDLE_LENGTH);
 
 /**
  * Whole days the owner must still wait before the handle can change again,

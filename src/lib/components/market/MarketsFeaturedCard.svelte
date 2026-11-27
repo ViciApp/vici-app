@@ -79,15 +79,15 @@
 <div class="card-surface featured-card">
 	<div class="row between">
 		{#if tag}
-			<span style:color={tagColor(tag)} class="tag"
-				>{categoryLabel({ category: tag, variant: 'short', locale: $localeStore })}</span
-			>
+			<span style:color={tagColor(tag)} class="tag">
+				{categoryLabel({ category: tag, variant: 'short', locale: $localeStore })}
+			</span>
 		{:else}
 			<span class="tag">&nbsp;</span>
 		{/if}
-		<span class="num mute t-eyebrow"
-			>{freshVolume ? t({ locale: $localeStore, key: 'market.detail.stats.new' }) : vol}</span
-		>
+		<span class="num mute t-eyebrow">
+			{freshVolume ? t({ locale: $localeStore, key: 'market.detail.stats.new' }) : vol}
+		</span>
 	</div>
 	<a
 		style="margin-top: 12px; font-size: 15px; font-weight: 600; line-height: 1.3; min-height: 58px;"
@@ -110,9 +110,9 @@
 		{#if hasProbability}
 			<span class="num t-h4 text-yes">{yes}%</span>
 		{:else}
-			<span style:font-weight="600" class="num t-h4"
-				><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
-			>
+			<span style:font-weight="600" class="num t-h4">
+				<MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} />
+			</span>
 		{/if}
 		<span style="gap: 4px;" class="row">
 			<span class="tag yes">{t({ locale: $localeStore, key: 'outcome.yes' })}</span>

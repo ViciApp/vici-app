@@ -4,8 +4,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import SignInProviderStack from '#lib/components/authn/SignInProviderStack.svelte';
-	import { HANDLE_POOL } from '#lib/constants/handle-pool.constants.ts';
-	import { MAX_NICKNAME_LENGTH, sanitizeNickname } from '#lib/constants/profile.constants.ts';
+	import { MAX_HANDLE_LENGTH, MIN_HANDLE_LENGTH } from '#lib/constants/handle.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
@@ -16,8 +15,13 @@
 	} from '#lib/services/handle-availability.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
+	import {
+		HANDLE_SUGGESTIONS,
+		handleFormatIssue,
+		sanitizeHandleInput,
+		type HandleFormatIssue
+	} from '#lib/utils/handle.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
-	import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 	import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 
 	/**
@@ -70,10 +74,10 @@
 	const EMPTY_PAUSE_MS = 550;
 	const FOCUS_POLL_MS = 500;
 
-	// Pick `count` distinct entries from the handle pool (sampling without
-	// replacement off a throwaway copy).
+	// Pick `count` distinct handle suggestions (sampling without replacement
+	// off a throwaway copy).
 	const sampleHandlePool = (count: number): string[] => {
-		const remaining = [...HANDLE_POOL];
+		const remaining = [...HANDLE_SUGGESTIONS];
 		const limit = Math.min(count, remaining.length);
 		const picks: string[] = [];
 
@@ -111,11 +115,11 @@
 
 	let custom = $state('');
 
-	// Sanitised view of the input: NFC-normalised, out-of-charset characters
-	// stripped (case and accents are preserved; uniqueness folds them later).
-	// The input renders this cleaned value, and it is what gets probed and
-	// claimed. An empty field falls back to the pool suggestion.
-	const cleaned = $derived(sanitizeNickname(custom));
+	// The input cleaned to the handle rule as it is typed (lowercased, accents
+	// folded, everything outside a-z0-9 removed). The input renders this
+	// value, and it is what gets probed and claimed. An empty field falls back
+	// to the pool suggestion.
+	const cleaned = $derived(sanitizeHandleInput(custom));
 	const selectedName = $derived(cleaned.length > 0 ? cleaned : suggestion);
 	// Whether the active selection is the pool placeholder (empty input). The
 	// suggestion is pre-validated and not user-typed, so it never fires a
@@ -153,7 +157,7 @@
 	// Local format checks the live probe must clear before hitting the
 	// satellite. Only the typed handle is probed; the placeholder is
 	// pre-validated.
-	const formatIssue = $derived(usingSuggestion ? undefined : nicknameFormatIssue(selectedName));
+	const formatIssue = $derived(usingSuggestion ? undefined : handleFormatIssue(selectedName));
 	const formatValid = $derived(!usingSuggestion && isNullish(formatIssue));
 
 	// Debounced live probe. A monotonic token cancels the in-flight check on
@@ -181,7 +185,7 @@
 
 		if (sessionTaken.has(candidate)) {
 			liveAvailability = 'taken';
-			track({ name: 'handle_checked', source: 'onboarding', ok: false });
+			track({ name: 'handle_checked', source: 'onboarding', ok: false, label: 'taken' });
 
 			return;
 		}
@@ -207,7 +211,8 @@
 					track({
 						name: 'handle_checked',
 						source: 'onboarding',
-						ok: res.available
+						ok: res.available,
+						...(!res.available && { label: res.reason })
 					});
 				} catch (err) {
 					if (token !== checkToken) {
@@ -240,7 +245,7 @@
 
 	// An empty field shows the pool suggestion instead, so `required` only
 	// reads as too short here.
-	const FORMAT_ISSUE_KEYS: Record<NicknameFormatIssue, MessageKey> = {
+	const FORMAT_ISSUE_KEYS: Record<HandleFormatIssue, MessageKey> = {
 		required: 'onboarding.avail.too_short',
 		too_short: 'onboarding.avail.too_short',
 		too_long: 'onboarding.avail.too_long',
@@ -455,7 +460,6 @@
 						autocapitalize="off"
 						autocomplete="off"
 						data-tid={TestId.OnboardingHandleInput}
-						maxlength={MAX_NICKNAME_LENGTH}
 						onblur={onFieldBlur}
 						onfocus={onFieldFocus}
 						oninput={onInput}
@@ -477,11 +481,17 @@
 						{t({ locale: $localeStore, key: 'onboarding.avail.available' })}
 						<span class="serif-italic">@{selectedName}</span>
 					{:else if availability.reasonKey}
-						{t({ locale: $localeStore, key: availability.reasonKey })}
+						{t({
+							locale: $localeStore,
+							key: availability.reasonKey,
+							params: { min: MIN_HANDLE_LENGTH, max: MAX_HANDLE_LENGTH }
+						})}
 					{:else}
 						@{selectedName}
 					{/if}
 				</div>
+
+				<p class="ob-rule">{t({ locale: $localeStore, key: 'profile.handle.hint' })}</p>
 
 				<div class="ob-summary ob-summary-starter">
 					<div class="ob-summary-row">

@@ -263,9 +263,12 @@ The product rules for the friend graph. Surfaces: Arena → Friends
 leaderboard mini-profile sheet; both route through the same relation
 service.
 
-- **Adding.** A friend is added by `@handle` or raw principal. A
-  handle resolves by exact, case-insensitive nickname match; no match
-  → a "not found" notice suggesting an invite link; resolving to
+- **Adding.** A friend is added by `@handle` or raw principal. On
+  vici.app a typed handle resolves to the account holding exactly that
+  handle, otherwise to the one whose handle is the same once case, accents
+  and `.` `_` `-` are ignored, so `@Antonio.Ventilii` finds
+  `antonioventilii` (vici.market keeps the exact, case-insensitive match);
+  no match → a "not found" notice suggesting an invite link; resolving to
   yourself is blocked.
 - **One relation per pair.** A friendship between two users is a
   single record in one of three states: pending, active, or rejected.
@@ -775,6 +778,26 @@ stays available until the end of September 2027. It has no move action and
 gives way to the "move your account" banner at cutover. The new app's own
 sign-up is unchanged.
 
+### Handles: one rule
+
+Every handle picked or changed on vici.app (onboarding, the handle editor,
+the landing claim, the API) is lowercase `a` to `z` and `0` to `9`, 3 to 15
+characters. The field cleans the input as it is typed: capitals become
+lowercase, accents drop to the base letter, a few letters with no accent are
+spelled plainly (`ß` as `ss`, `ø` as `o`, `þ` as `th`), anything else
+disappears, and a line under the field says "Lowercase letters and numbers".
+
+A handle is "taken" when another account holds the same letters and digits
+once case, accents and `.` `_` `-` are ignored, so `antonio.ventilii` and a
+new `antonioventilii` can never coexist. The handles only VICI may use
+(`RESERVED_HANDLES`) are refused by the server too. An account that signs in
+without picking a handle gets its display name cleaned to the rule, or a
+Roman suggestion plus two digits (`seneca42`), never its account id.
+
+A handle that predates the rule keeps saving as long as it is left as it is.
+Tidying it to the rule (`José` to `jose`) is free: it does not use the one
+change every 30 days. vici.market (the satellite) keeps its own wider rule.
+
 ### Onboarding: one screen, claim a handle and sign up
 
 The new-user flow is a single screen (`Onboarding`, in
@@ -792,8 +815,9 @@ earlier variant to fall back to.
 The screen reuses, rather than re-implements, the handle machinery (live
 availability probe, session-taken cache, claim-time re-check), the
 provider stack, and the starter-VXP source; analytics reuse the existing
-taxonomy: `onboarding_started` and `handle_checked` fire with
-`label: 'v3'`, and `onboarding_completed` still fires once via the drain
+taxonomy: `onboarding_started` fires, `handle_checked` carries the
+refusal reason (`taken`, `reserved`, ...) in `label` when `ok` is false,
+and `onboarding_completed` still fires once via the drain
 with `ok` (team-picked) `false`.
 
 ### Guest mode: preview Flow free, convert with a starter grant

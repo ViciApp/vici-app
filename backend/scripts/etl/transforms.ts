@@ -52,7 +52,7 @@ import { tx, type TxQuery } from '../../src/db/client';
 import { LEAGUE_INVITE_CODE_REGEX, randomInviteCode } from '../../src/leagues/leagues';
 import { UUID_RE, ZERO } from '../../src/lib/constants';
 import { MONTH_ANCHOR_RE } from '../../src/lib/time';
-import { nicknameUniqueKey } from '../../src/profiles/nickname';
+import { handleUniqueKey, nicknameUniqueKey } from '../../src/profiles/nickname';
 import { activityKey as webActivityKey } from '../../src/social/activities';
 import { followRelationKey, friendRelationKey } from '../../src/social/relations';
 import { isVxpAwardType } from '../../src/vxp/awards';
@@ -216,13 +216,17 @@ const importProfiles: ImporterRun = async (docs, { q, mapper, nowMs, stats }) =>
 		const userId = await mapper.userIdFor(principal);
 		const nickname = str(d.nickname);
 		let nicknameKey = nicknameUniqueKey(nickname);
+		const handleKey = handleUniqueKey(nickname);
 
 		if (nicknameKey !== '') {
+			// A lookalike of a held handle is a conflict too: the profiles
+			// trigger refuses it unless the row carries no reserved handle.
 			const conflictRows = await q<{ user_id: string }>(
-				`select user_id from profiles where nickname_key = $1 and user_id <> $2`,
-				[nicknameKey, userId]
+				`select user_id from profiles
+				 where (nickname_key = $1 or (handle_key = $3 and $3 <> '')) and user_id <> $2`,
+				[nicknameKey, userId, handleKey]
 			);
-			const batchOwner = claimedFolds.get(nicknameKey);
+			const batchOwner = claimedFolds.get(nicknameKey) ?? claimedFolds.get(`handle:${handleKey}`);
 
 			if (nonNullish(conflictRows[0]) || (nonNullish(batchOwner) && batchOwner !== userId)) {
 				stats.warnings.push(
@@ -231,6 +235,10 @@ const importProfiles: ImporterRun = async (docs, { q, mapper, nowMs, stats }) =>
 				nicknameKey = '';
 			} else {
 				claimedFolds.set(nicknameKey, userId);
+
+				if (handleKey !== '') {
+					claimedFolds.set(`handle:${handleKey}`, userId);
+				}
 			}
 		}
 
