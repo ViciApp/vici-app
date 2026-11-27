@@ -1,6 +1,6 @@
 {
 	"name": "vici-app",
-	"version": "1.8.66",
+	"version": "1.8.67",
 	"private": true,
 	"packageManager": "npm@11.21.1",
 	"scripts": {
