@@ -1,7 +1,9 @@
-name: Deploy
+name: Fly Deploy
 
 # Manual-only: dispatch from a release tag to ship both apps
-# (`gh workflow run deploy.yml --ref vX.Y.Z`). Each FLY_API_TOKEN_WEB2_*
+# (`gh workflow run fly-deploy.yml --ref vX.Y.Z`). Not `deploy.yml`: every
+# tag cut before the legacy app was removed holds its Juno deploy at that
+# path, and a dispatch names a ref, so that name would run the Juno deploy. Each FLY_API_TOKEN_WEB2_*
 # secret is a `fly tokens create deploy` token scoped to ONE app (least privilege).
 # The secrets keep the names they were created with; renaming one means
 # re-creating it in the repo settings and here in the same change.
@@ -13,7 +15,7 @@ on:
 
 # One deploy at a time; never cancel a deploy mid-flight.
 concurrency:
-  group: deploy
+  group: fly-deploy
   cancel-in-progress: false
 
 permissions:
@@ -31,7 +33,7 @@ jobs:
           REF: ${{ github.ref }}
         run: |
           if [[ "${REF}" != refs/tags/v* ]]; then
-            echo "::error::deploy ships production only from a release tag, got ${REF}. Dispatch it with: gh workflow run deploy.yml --ref vX.Y.Z"
+            echo "::error::fly-deploy ships production only from a release tag, got ${REF}. Dispatch it with: gh workflow run fly-deploy.yml --ref vX.Y.Z"
             exit 1
           fi
 

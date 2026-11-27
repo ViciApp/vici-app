@@ -1,6 +1,6 @@
 name: Web Image
 
-# Builds the vici.app SPA image exactly as deploy.yml ships it and
+# Builds the vici.app SPA image exactly as fly-deploy.yml ships it and
 # smoke-tests the container, so a Dockerfile.web that only breaks inside
 # Docker fails on the PR instead of on the manual deploy. Nothing is pushed.
 # Deliberately unfiltered: almost any file can reach the image through
@@ -35,7 +35,7 @@ jobs:
 
       # fly.web.toml is what `flyctl deploy` reads, so the Dockerfile and build
       # args come from it rather than from literals here that could drift. The
-      # Node version comes from .node-version, as deploy.yml passes it.
+      # Node version comes from .node-version, as fly-deploy.yml passes it.
       - name: Read build config from fly.web.toml
         id: fly
         run: |

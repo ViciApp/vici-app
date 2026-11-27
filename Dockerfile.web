@@ -1,7 +1,7 @@
 # VICI SPA image for Fly.io: builds the static SvelteKit output and serves it
 # with nginx + SPA fallback. Vite inlines VITE_* vars at build time, so they
 # are build ARGs, not runtime secrets. Deployed by the manual workflow
-# .github/workflows/deploy.yml, which bakes the args from fly.web.toml.
+# .github/workflows/fly-deploy.yml, which bakes the args from fly.web.toml.
 # The Node version is pinned once, in .node-version at the repo root; the deploy
 # and .github/workflows/web-image.yml pass it in. With no value the FROM below
 # does not resolve, so a build that forgets it fails instead of picking a version.

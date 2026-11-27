@@ -1,6 +1,6 @@
 # VICI SPA (static, nginx) on Fly.io, served at vici.app. Sibling to the
 # backend app (vici-app-backend, api.vici.app); see Dockerfile.web. Deployed by
-# the manual workflow .github/workflows/deploy.yml.
+# the manual workflow .github/workflows/fly-deploy.yml.
 app = "vici-app-web"
 primary_region = "ams"
 

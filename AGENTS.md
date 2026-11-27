@@ -74,7 +74,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 | Regenerate Candid bindings after an icdc-core release | [`engine/README.md`](./docs/ai/engine/README.md#regenerating)                                                                                 |
 | Understand how Vici talks to icdc-core                | [`docs/engine-integration.md`](./docs/engine-integration.md)                                                                                  |
 | Reset, repair or operate the Vici engine              | [`.agents/workflows/`](./.agents/workflows/) (`icdc-engine-reset.md`, `icdc-engine-operations.md`)                                            |
-| Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`deploy.yml`)                                                     |
+| Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`fly-deploy.yml`)                                                 |
 | Cut vici.market over to vici.app (legacy shutdown)    | [`.agents/workflows/cutover.md`](./.agents/workflows/cutover.md)                                                                              |
 
 ## 6. Governance
