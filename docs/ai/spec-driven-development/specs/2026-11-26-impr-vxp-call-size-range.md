@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: In progress (#1731)
+Status: Implemented (#1731)
 
 ## Goal
 
@@ -300,8 +300,7 @@ VXP_MAX_CALL_SIZE]`; when a limit order's notional (`qty` × the share cost: the
 
 ## icdc-core follow-up
 
-GitHub is not reachable from this session, so the implementer files this issue on the icdc-core
-repository and links it here and in the PR body. Proposed text:
+Filed as [icdc-core#179](https://github.com/AntonioVentilii/icdc-core/issues/179). The text proposed here:
 
 > **Per-engine order size and payout floor for `eng_0`.** Vici's call size and `p_win` payout floor
 > are enforced only by Vici's clients and, on the web2 build, by its API. A client talking to the
@@ -320,7 +319,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 
 ## Follow-ups
 
-- **icdc-core issue** above.
+- **icdc-core issue** above: [icdc-core#179](https://github.com/AntonioVentilii/icdc-core/issues/179).
 - **Spec: minimum qualifying call size** (decision 5). A separate spec decides a minimum call size
   below which a fill does not count toward awards, streak days, Flow milestones, Flow overtime,
   achievements and the battle / tournament / podium tallies, on both stacks. It starts from the
@@ -421,7 +420,7 @@ enforcement statement in `economy.md` (`pr-and-ci.md` § 9). That is a separate 
 - [ ] `economy.md` states where the call-size bounds and the floor are enforced and where they are
       not, and extends farm vector 3; `PRODUCT.md`, `design.md` § 7.5 and `reusability.md` are
       updated in the same PR.
-- [ ] The icdc-core follow-up issue is filed and linked, or its text is in the PR body if GitHub is
+- [x] The icdc-core follow-up issue is filed and linked, or its text is in the PR body if GitHub is
       still unreachable.
 - [ ] Every new key in every catalog; `npm run quality`, `npm run check`, `npm test`,
       `npm run check:dashes` and the backend suite pass.
