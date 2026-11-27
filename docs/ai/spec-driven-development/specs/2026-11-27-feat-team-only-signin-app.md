@@ -3,7 +3,7 @@
 This spec follows the workflow defined in
 `docs/ai/spec-driven-development/workflow.md`.
 
-Status: Draft
+Status: In progress (#1789)
 
 Part 2 of 2. Part 1 is [`2026-11-27-feat-team-only-signin-api.md`](./2026-11-27-feat-team-only-signin-api.md): the API refuses every sign-in and every session outside the team allowlist. This part removes the public doors in the app and gives the team one unlinked way in. It builds in parallel with part 1; nothing here is a security boundary.
 
