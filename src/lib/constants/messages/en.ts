@@ -748,12 +748,9 @@ export const enMessages = {
 	'card.back.rules_body':
 		"Resolution is final when predictions close. Edge cases follow the source's official wording.",
 	'card.back.settles_date': 'Settles {date}',
-	'card.back.sharp_diff_ahead': '+{count} pts ahead',
-	'card.back.sharp_diff_behind': '−{count} pts behind',
 	'card.back.show_rules': 'Show full rules',
 	'card.back.source_official': 'Source: official record',
 	'card.back.this_week': 'this week',
-	'card.back.top_accuracy': 'Top 10% accuracy',
 	'card.back.who_calling': "Who's calling what",
 	'card.call_size': 'CALL SIZE',
 	'card.call_size_cap': 'CALL SIZE · CAP',
