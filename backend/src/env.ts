@@ -79,6 +79,17 @@ export interface TurnstileEnv {
 	bypass: boolean;
 }
 
+export interface TeamSigninEnv {
+	/** Sign-in and sessions are limited to the allowlist. On whenever
+	 * TEAM_SIGNIN_EMAILS has an entry; in production also when it is unset,
+	 * which admits nobody. */
+	enforced: boolean;
+	/** Exact addresses, normalized (trimmed, lowercased). */
+	emails: string[];
+	/** Whole domains from `@domain` entries, normalized, without the `@`. */
+	domains: string[];
+}
+
 export interface Env {
 	isProd: boolean;
 	port: number;
@@ -108,7 +119,38 @@ export interface Env {
 	btc: BtcEnv;
 	s3: S3Env;
 	turnstile: TurnstileEnv;
+	teamSignin: TeamSigninEnv;
 }
+
+/** TEAM_SIGNIN_EMAILS: comma-separated `name@domain` or `@domain` entries.
+ * A malformed entry throws, so a typo fails the boot instead of quietly
+ * locking a team member out. */
+const parseTeamSignin = ({ raw, isProd }: { raw: string; isProd: boolean }): TeamSigninEnv => {
+	const entries = raw
+		.split(',')
+		.map((entry) => entry.trim().toLowerCase())
+		.filter((entry) => entry !== '');
+	const emails: string[] = [];
+	const domains: string[] = [];
+
+	for (const entry of entries) {
+		const at = entry.indexOf('@');
+
+		if (at === -1 || at !== entry.lastIndexOf('@') || at === entry.length - 1) {
+			throw new Error(
+				'Invalid env var TEAM_SIGNIN_EMAILS: expected comma-separated name@domain or @domain entries'
+			);
+		}
+
+		if (at === 0) {
+			domains.push(entry.slice(1));
+		} else {
+			emails.push(entry);
+		}
+	}
+
+	return { enforced: entries.length > 0 || isProd, emails, domains };
+};
 
 /** Build a validated env object from a raw source. Exported separately from
  * the singleton so tests can exercise the validation rules directly. */
@@ -274,6 +316,9 @@ export const loadEnv = (source: EnvSource): Env => {
 				bypass: secretKey === '' && !isProd
 			};
 		})(),
+		// The team allowlist in front of every sign-in and session while the
+		// product is closed to the public (see src/auth/team-gate.ts).
+		teamSignin: parseTeamSignin({ raw: optional('TEAM_SIGNIN_EMAILS', ''), isProd }),
 		btc: (() => {
 			const esploraUrl = optional('BTC_ESPLORA_URL', '');
 			const network = optional('BTC_NETWORK', 'mainnet');

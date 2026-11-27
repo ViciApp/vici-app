@@ -71,6 +71,7 @@ Validated fail-fast in `src/env.ts`. In production the required vars abort boot 
 | `S3_ACCESS_KEY_ID`        | no              | empty (local disk)                           | Bucket access key id; falls back to `AWS_ACCESS_KEY_ID`                                                                              |
 | `S3_SECRET_ACCESS_KEY`    | no              | empty (local disk)                           | Bucket secret key; falls back to `AWS_SECRET_ACCESS_KEY`                                                                             |
 | `TURNSTILE_SECRET_KEY`    | no              | empty (bot check skipped)                    | Turnstile secret of the bot checks (handle probe, email sign-in code); unset, production refuses them all and email sign-in is down  |
+| `TEAM_SIGNIN_EMAILS`      | no              | empty (off; production: nobody signs in)     | Team allowlist, comma-separated `name@domain` / `@domain`: only they sign in (see Team-only sign-in)                                 |
 
 ETL-only vars (read by `scripts/etl/*`, never by the server):
 
@@ -100,6 +101,14 @@ Endpoints under `/api/v1`:
 
 A signed-out visitor checks a handle before sign-up in two steps. `POST /profiles/nickname-check-proof` takes a Cloudflare Turnstile token (`{ turnstileToken }`, rendered with the `handle_check` action), verifies it against Cloudflare's siteverify with `TURNSTILE_SECRET_KEY` and answers `{ proof, ttlMs }`: an HMAC under `SESSION_SECRET` over the scope, the expiry and the caller's IP, valid ten minutes, stored nowhere. `GET /profiles/public-nickname-availability?nickname=&proof=` then answers exactly what the signed-in probe answers (`{ available }` or `{ available: false, reason }`, never who holds a handle) while the proof is live and from the same IP; anything else is `403 { "error": "human_proof_required" }`, and the client solves again. A refused token is `403 turnstile_failed`; Cloudflare out of reach is `503 turnstile_unavailable`. Both routes are limited per IP. Without a secret the check is skipped outside production only.
 
+### Team-only sign-in
+
+While vici.app is closed to the public, `TEAM_SIGNIN_EMAILS` (a Fly secret, read only through `isTeamEmail` in `src/auth/team-gate.ts`) limits sign-in to the team: comma-separated exact addresses (`name@vici.app`) or whole domains (`@vici.app`), trimmed and matched case-insensitively, with no `+tag` or dot folding. A malformed entry fails the boot. It runs first at every point that learns the caller's email (`POST /auth/otp/request` before any code is mailed or any inbox budget is spent, `POST /auth/otp/verify` and the Google and Apple callbacks before any identity is resolved or account created) and refuses with the beta gate's neutral answer: `403 { "error": "beta_closed" }`, or a redirect to `/team?e=beta` from the OAuth callbacks (`TEAM_SIGNIN_PATH`, the app's unlinked team sign-in page, where the OAuth error markers `?e=state|google|apple` land too). `requireUser` also refuses any session whose account has no `auth_identities` email on the list, so `/me` and every authenticated route answer `401 unauthenticated`; the rows are left to expire, and re-listing the address restores them. In production an unset or empty var admits nobody; outside production an unset var turns the gate off. The E2E stack boots with `@vici-e2e.test`. The beta gate below still applies behind it.
+
+```bash
+fly secrets set TEAM_SIGNIN_EMAILS='founder@vici.app,cofounder@vici.app' -a vici-app-backend
+```
+
 ### Beta access gate
 
 Sign-in can be limited to an allowlist through the `beta_gate` app setting, managed with the generic admin settings CRUD (no dedicated endpoint):
@@ -109,7 +118,7 @@ PUT /api/v1/admin/settings/beta_gate
 { "value": { "enabled": true, "emails": ["founder@example.com", "tester@example.com"] } }
 ```
 
-While `enabled` is `true`, only the listed addresses (case-insensitive) can sign in: a non-allowlisted email gets `403 { "error": "beta_closed" }` from `POST /auth/otp/request` and `POST /auth/otp/verify`, and the OAuth callbacks bounce to `/signin?e=beta` (the screen that renders the refusal) instead of minting a session. The refusal is identical for every address, so it leaks nothing about whether an account exists. Setting absent or `enabled: false` (or deleting the key) turns the gate off and everyone passes. An enabled gate with a missing or malformed `emails` list admits no one, and a single non-string entry fails the whole list closed rather than honouring the well-formed ones. The gate guards sign-in only: sessions established before it flips on keep working. It is a rollout valve, not a security boundary.
+While `enabled` is `true`, only the listed addresses (case-insensitive) can sign in: a non-allowlisted email gets `403 { "error": "beta_closed" }` from `POST /auth/otp/request` and `POST /auth/otp/verify`, and the OAuth callbacks bounce to `/team?e=beta` (the screen that renders the refusal) instead of minting a session. The refusal is identical for every address, so it leaks nothing about whether an account exists. Setting absent or `enabled: false` (or deleting the key) turns the gate off and everyone passes. An enabled gate with a missing or malformed `emails` list admits no one, and a single non-string entry fails the whole list closed rather than honouring the well-formed ones. The gate guards sign-in only: sessions established before it flips on keep working. It is a rollout valve, not a security boundary.
 
 `allowNewUsers: true` opens the enabled gate to new people while holding legacy accounts on the legacy app until cutover (so nobody forks their history into an empty twin account before the final import):
 
@@ -118,12 +127,12 @@ PUT /api/v1/admin/settings/beta_gate
 { "value": { "enabled": true, "emails": ["founder@example.com"], "allowNewUsers": true } }
 ```
 
-| Caller                                                                                                                  | Verdict                                                                                   |
-| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Email on the allowlist                                                                                                  | admitted                                                                                  |
-| Already holds a web2 sign-in identity (`auth_identities` email, case-insensitive; or the same OAuth provider + subject) | admitted                                                                                  |
-| Email matches `legacy_auth_identities.openid_email` or `profile_email` (case-insensitive, same match as the auto-link)  | `403 { "error": "legacy_account_pending" }`; OAuth callbacks bounce to `/signin?e=legacy` |
-| Anyone else                                                                                                             | admitted (a new person)                                                                   |
+| Caller                                                                                                                  | Verdict                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Email on the allowlist                                                                                                  | admitted                                                                                |
+| Already holds a web2 sign-in identity (`auth_identities` email, case-insensitive; or the same OAuth provider + subject) | admitted                                                                                |
+| Email matches `legacy_auth_identities.openid_email` or `profile_email` (case-insensitive, same match as the auto-link)  | `403 { "error": "legacy_account_pending" }`; OAuth callbacks bounce to `/team?e=legacy` |
+| Anyone else                                                                                                             | admitted (a new person)                                                                 |
 
 Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine). `legacy_account_pending` necessarily tells the caller that the address has a legacy account, and nothing else about it; the OTP request is still refused before any code is sent. Legacy users whose old login carried no email (passkey, Internet Identity) cannot be recognised and are admitted as new; they can still carry their principal over with the signed claim flow, and if they have already populated the new account by then, the claim files an `account_not_empty` conflict for the admin queue (see [Provisional account adoption](#provisional-account-adoption)).
 
@@ -346,7 +355,7 @@ Both apps exist. Recreating one from scratch:
 
 ```bash
 cd backend && fly launch --no-deploy            # creates vici-app-backend
-fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=... TURNSTILE_SECRET_KEY=...
+fly secrets set DATABASE_URL=... SESSION_SECRET=... ROOT_SECRET=... RESEND_API_KEY=... TURNSTILE_SECRET_KEY=... TEAM_SIGNIN_EMAILS=...
 cd .. && fly launch --no-deploy --config fly.web.toml   # creates vici-app-web
 ```
 

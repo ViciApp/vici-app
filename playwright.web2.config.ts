@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_TEAM_SIGNIN_EMAILS } from './backend/e2e/fixtures';
 import { E2E_WEB2_API_URL, E2E_WEB2_APP_URL } from './e2e-web2/support/urls';
 
 /**
@@ -75,6 +76,9 @@ export default defineConfig({
 				API_BASE_URL: E2E_WEB2_API_URL,
 				// Record-only VXP economy: awards are recorded, never paid.
 				VXP_TREASURY_DISABLED: '1',
+				// Sign-in is team-only, as in production; the fixture domain is the
+				// team, so the specs sign in with per-run addresses.
+				TEAM_SIGNIN_EMAILS: E2E_TEAM_SIGNIN_EMAILS,
 				// Unroutable on purpose: every engine and ledger call is faked, so
 				// any IC path the fakes do not cover fails fast here instead of
 				// reaching mainnet.

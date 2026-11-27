@@ -5,7 +5,7 @@
 // `beta_closed` wire error, on both the OTP flow and the OAuth callback.
 // With `allowNewUsers` it also admits brand-new people and already
 // onboarded web2 accounts while holding legacy accounts back with the
-// distinct `legacy_account_pending` code (OAuth: `/signin?e=legacy`).
+// distinct `legacy_account_pending` code (OAuth: `/team?e=legacy`).
 
 import {
 	afterAll,
@@ -490,7 +490,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 		const res = await callback(uniqueEmail());
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=beta`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=beta`);
 		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
 	});
 
@@ -532,7 +532,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 		const res = await callback(email.toUpperCase());
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=legacy`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=legacy`);
 		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
 	});
 
@@ -560,7 +560,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 
 		const res = await callback(email);
 
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=beta`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=beta`);
 	});
 });
 
@@ -616,7 +616,7 @@ describe.if(dbAvailable)('beta gate: apple callback', () => {
 		const res = await callback(uniqueEmail());
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=beta`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=beta`);
 		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
 	});
 
@@ -649,7 +649,7 @@ describe.if(dbAvailable)('beta gate: apple callback', () => {
 		const res = await callback(email);
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=legacy`);
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/team?e=legacy`);
 		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
 	});
 });
