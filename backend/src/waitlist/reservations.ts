@@ -76,6 +76,10 @@ export const MAX_PRIVACY_VERSION_LENGTH = 32;
 
 export const MAX_WAITLIST_CODE_LENGTH = 16;
 
+/** Bounds a referral code or challenge id before it is normalized; a
+ * malformed one is dropped, not refused. */
+export const MAX_INVITE_FIELD_LENGTH = 64;
+
 /** A status token is 32 random bytes in base64url (43 characters). */
 export const MAX_WAITLIST_TOKEN_LENGTH = 128;
 

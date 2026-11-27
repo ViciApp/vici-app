@@ -40,8 +40,8 @@ describe('waitlist email copy', () => {
 	});
 
 	test('a regional locale falls back to its language, an unknown one to English', () => {
-		expect(waitlistEmailCopy('pt-BR')).toBe(WAITLIST_EMAIL_COPY.pt as typeof en);
-		expect(waitlistEmailCopy('es-MX')).toBe(WAITLIST_EMAIL_COPY.es as typeof en);
+		expect(waitlistEmailCopy('pt-BR')).toBe(WAITLIST_EMAIL_COPY.pt);
+		expect(waitlistEmailCopy('es-MX')).toBe(WAITLIST_EMAIL_COPY.es);
 		expect(waitlistEmailCopy('ja')).toBe(en);
 		expect(waitlistEmailCopy('xx')).toBe(en);
 	});
