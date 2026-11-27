@@ -10,6 +10,7 @@
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { lookupWcMarketSubtitle } from '#lib/constants/wc-market-subtitles.constants.ts';
 	import { daysToKickoff } from '#lib/derived/featured-event.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
 	import type {
@@ -238,10 +239,12 @@
 	const winNo = $derived(netWinFor('NO'));
 
 	// Countdown chip in the meta row ("Settles in 12 days"). Computed off
-	// `expiryDate` (ms); the day count drives its urgency tiers:
+	// `expiryDate` (ms) against the shared minute tick, so it moves on while
+	// the card stays up; the day count drives its urgency tiers:
 	// ≤ 1 day = urgent, ≤ 7 = soon.
+	const hasExpiry = $derived(Number.isFinite(Number(market.expiryDate)));
 	const daysLeft = $derived.by(() => {
-		const ms = Number(market.expiryDate) - Date.now();
+		const ms = Number(market.expiryDate) - $minuteTick_ms;
 
 		if (!Number.isFinite(ms) || ms <= 0) {
 			return 0;
@@ -253,7 +256,7 @@
 	const settlesIn = $derived(
 		formatSettlesIn({
 			expiryMs: Number(market.expiryDate),
-			nowMs: Date.now(),
+			nowMs: $minuteTick_ms,
 			locale: $localeStore
 		})
 	);
@@ -636,7 +639,7 @@
 									</span>
 								{/if}
 							</span>
-							{#if daysLeft > 0}
+							{#if hasExpiry}
 								<span
 									class="flow-days num"
 									class:is-soon={daysLeftUrgency === 'soon'}

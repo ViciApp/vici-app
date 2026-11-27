@@ -43,8 +43,9 @@ describe('market-settle.utils', () => {
 	});
 
 	describe('formatSettlesOn', () => {
-		// Midday UTC, so the calendar day is the same in every runner time zone.
-		const expiryMs = Date.UTC(2026, 11, 31, 12);
+		// Midday in the runner's own time zone: the date is formatted in local
+		// time, so a UTC fixture would land on another day east of UTC+12.
+		const expiryMs = new Date(2026, 11, 31, 12).getTime();
 
 		it('always writes the year', () => {
 			assert.equal(formatSettleDate({ expiryMs, locale: 'en' }), 'Dec 31, 2026');

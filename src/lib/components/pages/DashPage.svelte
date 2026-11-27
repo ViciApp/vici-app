@@ -41,6 +41,7 @@
 		resolvedPositions,
 		resolvedPositionsNotInitialized
 	} from '#lib/derived/resolved-positions.derived.ts';
+	import { minuteTick_ms } from '#lib/derived/time.derived.ts';
 	import {
 		vxpBacked,
 		vxpHoldingsNotInitialized,
@@ -101,7 +102,7 @@
 	const timerOf = (market: Market): string =>
 		formatSettlesIn({
 			expiryMs: Number(market.expiryDate),
-			nowMs: Date.now(),
+			nowMs: $minuteTick_ms,
 			locale: $localeStore
 		});
 
