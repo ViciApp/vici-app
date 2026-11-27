@@ -53,24 +53,15 @@
 	src: url('/fonts/jetbrainsmono-bold.woff2') format('woff2');
 }
 
-/* Bricolage Grotesque and Anton are display faces for the signed-out
- * landing only, so they are not preloaded in `app.html`: the request
- * starts when a landing heading first needs them, and signed-in loads
- * never pay for them. */
+/* Bricolage Grotesque is the display face for the signed-out landing
+ * only, so it is not preloaded in `app.html`: the request starts when a
+ * landing heading first needs it, and signed-in loads never pay for it. */
 @font-face {
 	font-family: 'Bricolage Grotesque';
 	font-style: normal;
 	font-weight: 200 800;
 	font-display: swap;
 	src: url('/fonts/bricolage-grotesque-variable-latin.woff2') format('woff2');
-}
-
-@font-face {
-	font-family: 'Anton';
-	font-style: normal;
-	font-weight: 400;
-	font-display: swap;
-	src: url('/fonts/anton-regular-latin.woff2') format('woff2');
 }
 
 /* ─── VICI Design System ─── dark-first, warm near-black canvas */
@@ -557,7 +548,6 @@ html[data-ios-bottom-bar] {
 	--font-headline:
 		'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
 		sans-serif;
-	--font-poster: 'Anton', Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
 
 	--radius: 0.5rem;
 

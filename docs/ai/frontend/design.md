@@ -26,7 +26,7 @@ govern Flow Mode (§7). Tick rows off as PRs land.
 The companion guidance lives in:
 
 - [`brand.md`](./brand.md): palette, typography triad, landing display
-  faces, voice & tone, iconography, character cast, copy patterns. The
+  face, voice & tone, iconography, character cast, copy patterns. The
   brand book lives there; this file is the surface roster.
 - [`reusability.md`](./reusability.md): extend existing components before
   adding new ones.
@@ -52,7 +52,7 @@ easing curve are present. Outstanding items:
 | Peach theme tokens                                                                                                                   | ✅ Done     | `[data-theme='peach']` defines the warm blush canvas, warm dark foreground, and deeper laurel accent swap.                                                                                                  |
 | Film surface (`--film-bg`, `--film-back`, `--film-fg`, `--film-accent`, `--film-yes`, `--film-no`, `--film-cta`, `--film-cta-hover`) | ✅ Done     | Theme-stable tones for full-bleed footage cards (the landing deck). Footage is dark under every theme, so these do not follow the semantic aliases a light canvas flips.                                    |
 | Named oversize type (`--t-88`, `--t-128`)                                                                                            | ✅ Done     | Available for hand-tuned editorial moments via `var(--t-88)` etc.                                                                                                                                           |
-| `--font-headline`, `--font-poster`                                                                                                   | ✅ Done     | Landing display faces in `@theme`: Bricolage Grotesque (headings) and Anton (uppercase poster line). Not preloaded. See [`brand.md` § 5.2](./brand.md#52-landing-display-faces).                            |
+| `--font-headline`                                                                                                                    | ✅ Done     | Landing display face in `@theme`: Bricolage Grotesque (headings). Not preloaded. See [`brand.md` § 5.2](./brand.md#52-landing-display-face).                                                                |
 | Z-index scale (`--z-overlay`, `--z-modal`, `--z-dropdown`, `--z-toast`, `--z-tooltip`)                                               | ❓ Implicit | Audit existing modals / popovers; if z-index is inlined per-component, extract to `@theme` once during a primitive pass.                                                                                    |
 
 Three large-radius / edge-spacing surfaces sit just off the standard
