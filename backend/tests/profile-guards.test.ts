@@ -415,6 +415,62 @@ describe.if(dbAvailable)('handle rule on write', () => {
 		expect(rows[0]).toEqual({ handle_key: base, nickname_key: base });
 	});
 
+	test('a write of the previous release cannot add a lookalike', async () => {
+		const handle = uniqueNickname();
+		await createTestProfile({ nickname: handle });
+		const dotted = `${handle.slice(0, 5)}.${handle.slice(5)}`;
+
+		// The previous release writes nickname and nickname_key only.
+		const userId = await createTestUser();
+
+		expect(
+			query(`insert into profiles (user_id, nickname, nickname_key) values ($1, $2, $3)`, [
+				userId,
+				dotted,
+				nicknameUniqueKey(dotted)
+			])
+		).rejects.toMatchObject({ code: '23505' });
+
+		const { userId: renamer, profile } = await createTestProfile();
+
+		expect(
+			query(`update profiles set nickname = $2, nickname_key = $3 where user_id = $1`, [
+				renamer,
+				dotted,
+				nicknameUniqueKey(dotted)
+			])
+		).rejects.toMatchObject({ code: '23505' });
+
+		// Re-saving an untouched profile is no claim.
+		await query(
+			`insert into profiles (user_id, nickname, nickname_key) values ($1, $2, $3)
+			 on conflict (user_id) do update set avatar = 'resaved'`,
+			[renamer, profile.nickname, nicknameUniqueKey(profile.nickname)]
+		);
+	});
+
+	test('untouched lookalikes that predate the rule keep saving', async () => {
+		const handle = uniqueNickname();
+		const dotted = `${handle.slice(0, 5)}.${handle.slice(5)}`;
+		const first = await seedLegacyProfile(dotted);
+		const second = await createTestUser();
+
+		// The import's duplicate: no reserved handle.
+		await query(`insert into profiles (user_id, nickname, nickname_key) values ($1, $2, '')`, [
+			second,
+			handle
+		]);
+
+		for (const [userId, nickname] of [
+			[first, dotted],
+			[second, handle]
+		] as const) {
+			const saved = await upsertMyProfile({ userId, body: { nickname, avatar: 'resaved' } });
+
+			expect(saved.avatar).toBe('resaved');
+		}
+	});
+
 	test('two writers of the same new handle: one wins, the other is taken', async () => {
 		const handle = uniqueNickname();
 		const writers = await Promise.all([createTestProfile(), createTestProfile()]);

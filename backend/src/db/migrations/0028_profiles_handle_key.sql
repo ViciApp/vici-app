@@ -15,9 +15,15 @@
 -- Fly runs this before the new API machines take traffic, and the old ones
 -- keep serving until the rollout ends. An old machine does not know the
 -- column, so a trigger fills it from the nickname on insert, and on an update
--- that changes the nickname but leaves `handle_key` alone. A follow-up release,
--- once every handle follows the rule, drops the trigger, the function and the
--- column.
+-- that changes the nickname but leaves `handle_key` alone. On a new profile or
+-- a changed nickname the trigger also takes the per-key lock the API takes
+-- (`lockHandleKey`) and refuses a lookalike of another account's handle as a
+-- unique violation, which every writer already reports as "already taken". So
+-- an old machine cannot slip a lookalike past a new one mid-rollout. A row
+-- written with an empty `nickname_key` (the import's "no reserved handle"
+-- duplicates) is let through, as the unique index lets it through. A
+-- follow-up release, once every handle follows the rule, drops the trigger,
+-- the function and the column.
 --
 -- Every step is guarded or replaces itself, so a second run changes nothing.
 
@@ -43,13 +49,33 @@ create index if not exists profiles_handle_key_idx on profiles (handle_key) wher
 
 create or replace function profiles_handle_key_from_nickname() returns trigger
 language plpgsql as $$
+declare
+  claims_handle boolean;
 begin
   if tg_op = 'INSERT' then
     if new.handle_key = '' then
       new.handle_key := handle_fold(new.nickname);
     end if;
-  elsif new.nickname is distinct from old.nickname and new.handle_key is not distinct from old.handle_key then
-    new.handle_key := handle_fold(new.nickname);
+
+    -- An upsert of an existing profile fires this insert trigger too; only a
+    -- profile that does not exist yet claims its handle here.
+    claims_handle := not exists (select 1 from profiles where user_id = new.user_id);
+  else
+    if new.nickname is distinct from old.nickname and new.handle_key is not distinct from old.handle_key then
+      new.handle_key := handle_fold(new.nickname);
+    end if;
+
+    claims_handle := new.nickname is distinct from old.nickname;
+  end if;
+
+  if claims_handle and new.handle_key <> '' and new.nickname_key <> '' then
+    perform pg_advisory_xact_lock(hashtext('handle:' || new.handle_key));
+
+    if exists (
+      select 1 from profiles where handle_key = new.handle_key and user_id <> new.user_id
+    ) then
+      raise exception 'handle_key % is already taken', new.handle_key using errcode = '23505';
+    end if;
   end if;
 
   return new;

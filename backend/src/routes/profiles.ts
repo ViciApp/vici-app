@@ -197,6 +197,19 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 				return unauthenticated(set);
 			}
 
+			// One indexed lookup per guess would otherwise sidestep the search cap.
+			const limited = enforceLimit({
+				set,
+				name: 'profile_by_handle',
+				ip: clientIp(request),
+				limit: PROFILE_SEARCH_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
 			const profile = await getProfileByHandle(params.handle);
 
 			if (isNullish(profile)) {

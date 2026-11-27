@@ -393,8 +393,9 @@ export const searchProfiles = async (queryStr: string): Promise<Profile[]> => {
 
 /**
  * The public profile a typed `@handle` names, for adding a friend: the one
- * holding exactly that handle (on the legacy fold, which keeps separators),
- * otherwise the one whose handle key matches, so `antonioventilii` finds a
+ * holding exactly that handle (the stored text, then the legacy fold, which
+ * keeps separators; an imported duplicate can hold its handle with an empty
+ * legacy key), otherwise the one whose handle key matches, so `antonioventilii` finds a
  * stored `antonio.ventilii` and the reverse. The handle key is not unique
  * while lookalikes that predate the handle rule remain, so ties break the
  * same way on every call: the handle within the rule first, then the earliest
@@ -416,12 +417,13 @@ export const getProfileByHandle = async (handle: string): Promise<Profile | unde
 		 join users u on u.id = p.user_id
 		 where ${PUBLICLY_VISIBLE_PROFILE_SQL}
 		   and ((p.nickname_key = $1 and $1 <> '') or (p.handle_key = $2 and $2 <> ''))
-		 order by p.nickname_key = $1 desc,
+		 order by p.nickname = $4 desc,
+		          p.nickname_key = $1 desc,
 		          p.nickname ~ $3 desc,
 		          p.created_at,
 		          p.user_id
 		 limit 1`,
-		[exactKey, lookalikeKey, HANDLE_PATTERN.source]
+		[exactKey, lookalikeKey, HANDLE_PATTERN.source, typed]
 	);
 
 	return nonNullish(rows[0]) ? shapeProfile(rows[0]) : undefined;

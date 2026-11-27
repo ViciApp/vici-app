@@ -23,7 +23,7 @@ export const MAX_HANDLE_LENGTH = 15;
 export const HANDLE_PATTERN = new RegExp(`^[a-z0-9]{${MIN_HANDLE_LENGTH},${MAX_HANDLE_LENGTH}}$`);
 
 /** Latin letters NFKD leaves whole, spelled plainly after lowercasing. The SQL
- * twin, handle_fold (migration 0026), carries the same table. */
+ * twin, handle_fold (migration 0028), carries the same table. */
 export const HANDLE_LETTER_FOLDS: ReadonlyArray<readonly [string, string]> = [
 	['ß', 'ss'],
 	['æ', 'ae'],

@@ -14,14 +14,18 @@ import { createTestProfile, uniqueNickname } from './helpers/profiles';
 import { dbAvailable } from './helpers/setup';
 
 // A handle that predates the rule, as an import leaves it; the trigger fills
-// handle_key.
-const seedLegacyProfile = async (nickname: string): Promise<string> => {
+// handle_key. A lookalike of a stored handle only gets in as the import's
+// duplicate, with an empty legacy key (`duplicate`).
+const seedLegacyProfile = async (
+	nickname: string,
+	{ duplicate = false }: { duplicate?: boolean } = {}
+): Promise<string> => {
 	const userId = await createTestUser();
 
 	await query(`insert into profiles (user_id, nickname, nickname_key) values ($1, $2, $3)`, [
 		userId,
 		nickname,
-		nicknameUniqueKey(nickname)
+		duplicate ? '' : nicknameUniqueKey(nickname)
 	]);
 
 	return userId;
@@ -52,7 +56,7 @@ describe.if(dbAvailable)('getProfileByHandle', () => {
 	test('two stored lookalikes resolve the same way on every call', async () => {
 		const handle = uniqueNickname();
 		await seedLegacyProfile(dotted(handle));
-		const compliant = await seedLegacyProfile(handle);
+		const compliant = await seedLegacyProfile(handle, { duplicate: true });
 
 		for (let i = 0; i < 3; i++) {
 			expect((await getProfileByHandle(`${handle.slice(0, 3)}_${handle.slice(3)}`))?.userId).toBe(
@@ -64,9 +68,17 @@ describe.if(dbAvailable)('getProfileByHandle', () => {
 	test('the exact stored handle wins over a lookalike', async () => {
 		const handle = uniqueNickname();
 		const dottedOwner = await seedLegacyProfile(dotted(handle));
-		await seedLegacyProfile(handle);
+		await seedLegacyProfile(handle, { duplicate: true });
 
 		expect((await getProfileByHandle(dotted(handle)))?.userId).toBe(dottedOwner);
+	});
+
+	test('the exact stored handle wins even with an empty legacy key', async () => {
+		const handle = uniqueNickname();
+		await seedLegacyProfile(handle);
+		const duplicateOwner = await seedLegacyProfile(dotted(handle), { duplicate: true });
+
+		expect((await getProfileByHandle(dotted(handle)))?.userId).toBe(duplicateOwner);
 	});
 
 	test('hidden accounts stay hidden', async () => {
