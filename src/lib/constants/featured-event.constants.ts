@@ -17,7 +17,7 @@ import type { FeaturedEvent } from '#lib/types/featured-event.ts';
  * as literal English; the rendering layer should layer i18n on top via
  * the participant `id` (ISO-3166 alpha-2 for football, where applicable).
  */
-export const WORLD_CUP_2026: FeaturedEvent = {
+const WORLD_CUP_2026: FeaturedEvent = {
 	id: 'fifa-wc-2026',
 	kind: 'tournament',
 	title: '2026 FIFA World Cup',

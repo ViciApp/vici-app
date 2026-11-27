@@ -1,9 +1,9 @@
 import type { CallSide } from '#lib/types/market.ts';
-export type FlowSessionLength = 5 | 10 | 20;
+type FlowSessionLength = 5 | 10 | 20;
 
 export type SettingsVisibility = 'public' | 'friends' | 'private';
 
-export interface NotificationPrefs {
+interface NotificationPrefs {
 	streakReminder: boolean;
 	marketAlerts: boolean;
 	friendActivity: boolean;
@@ -14,7 +14,7 @@ export interface NotificationPrefs {
  * Wallet-side default call amounts, per surface. Stored as decimal
  * strings so we can carry exact tokens without floating-point drift.
  */
-export interface DefaultAmountPrefs {
+interface DefaultAmountPrefs {
 	flow: string;
 	manual: string;
 }

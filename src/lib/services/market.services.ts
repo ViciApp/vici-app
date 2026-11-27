@@ -1100,7 +1100,7 @@ const SUGGESTED_DECAY_MS = 14 * DAY_IN_MS;
  * sort tier: single source of truth, no chance of the rail showing a
  * market that the sort already let fall off the top.
  */
-export const suggestedScore = ({
+const suggestedScore = ({
 	market,
 	metadata,
 	nowMs = Date.now()
@@ -1133,7 +1133,7 @@ export const suggestedScore = ({
  * boost that lifts their country higher in the World Cup deck ranking
  * (a deterministic sort, not a probabilistic draw). See `rankMarkets`.
  */
-export const FAVORITE_COUNTRY_BOOST = 1.6;
+const FAVORITE_COUNTRY_BOOST = 1.6;
 
 /**
  * Ranks markets by editorial signal first (admin-flipped `suggested`,

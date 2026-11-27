@@ -22,6 +22,7 @@ import { env } from './env';
 import { treasuryIcPrincipalText } from './lib/keys';
 import { logger } from './lib/logger';
 import { HOUR_IN_MS } from './lib/time';
+import { pruneChallengeLinks } from './social/challenge-upkeep';
 import { pruneResolvedResults } from './social/resolved-results';
 import { tournamentDrawTick, tournamentResolveTick } from './tournaments/tournaments';
 import { isVxpTreasuryDisabled, reconcileUnpaidAwards } from './vxp/awards';
@@ -66,6 +67,20 @@ export const jobs: WorkerJob[] = [
 
 			if (pruned > 0) {
 				logger.info(`pruned ${pruned} resolved-result rows past retention`);
+			}
+		},
+		everyNthTick: HOURLY_TICKS
+	},
+	{
+		// Deletes challenge links (answers cascade) past retention after their
+		// market closed or they were revoked; a deleted row is gone, so a re-run
+		// finds nothing more, and the close stamp is written once per link.
+		name: 'prune-challenge-links',
+		run: async () => {
+			const { pruned } = await pruneChallengeLinks();
+
+			if (pruned > 0) {
+				logger.info(`pruned ${pruned} challenge links past retention`);
 			}
 		},
 		everyNthTick: HOURLY_TICKS

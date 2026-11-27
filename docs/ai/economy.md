@@ -138,6 +138,14 @@ The bound that protects each surface today:
 - **Referee reward**: one-time per person (a deleted account's identity
   cannot redeem again, see below), only inside the post-signup
   redemption window.
+- **Referral channels share one row.** An invite link, a league invite's
+  `?ref=`, a market share `?ref=` and, on the web2 API, a challenge link
+  all write the same single `referrals` row per referee (its primary
+  key), so a person is credited to one inviter ever and no channel is an
+  earn surface of its own: a challenge link pays nothing beyond the two
+  referral rows above, under the same curve and cap
+  (`writeReferralRedemption` in
+  [`backend/src/account/referrals.ts`](../../backend/src/account/referrals.ts)).
 - **Streak / flow-volume milestones**: one-time per milestone, per
   lifetime, counted from server-side truth only: the streak from the
   server-recorded activity days (the UTC days of executed fills, never a

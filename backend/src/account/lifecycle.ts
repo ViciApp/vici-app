@@ -256,6 +256,11 @@ export const hardDeleteAccount = async (userId: string): Promise<void> => {
 		await q(`delete from school_submissions where user_id = $1`, [userId]);
 		await deleteReactionsBy({ likerId: userId, q });
 		await q(`delete from referral_codes where owner_user_id = $1`, [userId]);
+		// The account's challenge links go (their answers cascade), and so do
+		// the answers it gave on other people's links. Referral rows naming a
+		// link keep its id as plain text and follow the rules below.
+		await q(`delete from challenge_answers where answerer_user_id = $1`, [userId]);
+		await q(`delete from challenge_links where challenger_user_id = $1`, [userId]);
 		// Referee-side rows go with the account; referrer-side rows stay so a
 		// referred user keeps their own pending bonus. The settlement path
 		// skips the referrer reward once users.hard_deleted_at is stamped.

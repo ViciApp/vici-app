@@ -5,9 +5,17 @@ export const viteEnv = (): ImportMetaEnv | undefined =>
 		? (import.meta as ImportMeta & { env?: ImportMetaEnv }).env
 		: undefined;
 
-export const isSkylab = (): boolean => viteEnv()?.MODE === 'skylab';
+const isSkylab = (): boolean => viteEnv()?.MODE === 'skylab';
 export const isNotSkylab = (): boolean => !isSkylab();
 
 export const isDev = (): boolean => viteEnv()?.DEV === true || isSkylab();
 
 export const isProd = (): boolean => viteEnv()?.PROD === true;
+
+/** The public Cloudflare Turnstile site key (`VITE_TURNSTILE_SITE_KEY`), or
+ * `undefined` when the build carries none. */
+export const turnstileSiteKey = (): string | undefined => {
+	const raw: unknown = viteEnv()?.VITE_TURNSTILE_SITE_KEY;
+
+	return typeof raw === 'string' && raw !== '' ? raw : undefined;
+};
