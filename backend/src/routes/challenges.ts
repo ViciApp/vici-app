@@ -8,20 +8,23 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import { requireUser, unauthenticated } from '../auth/guard';
+import { env } from '../env';
 import { badRequest, clientIp, type StatusContext } from '../lib/http';
-import { enforceLimit } from '../lib/rate-limit';
+import { enforceLimit, enforceSharedLimit } from '../lib/rate-limit';
 import { HOUR_IN_MS } from '../lib/time';
 import {
 	listChallengeAnswers,
 	recordChallengeAnswer,
 	redeemChallenge
 } from '../social/challenge-answers';
+import { challengeMarketTitle, renderChallengeHead } from '../social/challenge-head';
 import {
 	ChallengeError,
 	ChallengeNotFoundError,
 	createChallenge,
 	getChallengeView,
 	listMyChallenges,
+	requireChallengeId,
 	revokeChallenge,
 	setChallengeConsent
 } from '../social/challenges';
@@ -30,6 +33,17 @@ import {
 // budget matches the referral lookup's, room for a class on one network
 // opening the same link.
 const CHALLENGE_READ_LIMIT_PER_HOUR = 120;
+
+// The head fragment is fetched by the web image's nginx, so its requests
+// carry the web machine's address (Fly's edge sets it): this is a ceiling for
+// the whole web tier, counted in Postgres so it holds however many API
+// machines run, not a per-visitor budget. nginx limits each visitor and
+// renders an id at most once a minute (nginx.web.conf). One render a second
+// on average leaves a preview storm across many ids room before the stub
+// takes over; a direct caller gets a budget of its own address.
+const CHALLENGE_HEAD_LIMIT_PER_HOUR = 3600;
+
+const HTML_CONTENT_TYPE = 'text/html; charset=utf-8';
 
 // The signed-in writes are limited per account: create and answer each fan
 // out an engine read of the caller's trade history, and a shared network
@@ -134,6 +148,44 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 			return { challenge: await getChallengeView(params.id) };
 		} catch (err) {
 			return refused({ set, err });
+		}
+	})
+	// The link preview's head fragment, included by nginx into the shell it
+	// serves on /c/<id>. A link that reads as not found answers 404 with an
+	// empty body, so nginx keeps the generic preview.
+	.get('/:id/head', async ({ request, set, params }) => {
+		const limited = await enforceSharedLimit({
+			set,
+			name: 'challenge_head',
+			key: clientIp(request) ?? 'unknown',
+			limit: CHALLENGE_HEAD_LIMIT_PER_HOUR,
+			windowMs: HOUR_IN_MS
+		});
+
+		if (limited) {
+			return limited;
+		}
+
+		try {
+			const id = requireChallengeId(params.id);
+			const view = await getChallengeView(id);
+
+			set.headers['content-type'] = HTML_CONTENT_TYPE;
+
+			return renderChallengeHead({
+				id,
+				view,
+				marketTitle: await challengeMarketTitle(view.seriesId),
+				appOrigin: env.publicAppUrl
+			});
+		} catch (err) {
+			if (err instanceof ChallengeNotFoundError) {
+				set.status = 404;
+
+				return '';
+			}
+
+			throw err;
 		}
 	})
 	.patch(

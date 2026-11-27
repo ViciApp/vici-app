@@ -51,6 +51,17 @@ in a build step instead:
 A link preview is read without running the app, so a page's
 `<svelte:head>` never reaches it: change the shell, not the page.
 
+## Runtime head include for challenge links
+
+A challenge link (`/c/<id>`) is created at runtime, so no deploy step can write its head. The web2 image fills it per request instead, through an nginx server-side include (SSI):
+
+- [`src/app.html`](../../../src/app.html) keeps every link-preview tag (title, description, canonical, `og:*`, `twitter:*`) together inside an SSI block named `generic_preview`, followed by an include of `/__challenge_head/$challenge_id` that names the block as its stub. SSI directives are HTML comments, so wherever SSI is off (every other path, the on-chain build, local dev) the shell reads as before. New preview tags go inside the block.
+- [`nginx.web.conf`](../../../nginx.web.conf) turns SSI on only in the `/c/<id>` location (the id pattern of [`challenge.constants.ts`](../../../src/lib/constants/challenge.constants.ts), case-insensitive), which serves the shell with `Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`. The include goes to an `internal` location that proxies `GET /api/v1/challenges/:id/head` on the API ([`backend/README.md`](../../../backend/README.md)) with sub-second timeouts and a 60 second micro-cache per id, without the visitor's headers. The API origin and the DNS resolver are filled into the config when the container starts (`CHALLENGE_HEAD_UPSTREAM` in [`Dockerfile.web`](../../../Dockerfile.web), the public `https://api.vici.app`).
+- **Failure mode:** a timeout, a 404 (unknown, revoked or hidden link), any other error, or a visitor past the per-client `limit_req` budget gets the generic block: the page always loads, only the preview degrades.
+- The fragment ([`challenge-head.ts`](../../../backend/src/social/challenge-head.ts)) is English, built from a fixed template with every value escaped, carries `robots: noindex, nofollow`, and always uses the landing's generic share card (`landing-share.jpg` on the app origin); the shared-drift suite pins the card and the nginx id pattern to the app constants.
+- `/c/` is deliberately not in `robots.txt`: a preview crawler that honours it would fetch nothing. The header and the meta tag keep the pages out of search instead.
+- Smoke check (Playwright does not run nginx): build the image from `Dockerfile.web`, run it with `CHALLENGE_HEAD_UPSTREAM` pointing at a stub, and check the fragment on `/c/<id>`, the generic head on a stub 404, 500 or timeout, and that `/` is byte-identical to `build/index.html`.
+
 ## Slugged share links
 
 `#lib/utils/market-slug.utils` is the single source of the `/m/{param}`
@@ -76,6 +87,9 @@ deploy); unresolvable params land on the markets board.
 - **`app.html` head tags are a contract.** The script rewrites them by
   pattern; rename/restructure them only together with the patterns in the
   script (it fails loudly when they drift, see the comment in `app.html`).
+  They also sit inside the `generic_preview` SSI block the challenge-link
+  include replaces (see above): moving one out of it would leak the generic
+  tag into every challenge preview.
 - **The reveal gate is shared, not replicated.** Visibility calls the same
   `isMarketRevealed` from `#lib/utils/market-reveal.utils.ts` that gates the FE
   feed: a series with a future on-chain `start_ns` stays hidden from the

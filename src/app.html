@@ -61,12 +61,6 @@
 		<meta name="theme-color" content="#f2ecdc" media="(prefers-color-scheme: light)" />
 		<meta name="color-scheme" content="dark light" />
 
-		<meta
-			name="description"
-			content="VICI is a consumer-first prediction market. Forecast sports, crypto, politics and culture outcomes on live community odds, build a reputation, and earn XP."
-		/>
-		<link rel="canonical" href="https://vici.market/" />
-
 		<!-- Site-wide structured data (schema.org). Organization + WebSite
 			 apply to every page; per-market and per-topic JSON-LD is injected
 			 on top by scripts/build/generate-seo-assets.ts at deploy time.
@@ -95,6 +89,22 @@
 				]
 			}
 		</script>
+
+		<!--
+			The link-preview tags: title, description, canonical, Open Graph and
+			Twitter. They sit together inside the SSI block below so the web image's
+			nginx can swap all of them for a challenge link's own on /c/<id> (see
+			docs/ai/frontend/seo.md). The directives are HTML comments: wherever SSI
+			is off (every other path, the on-chain build, local dev) the tags read
+			as written. Keep every preview tag inside the block.
+		-->
+		<!--# block name="generic_preview" -->
+		<title>VICI</title>
+		<meta
+			name="description"
+			content="VICI is a consumer-first prediction market. Forecast sports, crypto, politics and culture outcomes on live community odds, build a reputation, and earn XP."
+		/>
+		<link rel="canonical" href="https://vici.market/" />
 
 		<!-- Open Graph / Twitter. The og:image is a 1200×630 raster rendered
 			 from the brand SVGs (wordmark on the ink canvas + tagline). Twitter
@@ -125,6 +135,8 @@
 		/>
 		<meta name="twitter:image" content="https://vici.market/branding/og-image.png" />
 		<meta name="twitter:image:alt" content="VICI: Predict at the speed of thought." />
+		<!--# endblock -->
+		<!--# include virtual="/__challenge_head/$challenge_id" stub="generic_preview" -->
 
 		<script>
 			// No-FOUC theme bootstrap. Read the saved theme synchronously
@@ -216,8 +228,6 @@
 		</script>
 
 		%sveltekit.head%
-
-		<title>VICI</title>
 
 		<!-- Fonts are fully self-hosted (see the `@font-face` block in
 			 `app.css`: files under `static/fonts/`). No Google Fonts

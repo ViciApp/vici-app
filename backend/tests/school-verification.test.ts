@@ -9,10 +9,10 @@ import { upsertAppSetting } from '../src/admin/settings';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
 import { app } from '../src/index';
+import { escapeHtml } from '../src/lib/html';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import {
 	adminUpsertSchool,
-	escapeHtml,
 	hashSchoolCode,
 	MAX_SCHOOL_NAME_LENGTH,
 	SCHOOL_CODE_MAX_ATTEMPTS,
