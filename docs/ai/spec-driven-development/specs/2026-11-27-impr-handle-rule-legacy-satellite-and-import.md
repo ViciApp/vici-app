@@ -31,7 +31,7 @@ A handle changed on vici.market obeys the same rule as on vici.app, and a legacy
 - `checkNicknameAvailabilityFn` validates with `MIN_HANDLE_LENGTH`, `MAX_HANDLE_LENGTH`, `HANDLE_PATTERN` and the reserved keys, and compares `handleUniqueKey` of the candidate with `handleUniqueKey` of every scanned profile. So a change to `antonioventilii` is refused while another account holds `antonio.ventilii`.
 - Over-length and reserved handles answer the existing `invalid` reason. The query's enum does not change, so no `.did` regeneration is caused by this spec (the build is still run and its output committed, per `AGENTS.md` § 4 rule 9).
 - `assertValidNickname`: the check is skipped only when the proposed handle is the stored string, character for character (the grandfather clause of R1). The cooldown keeps comparing keys with `handleUniqueKey`, so tidying one's own handle is free, as on vici.app.
-- `resolveTargetPrincipal` (`src/lib/services/relation.services.ts`) matches the typed handle by `handleUniqueKey`.
+- `resolveTargetPrincipal` (`src/lib/services/relation.services.ts`) matches the typed handle by `handleUniqueKey`. Its candidates come from the satellite's `searchProfiles`, which keeps a profile only when `nickname.toLowerCase().includes(query.toLowerCase())`, so a typed `antonioventilii` never returns a stored `antonio.ventilii` and a key comparison afterwards finds nothing. `searchProfiles` therefore also keeps a profile when `handleUniqueKey(nickname)` contains `handleUniqueKey(query)` (when that folded query is not empty), inside the same scan. The query's arguments and result type do not change, so the Candid surface stays as it is. Among several results with the same key the match is deterministic: the stored handle equal to the typed text, then a compliant one, then the earliest created.
 - The nickname constants (`NICKNAME_PATTERN`, `MIN_NICKNAME_LENGTH`, `MAX_NICKNAME_LENGTH`, `sanitizeNickname`) lose their last reader and are removed from `profile.constants.ts`; `nicknameUniqueKey` stays in the backend only, where `handle_renames.previous_key` needs it.
 
 No stored satellite document is rewritten (pending decision 1). An account whose stored handle is outside the rule keeps it on vici.market and keeps saving its profile.
@@ -40,12 +40,14 @@ No stored satellite document is rewritten (pending decision 1). An account whose
 
 `importProfiles` uses the planner of R2 (`backend/src/profiles/handle-rename.ts`) for every document:
 
-0. Before any branch: when the account was adopted and its stored handle is neither the document's nickname, nor the live recorded `assigned_handle`, nor the stored value the last import wrote, the handle was chosen on vici.app: the import leaves `nickname` alone and goes to the next document (this is case 5, checked first so cases 1 and 2 can never overwrite it).
+0. Before any branch: when the account was adopted and its stored handle is neither the document's nickname, nor the live recorded `assigned_handle`, nor `profiles.imported_handle` (the value the last import wrote, see below), the handle was chosen on vici.app: the import leaves `nickname` alone and goes to the next document (this is case 5, checked first so cases 1 and 2 can never overwrite it).
 1. The account already has a live `handle_renames` row (`reverted_at is null`) whose `previous_handle` is the document's nickname: the recorded `assigned_handle` is written. A row with `reverted_at` set is ignored, so a rollback is never undone by the next import. A re-run changes nothing, and a person who has already seen their handle on vici.app does not see it move.
 2. The account has a live row but the document's nickname differs (the handle was changed on vici.market since the last run): the handle is derived again and the row updated in place.
 3. No row and the nickname is compliant and free: imported as is.
 4. No row and the nickname is outside the rule, reserved or taken: `compliantHandleFor`, then the collision rule of R2 against what is already in `profiles` and what this run has assigned. Existing rows are never displaced by an import; within one run the order is the one decided in R2 pending decision 2. A `handle_renames` row is written with `batch_id` naming the import run.
 5. An account that was adopted and has since changed its handle on vici.app keeps that handle (checked first, as step 0).
+
+**Import provenance.** Telling an app-chosen handle from a legacy change needs the value the import wrote last, and nothing stores it today: case 3 writes no `handle_renames` row, and `profiles.nickname` holds only the current handle. Migration `backend/src/db/migrations/NNNN_profiles_imported_handle.sql` adds `profiles.imported_handle text` (null for accounts never imported). Every import run sets it to the handle it writes for that account, in all of cases 1 to 4, and leaves it alone in case 5. The migration backfills it with `nickname` for rows with `claim_pending` true, whose handle can only have come from the import. An adopted account with a null `imported_handle` (adopted before this column existed) is treated as case 5: its handle is left alone, so the null never lets an import overwrite a handle chosen on vici.app. The column is not part of the profile read model (`PROFILE_COLUMNS`) and never reaches the app.
 
 `nickname_key` and `handle_key` are always written from the final handle. The "imported without a reserved handle" branch disappears: no row is left with a handle and an empty key. `handle_last_change_ms` is imported unchanged, so a rename at import costs no change allowance. `verify-parity.ts` compares handles through the same function, so a renamed handle is not reported as a mismatch.
 
@@ -58,7 +60,7 @@ The import's run summary gains the counts by reason and the list of collisions, 
 ### Out of scope
 
 - Rewriting handles inside the satellite (pending decision 1 recommends against it).
-- The satellite's `searchProfiles`, leaderboards and caches: they keep showing stored handles.
+- The satellite's leaderboards and caches: they keep showing stored handles. `searchProfiles` only gains the key match of section 1.
 - An index of handles in the satellite to replace the scan. The scan is unchanged by this spec and the collection stops growing (no new accounts).
 - The claim flow, adoption and account merging (`backend/src/auth/adoption.ts`).
 - The cleanup chore (drop `nickname_key`, `handle_key`, `handle_fold`, the grandfather clause) after the cutover.
@@ -78,26 +80,27 @@ Open issues were searched on 27 Nov 2026 (six open). None is related. No closing
 - **Performance.**
   - Call frequency on the satellite: the availability query runs while somebody types in the handle editor (debounced, a handful per editing session); the assertion's scan runs once per handle change, at most once per account per 30 days. Profile creation is closed, so there is no sign-up traffic.
   - Instruction budget: the scan stays one pass over the collection. Per document it already pays the decode of the whole profile and one fold; this spec replaces the fold by one with one more replace over at most 16 characters (63 for a principal-shaped handle). The decode dominates, so the budget moves by a few percent at most. The figure to record in the PR is measured, not estimated: instructions of `checkNicknameAvailability` before and after on the test harness (`src/tests/satellite/services/profile.services.spec.ts`) at the production document count and at 10 times it (open question 1).
+  - `searchProfiles` (add friend by handle, admin search): one more fold per scanned document, the same cost as the availability scan's fold; measured with it.
   - Import: one primary-key lookup on `handle_renames` and one or two indexed `exists` per document, inside the existing per-collection transaction.
-- **Memory and storage.** Nothing new in the satellite: no collection, no field, no document rewritten. In Postgres, `handle_renames` rows for renamed legacy accounts (sized in R2).
+- **Memory and storage.** Nothing new in the satellite: no collection, no field, no document rewritten. In Postgres, `handle_renames` rows for renamed legacy accounts (sized in R2), and one nullable text column on `profiles` (`imported_handle`, at most 15 characters a row, under 2 MB at 100,000 profiles).
 - **Scalability.** The satellite's profile count is frozen by the sign-up gate, so the scan no longer grows; at 10 and 100 times the count it would hit the query instruction cap as it would today, which is why new accounts were moved off it. The import stays linear in documents.
-- **Upgrade and compatibility.** No change to the profile schema, to `juno.config.ts`, `juno.collections.json` or the `Collection` constants. The Candid surface is unchanged (the `reason` enum is kept); `npm run juno:functions:build` is still run, and `src/declarations/satellite/*` copied to `backend/src/declarations/satellite/` if the output differs. Not breaking: stored documents stay valid, and only a direct call that sets a handle outside the rule is newly refused.
+- **Upgrade and compatibility.** One forward-only Postgres migration (`imported_handle`: `add column if not exists`, the `claim_pending` backfill); the previous release ignores the column. No change to the satellite profile schema, to `juno.config.ts`, `juno.collections.json` or the `Collection` constants. The Candid surface is unchanged (the `reason` enum is kept); `npm run juno:functions:build` is still run, and `src/declarations/satellite/*` copied to `backend/src/declarations/satellite/` if the output differs. Not breaking: stored documents stay valid, and only a direct call that sets a handle outside the rule is newly refused.
 - **Security.** Collection rules and caller permissions are untouched. The reserved list becomes server-enforced on the satellite.
 - **Parameters.** `src/lib/constants/profile.constants.ts` (`MIN_HANDLE_LENGTH`, `MAX_HANDLE_LENGTH`, `HANDLE_PATTERN`, `RESERVED_HANDLES`, `HANDLE_COOLDOWN_DAYS`); the satellite reads them directly.
 
 ## Implementation outline
 
 1. `src/satellite/services/profile.services.ts`: validator and assertion on the rule; specs in `src/tests/satellite/services/profile.services.spec.ts`.
-2. `relation.services.ts` (`resolveTargetPrincipal`); removal of the legacy nickname constants and of their drift entries in `backend/tests/shared-drift/domain-limits.test.ts`.
+2. `relation.services.ts` (`resolveTargetPrincipal`) and the key match in the satellite's `searchProfiles`; removal of the legacy nickname constants and of their drift entries in `backend/tests/shared-drift/domain-limits.test.ts`.
 3. `npm run juno:functions:build`, `npm run quality`; commit regenerated output if any.
-4. `backend/scripts/etl/transforms.ts` (`importProfiles`), `verify-parity.ts`, the run summary; `backend/tests/etl-transforms.test.ts`.
+4. The `imported_handle` migration; `backend/scripts/etl/transforms.ts` (`importProfiles`), `verify-parity.ts`, the run summary; `backend/tests/etl-transforms.test.ts`.
 5. `MoveNoticeBanner.svelte` and its i18n keys in every catalog.
 6. Docs in the same PR: `PRODUCT.md` ("Legacy app: new accounts move to vici.app" gains the handle adjustment at the move; "Handles: one rule" notes that vici.market enforces it for changes), `docs/ai/satellite/patterns.md` (the nickname example names the rule), `backend/README.md` (import mapping note for handles).
 
 ## Tests
 
-- Satellite specs: a change to a handle with a capital, an accent, a separator, 2 or 16 characters is refused as `invalid`; a compliant handle is refused as `taken` against a stored lookalike; a reserved handle is refused; a stored handle outside the rule still saves unchanged; tidying one's own handle inside the cooldown window passes and does not move the stamp; the cooldown still applies to a real change.
-- `backend/tests/etl-transforms.test.ts`: each of the five cases of section 2; two runs over the same export give identical rows; a legacy handle changed between runs is re-derived; an adopted account's own handle is not overwritten; no row ends with a handle and an empty key; a collision between a legacy document and an existing vici.app account leaves the existing account untouched.
+- Satellite specs: a change to a handle with a capital, an accent, a separator, 2 or 16 characters is refused as `invalid`; a compliant handle is refused as `taken` against a stored lookalike; a reserved handle is refused; `searchProfiles` for `antonioventilii` returns a stored `antonio.ventilii`; a stored handle outside the rule still saves unchanged; tidying one's own handle inside the cooldown window passes and does not move the stamp; the cooldown still applies to a real change.
+- `backend/tests/etl-transforms.test.ts`: each of the five cases of section 2; two runs over the same export give identical rows; a legacy handle changed between runs is re-derived; an adopted account's own handle is not overwritten, also after a vici.app change that lands on a value no import ever wrote and with a null `imported_handle`; `imported_handle` holds the written handle after each case; no row ends with a handle and an empty key; a collision between a legacy document and an existing vici.app account leaves the existing account untouched.
 - The R2 dry run after an import reports zero renames.
 
 ## Acceptance criteria

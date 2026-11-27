@@ -32,11 +32,13 @@ Every handle stored on vici.app satisfies the rule of R1. An account whose handl
 One pure function, `compliantHandleFor(previous)`, in `backend/src/profiles/handle-rename.ts`, returns a base and a reason:
 
 1. Fold with `handleUniqueKey` (R1): lowercase, accents to base letters, the mapped letters to their plain spelling, everything else dropped (separators, symbols, characters of other scripts).
-2. Base of 3 to 15 characters: that is the candidate. Reason `format`.
-3. Base longer than 15: the first 15 characters. Reason `too_long`. A previous handle shaped like a principal or an account id is treated as "never picked one" and gets a generated handle (pending decision 5).
-4. Base of 2 characters: digits are appended (pending decision 4). Reason `too_short`.
-5. Base of 0 or 1 character (a handle in another script, or made of symbols): a generated handle (pending decisions 1 and 6). Reason `no_latin`.
-6. Base equal to a reserved key: a generated handle unless the account is on the team allowlist (pending decision 7). Reason `reserved`.
+2. Base equal to a reserved key: a generated handle unless the account is on the team allowlist (pending decision 7). Reason `reserved`. This test comes before every length rule: every reserved key is 3 to 15 characters, so checked later it would be accepted as `format`.
+3. Base of 3 to 15 characters: that is the candidate. Reason `format`.
+4. Base longer than 15: the first 15 characters. Reason `too_long`. A previous handle shaped like a principal or an account id is treated as "never picked one" and gets a generated handle (pending decision 5).
+5. Base of 2 characters: digits are appended (pending decision 4). Reason `too_short`.
+6. Base of 0 or 1 character (a handle in another script, or made of symbols): a generated handle (pending decisions 1 and 6). Reason `no_latin`.
+
+A candidate produced by rules 4 and 5 (cut or extended) is tested against the reserved keys again and, when it is one, goes to rule 2. Section 2 never assigns a reserved key either.
 
 A handle that already satisfies the rule and is not reserved is never touched.
 
@@ -44,7 +46,7 @@ A handle that already satisfies the rule and is not reserved is never touched.
 
 `planHandleRenames(rows)` in the same file is pure and deterministic: the same rows always give the same plan.
 
-- Every account whose current handle is compliant and not reserved keeps it. Its key is taken before anything else is assigned. A compliant but reserved handle (`admin`) is not preserved: it follows rule 6 of section 1.
+- One account per key keeps its current handle when that handle is compliant and not reserved. Its key is taken before anything else is assigned. When several rows hold the same compliant handle (imported duplicates, stored with an empty `nickname_key`, see Context), only one of them is preserved, chosen by the order of pending decision 2; every other row of that handle goes through the collision rule below with the handle as its candidate, reason `collision`. A compliant but reserved handle (`admin`) is not preserved: it follows rule 2 of section 1.
 - The remaining accounts are grouped by candidate. In each group the winner takes the candidate if it is free; the order is pending decision 2.
 - Every other member of the group gets the candidate plus the smallest free number, starting at 2, the base cut so the result stays within 15 characters: `antonioventilii` (15) becomes `antonioventili2` (pending decision 3). Reason `collision`.
 - "Free" means: not the key of any profile that keeps its handle (a row being renamed in this plan releases its own key first, so `a.b` can receive `ab`), not a reserved key, not already assigned in this plan, and not the confirmed or pending handle of a waitlist reservation.
@@ -86,13 +88,13 @@ Index on `previous_key where previous_key <> ''`. One row per account: an accoun
 
 `assertValidNickname` (`backend/src/profiles/profile-write.ts`), for a caller that has a live `handle_renames` row:
 
-- **A stale browser cannot undo the rename.** When the proposed handle equals `previous_handle`, or folds to `previous_key`, the write is treated as "handle unchanged": the stored handle is kept, the rest of the profile saves. Without this, the full-document upsert of a browser that loaded the profile before the rename would either fail on every stats sync (suffix and generated cases) or put the previous handle back (same-key cases).
+- **A stale browser cannot undo the rename.** When the proposed handle equals `previous_handle`, or folds to `previous_key`, the write is treated as "handle unchanged": the rest of the profile saves and the stored handle is kept. Skipping validation is not enough, because `upsertMyProfile` writes `proposed.nickname` (and its keys) into the row whatever the guard decided. So `assertValidNickname` returns the canonical nickname for the write: the stored `assigned_handle` in this case, the proposed one otherwise. `upsertMyProfile` binds that value, and derives `nickname_key` and `handle_key` from it, in place of `proposed.nickname`; the response carries it, so the browser's store picks up the assigned handle. Without this, the full-document upsert of a browser that loaded the profile before the rename would either fail on every stats sync (suffix and generated cases) or put the previous handle back (same-key cases).
 - **The forced rename costs no change allowance.** The script leaves `handle_last_change_ms` alone, so somebody who changed their handle 10 days ago still has 20 days to wait, not 30 more.
 - **One free change** (pending decision 8). While `free_change_used_at` is null, a handle change is allowed inside the cooldown window; the guard stamps `free_change_used_at` in the same transaction.
 
 ### 6. Previous handles keep resolving
 
-`GET /api/v1/profiles/by-handle?handle=` (signed in, the visibility filter of the profile search): if the text satisfies the rule, the profile with that handle; otherwise the account whose `previous_key` equals `nicknameUniqueKey` of the text; otherwise the profile whose `handle_key` equals its `handleUniqueKey`. The answer carries `renamedFrom` when the match came through `handle_renames`. `resolveTargetUserId` (`src/lib/services/relation.services.ts`) calls it in place of search-and-filter, and the add-friend sheet (`src/lib/components/arena/AddFriendSheet.svelte`) shows one line, "@antonio.ventilii is now @antonioventilii", before sending the request (pending decisions 10 and 11).
+`GET /api/v1/profiles/by-handle?handle=`, introduced by R1 (section 4 there) with the `handle_key` lookup only, gains the previous handles here. Signed in, the visibility filter of the profile search: if the text satisfies the rule, the profile with that handle; otherwise the account whose `previous_key` equals `nicknameUniqueKey` of the text; otherwise the profile whose `handle_key` equals its `handleUniqueKey`. The answer carries `renamedFrom` when the match came through `handle_renames`. `resolveTargetUserId` (`src/lib/services/relation.services.ts`) already calls it since R1, and the add-friend sheet (`src/lib/components/arena/AddFriendSheet.svelte`) shows one line, "@antonio.ventilii is now @antonioventilii", before sending the request (pending decisions 10 and 11).
 
 The order matters: `a.b` typed by a friend must reach the account that was `a.b` (now perhaps `ab2`), not the account that won `ab`.
 
@@ -161,9 +163,9 @@ No handle text, previous or assigned, is ever sent.
 
 ## Tests
 
-- `backend/tests/handle-rename-plan.test.ts` (pure): every example of sections 1 and 2; determinism (shuffled input, same plan and hash); a compliant handle is never renamed; a suffix never lands on a taken, reserved or planned key; 15-character bases are cut before the number; three-way groups; rows with an empty key.
+- `backend/tests/handle-rename-plan.test.ts` (pure): every example of sections 1 and 2; determinism (shuffled input, same plan and hash); a reserved base (`admin`, `Support`) is never accepted as `format`; a compliant handle is never renamed, except all but one of several rows holding the same compliant handle; a suffix never lands on a taken, reserved or planned key; 15-character bases are cut before the number; three-way groups; rows with an empty key.
 - `backend/tests/handle-rename-apply.test.ts` (real Postgres, collision-free fixtures): dry run writes nothing; apply with a stale hash aborts; apply renames, keeps `handle_last_change_ms`, fills `handle_renames`; second apply is a no-op; revert restores and skips an account that changed since.
-- `backend/tests/profile-guards.test.ts`: a full-document write carrying the previous handle saves and keeps the assigned one; the free change passes inside the window once and only once.
+- `backend/tests/profile-guards.test.ts`: a full-document write carrying the previous handle saves, the row still holds the assigned handle and its keys afterwards, and the response returns the assigned handle; the free change passes inside the window once and only once.
 - `backend/tests/profiles-by-handle.test.ts`: the three resolution steps and their order, hidden accounts stay hidden.
 - App: component spec for the notice; E2E (`e2e-web2`): a seeded renamed account signs in, reads the notice, changes handle inside the cooldown window; a friend adds them by the previous handle.
 
@@ -193,7 +195,7 @@ Rollback at any point after step 4: `--revert` for the batch (R1 stays in place,
 
 - [ ] The dry run writes nothing and produces both files, the summary and the plan hash.
 - [ ] After the apply, `select count(*) from profiles where nickname <> '' and nickname !~ '^[a-z0-9]{3,15}$'` is 0 and no two profiles share a handle.
-- [ ] No account that held a compliant, non-reserved handle was renamed.
+- [ ] No account that held a compliant, non-reserved handle was renamed, except the accounts that shared that exact handle with an earlier winner (imported duplicates).
 - [ ] `handle_last_change_ms` is unchanged for every renamed account, and each can change its handle once inside the cooldown window.
 - [ ] A browser holding the pre-rename profile keeps saving, and the assigned handle survives its writes.
 - [ ] Adding a friend by a previous handle reaches the account that held it.

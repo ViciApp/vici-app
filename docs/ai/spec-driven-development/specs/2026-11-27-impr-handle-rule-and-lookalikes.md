@@ -73,7 +73,9 @@ A handle picked or changed anywhere on vici.app is lowercase `a` to `z` and `0` 
 
 ### 4. Add friend by handle
 
-`resolveTargetUserId` (web2) matches on `handleUniqueKey` of the typed text against `handleUniqueKey` of each search result, so `@Antonio.Ventilii` finds `antonioventilii`. The satellite path (`resolveTargetPrincipal`) keeps its lowercase match until R3.
+Filtering the search results by key is not enough: `resolveTargetUserId` (web2) gets its candidates from `searchProfilesWeb2`, whose SQL (`backend/src/profiles/profile.ts`) matches `lower(p.nickname) like '%query%'` on the stored text, so typing `antonioventilii` never returns a stored `antonio.ventilii` for any later comparison to see.
+
+So R1 adds a dedicated lookup, `GET /api/v1/profiles/by-handle?handle=` (signed in, `PUBLICLY_VISIBLE_PROFILE_SQL` as the search uses): the profile whose stored handle equals the text, otherwise the profile whose `handle_key` equals `handleUniqueKey` of the text. `handle_key` is not unique before R2, so when two stored lookalikes share the key the answer is deterministic: the one whose handle is compliant, then the earliest created. An empty key answers `404`. The web2 client gets `profileByHandle`, and `resolveTargetUserId` calls it in place of search-and-filter, so `@Antonio.Ventilii` finds `antonioventilii` and `@antonioventilii` finds `antonio.ventilii`. The raw account id fallback stays. R2 extends the same route with previous handles. The satellite path (`resolveTargetPrincipal`) keeps its lowercase match until R3.
 
 ### Out of scope
 
@@ -93,11 +95,11 @@ No new event. `handle_checked` (already fired by onboarding with `source` and `o
 
 ## Technical requirements (satellite / backend: mandatory)
 
-- **Performance.** One more indexed `exists` on `profiles.handle_key` per availability probe and per handle-setting write. The fold is a few string passes over at most 16 characters.
+- **Performance.** One more indexed `exists` on `profiles.handle_key` per availability probe and per handle-setting write; the add-friend lookup is one or two indexed lookups in place of a `like` scan. The fold is a few string passes over at most 16 characters.
 - **Memory and storage.** One text column and one b-tree index on `profiles`: about 40 bytes a row, so about 4 MB at 100,000 profiles.
 - **Scalability.** Index lookups only; unchanged at 10 and 100 times the current profile count. The migration's backfill is a single `update` over `profiles`; at 100,000 rows it runs in seconds inside the release transaction.
 - **Upgrade and compatibility.** One forward-only migration (`backend/src/db/migrations/NNNN_profiles_handle_key.sql`, the next free number at implementation time): `add column if not exists`, `create or replace function`, the backfill, `create index if not exists`. The previous release keeps working: it ignores the column, and a row it writes during the deploy window gets its `handle_key` from a `before insert or update of nickname` trigger that calls `handle_fold` (the pattern of `0021_battle_amount.sql`); the trigger goes away with the cleanup chore. No satellite change, no `.did` regeneration. Not breaking for stored data; breaking for a client that submits a handle outside the rule, which is the intent.
-- **Security.** The reserved list becomes server-enforced. No new route, no change of caller permissions.
+- **Security.** The reserved list becomes server-enforced. One new signed-in read route (`by-handle`), behind the same visibility filter as the profile search, so it exposes nothing the search does not; no change of caller permissions.
 - **Parameters.** Bounds, pattern, reserved list and cooldown live in `src/lib/constants/profile.constants.ts`, mirrored in `backend/src/profiles/nickname.ts`.
 
 ## Implementation outline
@@ -105,13 +107,14 @@ No new event. `handle_checked` (already fired by onboarding with `source` and `o
 1. Constants and key in `profile.constants.ts`; `nicknameFormatIssue` switched; unit specs under `src/tests/lib/`.
 2. `Onboarding.svelte`, `HandleEditor.svelte`, the landing claim capsule (through the shared check), the stash drain, the bootstrap seed, i18n catalogs.
 3. Migration, `handle_fold`, trigger, backfill; `nickname.ts` and `profile-write.ts`; drift suite entries (`domain-limits.test.ts`: bounds, pattern, reserved keys, the letter table).
-4. `resolveTargetUserId` key match.
+4. `GET /api/v1/profiles/by-handle` in `backend/src/routes/profiles.ts` (query in `backend/src/profiles/profile.ts`), `profileByHandle` in `src/lib/web2/client.ts`, `resolveTargetUserId` switched to it.
 5. Docs in the same PR: `PRODUCT.md` (a "Handles: one rule" entry; "Onboarding: one screen" and "Friends: adding" updated), `docs/ai/frontend/reusability.md` (`cleanHandle`, `handleUniqueKey`, `nicknameFormatIssue`), `backend/README.md` "Mirrored constants".
 
 ## Tests
 
 - `src/tests/lib/constants/profile.constants.spec.ts`: the key folds the four lookalikes of the Goal to one value; the mapped letters; other scripts fold to empty; `cleanHandle` output always satisfies `HANDLE_PATTERN` or is shorter than the minimum.
 - `backend/tests/profile-guards.test.ts`: a new handle with an uppercase letter, an accent, a separator, 2 or 16 characters is refused; a compliant handle is refused as `taken` against a stored `a.b`, `A_B`, `áb`; a stored handle outside the rule still saves unchanged; tidying one's own handle saves inside the cooldown window without moving the stamp; a reserved handle is refused by a direct API call.
+- `backend/tests/profiles-by-handle.test.ts`: `antonioventilii` finds a stored `antonio.ventilii` and the reverse; two stored lookalikes resolve to the same account on every call; hidden accounts stay hidden; an empty key is `404`.
 - `backend/tests/handle-fold-parity.test.ts`: `handle_fold` in Postgres equals `handleUniqueKey` for every fixture.
 - Migration check on a database that already holds rows from earlier runs, including two rows that share a `handle_key`.
 - E2E (`e2e-web2`): onboarding refuses `Antonio.V` as typed by cleaning it live, a second browser sees the cleaned handle as taken.
