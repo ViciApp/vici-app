@@ -2628,5 +2628,52 @@ export const itMessages = {
 		'Questa è l’anteprima. Prenota il tuo @handle per continuare a prevedere quando VICI apre.',
 	'landing.markets.pending': '{side} al {pct}% con {amount} VXP. Se hai ragione, vinci {earns} VXP',
 	'landing.markets.share.label': 'Condividi questa domanda',
-	'landing.markets.share.text': '{question} La community dice {pct}%. Tu cosa prevedi?'
+	'landing.markets.share.text': '{question} La community dice {pct}%. Tu cosa prevedi?',
+	'challenge.action.label': 'Sfida un amico',
+	'challenge.action.short': 'Sfida',
+	'challenge.side.yes': 'Sì',
+	'challenge.side.no': 'No',
+	'challenge.line.named': '@{handle} ha previsto {side} al {pct}%. Pensi che sbagli?',
+	'challenge.line.anonymous': 'Un amico ha previsto {side} al {pct}%. Pensi che sbagli?',
+	'challenge.line.named_changed': 'Ora @{handle} dice {side} al {pct}%. Pensi che sbagli?',
+	'challenge.line.anonymous_changed': 'Ora un amico dice {side} al {pct}%. Pensi che sbagli?',
+	'challenge.line.named_no_position':
+		'@{handle} ti ha sfidato su questo. Qual è la tua previsione?',
+	'challenge.line.anonymous_no_position':
+		'Un amico ti ha sfidato su questo. Qual è la tua previsione?',
+	'challenge.line.named_closed': '@{handle} ha previsto {side} al {pct}% su questo. Ora è chiuso.',
+	'challenge.line.anonymous_closed':
+		'Un amico ha previsto {side} al {pct}% su questo. Ora è chiuso.',
+	'challenge.line.anonymous_closed_no_position': 'Un amico ti ha sfidato su questo. Ora è chiuso.',
+	'challenge.line.named_closed_no_position': '@{handle} ti ha sfidato su questo. Ora è chiuso.',
+	'challenge.share.loading': 'Preparo il tuo link',
+	'challenge.share.preview_label': 'Cosa vede il tuo amico',
+	'challenge.share.current_position_note':
+		'Il link mostra sempre la tua posizione attuale su questo mercato.',
+	'challenge.share.consent_label': 'Mostra il mio @handle e la mia previsione su questo link',
+	'challenge.share.consent_note':
+		'Se attivo, chiunque abbia il link vede il tuo @handle e questa previsione, anche se il tuo profilo è privato.',
+	'challenge.share.send': 'Invia',
+	'challenge.share.copy': 'Copia link',
+	'challenge.share.copied': 'Link della sfida copiato.',
+	'challenge.share.text_named': '@{handle} ti ha sfidato su VICI. Pensi che sbagli?',
+	'challenge.share.text_anonymous': 'Un amico ti ha sfidato su VICI. Pensi che sbagli?',
+	'challenge.share.revoke': 'Disattiva questo link',
+	'challenge.share.revoke_confirm': 'Disattivare questo link? Chi lo apre non troverà nulla.',
+	'challenge.share.revoke_confirm_cta': 'Disattiva',
+	'challenge.share.revoke_cancel': 'Tienilo',
+	'challenge.share.revoke_note':
+		"Le chat che mostrano già un'anteprima del link la conservano: disattivare il link o nascondere il tuo @handle non la ritira.",
+	'challenge.share.revoked_title': 'Link disattivato',
+	'challenge.share.revoked': 'Il tuo link di sfida non si apre più.',
+	'challenge.share.error.title': 'Sfida non disponibile',
+	'challenge.share.error.no_position': 'Non hai più una previsione su questo mercato.',
+	'challenge.share.error.market_closed': 'Questo mercato è chiuso alle previsioni.',
+	'challenge.share.error.rate_limited': 'Troppi link di sfida per ora. Riprova più tardi.',
+	'challenge.share.error.generic': 'Impossibile preparare il link di sfida. Riprova tra poco.',
+	'inbox.challenge_answer.title': 'Il tuo amico ha risposto',
+	'inbox.challenge_answer.body':
+		'@{handle} ha previsto {side} al {pct}%. Tu hai detto {mySide} al {myPct}%.',
+	'inbox.challenge_answer.body_no_position':
+		'@{handle} ha previsto {side} al {pct}% sulla tua sfida.'
 } as const;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Share } from '@lucide/svelte/icons';
 	import { clickOutside } from '#lib/actions/click-outside.ts';
+	import ChallengeShareButton from '#lib/components/market/ChallengeShareButton.svelte';
 	import SharePopover from '#lib/components/market/SharePopover.svelte';
 	import SavedMarketToggle from '#lib/components/saved-markets/SavedMarketToggle.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -65,6 +66,7 @@
 <header class="flow-back-head">
 	<span class="allcaps flow-back-cat">{catLabel}</span>
 	<div class="flow-back-actions" data-no-card-gesture="true">
+		<ChallengeShareButton {market} title={displayTitle ?? market.title} variant="flow" />
 		<SavedMarketToggle marketId={market.id} size="sm" variant="flow-ghost" />
 		<!-- The toggle sits inside the outside-click boundary so tapping it
 		     while open closes once instead of closing and reopening. -->

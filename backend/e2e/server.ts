@@ -9,22 +9,27 @@
 //     keys every local request on the same "unknown" IP and would otherwise
 //     throttle a suite that signs in more than five times in ten minutes, and
 //     the shared windows in Postgres, where the seeded admin's inbox would
-//     run out after six sign-ins an hour.
+//     run out after six sign-ins an hour;
+//   - `POST /__e2e/fills` records an executed fill for an account in the fake
+//     engine, so a spec can give a test account a call (orders are not served).
 //
 // These routes exist only on this entrypoint: src/index.ts never registers
 // them, and guard.ts refuses to start this server outside a disposable local
 // stack. Run with `bun run e2e:server`.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
+import { Principal } from '@icp-sdk/core/principal';
+import { t } from 'elysia';
 import { applyAssetAllowlist } from '../src/custody/assets';
 import { setEngineActorProvider } from '../src/engine/actors';
 import { env } from '../src/env';
 import { app } from '../src/index';
 import { setEmailTransport } from '../src/lib/email';
+import { userIcPrincipalText } from '../src/lib/keys';
 import { logger } from '../src/lib/logger';
 import { resetRateLimits, resetSharedRateLimits } from '../src/lib/rate-limit';
 import { setVxpLedgerProvider } from '../src/vxp/payout';
-import { fakeEngineActorProvider, fakeVxpLedgerProvider } from './fake-engine';
+import { fakeEngineActorProvider, fakeVxpLedgerProvider, seedFakeFill } from './fake-engine';
 import { assertE2eEnvironment } from './guard';
 
 /** Mirrors the OTP email copy in src/lib/email.ts. */
@@ -70,6 +75,29 @@ if (import.meta.main) {
 
 			return { ok: true };
 		})
+		.post(
+			'/__e2e/fills',
+			({ body }) => {
+				seedFakeFill({
+					owner: Principal.fromText(userIcPrincipalText(body.userId)),
+					seriesId: body.seriesId,
+					side: body.side,
+					entryPriceBps: body.entryPriceBps,
+					qty: BigInt(body.qty)
+				});
+
+				return { ok: true };
+			},
+			{
+				body: t.Object({
+					userId: t.String(),
+					seriesId: t.String(),
+					side: t.Union([t.Literal('YES'), t.Literal('NO')]),
+					entryPriceBps: t.Integer({ minimum: 1, maximum: 9999 }),
+					qty: t.Integer({ minimum: 1 })
+				})
+			}
+		)
 		.listen(env.port);
 
 	logger.info(`vici e2e backend listening on :${env.port} (fake engine, in-memory outbox)`);

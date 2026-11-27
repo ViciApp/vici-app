@@ -15,6 +15,9 @@
 //     the production wrapper applies;
 //   - get_account_state_query scopes its figures to Settlement whatever the
 //     account holds, like the real query;
+//   - trade history and positions are per account and empty until a spec
+//     seeds an executed fill (seedFakeFill), the one way a test account holds
+//     a call, since orders are not served;
 //   - any method not listed here, including every other write (orders,
 //     settlement), rejects. An unexpected engine call surfaces as a failing
 //     request in the specs instead of silently passing.
@@ -31,6 +34,7 @@ import type {
 import type { EngineActorProvider, IcrcLedgerActor } from '../src/engine/actors';
 import { env } from '../src/env';
 import { ZERO } from '../src/lib/constants';
+import type { CallSide } from '../src/vxp/calibration';
 import type { VxpLedger, VxpLedgerProvider } from '../src/vxp/payout';
 import {
 	E2E_ALL_SERIES,
@@ -149,6 +153,73 @@ const allowances = new Map<string, FakeAllowance>();
 /** VXP collateral per principal, credited to the ViciXp domain. */
 const collateral = new Map<string, bigint>();
 const finalisedDeposits = new Set<string>();
+/** Executed fills per principal, oldest first. */
+const fillsByOwner = new Map<string, ClearingDid.Event[]>();
+let nextFillEventId = BigInt(1);
+
+/** Basis points per whole: entry prices travel side-framed in bps. */
+const BPS_SCALE = BigInt(10_000);
+const BPS_DECIMALS = 4;
+
+/**
+ * Records an executed fill for an account, as the engine would after a trade:
+ * a YES call buys `qty` at its price, a NO call sells at one minus it. The
+ * account's trade history and positions then carry it.
+ */
+export const seedFakeFill = ({
+	owner,
+	seriesId,
+	side,
+	entryPriceBps,
+	qty
+}: {
+	owner: Principal;
+	seriesId: string;
+	side: CallSide;
+	entryPriceBps: number;
+	qty: bigint;
+}): void => {
+	const sidePrice = BigInt(entryPriceBps);
+	const event: ClearingDid.Event = {
+		event_id: nextFillEventId,
+		series_id: seriesId,
+		user: owner,
+		clearing_id: Principal.anonymous(),
+		qty: side === 'YES' ? qty : -qty,
+		timestamp: BigInt(Date.now()) * NS_PER_MS,
+		price: {
+			timestamp: toNullable(),
+			oracle_id: toNullable(),
+			decimal: {
+				value: side === 'YES' ? sidePrice : BPS_SCALE - sidePrice,
+				decimals: BPS_DECIMALS
+			}
+		},
+		event_type: { Executed: null }
+	};
+
+	nextFillEventId += BigInt(1);
+	fillsByOwner.set(owner.toText(), [...(fillsByOwner.get(owner.toText()) ?? []), event]);
+};
+
+/** Net binary positions per series, from the account's fills. */
+const positionsOf = (owner: Principal): ClearingDid.Position[] => {
+	const net = new Map<string, bigint>();
+
+	for (const { series_id, qty } of fillsByOwner.get(owner.toText()) ?? []) {
+		net.set(series_id, (net.get(series_id) ?? ZERO) + qty);
+	}
+
+	return [...net]
+		.filter(([, qty]) => qty !== ZERO)
+		.map(([series_id, net_qty]) => ({
+			series_id,
+			net_qty,
+			outcome_id: toNullable(),
+			user: owner,
+			reserved_margin_usd: ZERO
+		}));
+};
 
 let nextBlock = BigInt(1);
 
@@ -365,7 +436,9 @@ const accountMethods = (caller: Principal): Partial<Record<keyof ClearingService
 		deposit_collateral: depositCollateral(caller),
 		get_account_state: ({ domain }: ClearingDid.GetAccountStateParams) =>
 			Promise.resolve(read(fromNullable(domain) ?? { Settlement: null })),
-		get_account_state_query: () => Promise.resolve(read({ Settlement: null }))
+		get_account_state_query: () => Promise.resolve(read({ Settlement: null })),
+		get_trade_history: () => Promise.resolve(fillsByOwner.get(caller.toText()) ?? []),
+		get_positions: () => Promise.resolve(positionsOf(caller))
 	};
 };
 
@@ -403,11 +476,9 @@ const clearingMethods: Partial<Record<keyof ClearingService, unknown>> = {
 	list_series_traded_volumes: () => Promise.resolve([]),
 	list_leaderboard: () => Promise.resolve({ items: [], total: ZERO, next_cursor: toNullable() }),
 	aggregate_settlement_accuracy: () => Promise.resolve([]),
-	get_positions: () => Promise.resolve([]),
 	get_position: () => Promise.resolve(toNullable()),
 	get_orders: () => Promise.resolve([]),
-	list_orders: () => Promise.resolve([]),
-	get_trade_history: () => Promise.resolve([])
+	list_orders: () => Promise.resolve([])
 };
 
 /** An actor whose listed methods answer from fixtures and whose every other

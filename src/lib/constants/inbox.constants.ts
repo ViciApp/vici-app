@@ -1,3 +1,5 @@
+import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
+
 // localStorage keys for the inbox read-state. Kept here, in a side-effect-free
 // module, so `identity-storage.services` can clear them on an identity change
 // without importing `inbox.store`: that module starts a long-lived toast
@@ -28,3 +30,8 @@ export const INBOX_DISMISSED_STORAGE_KEY = 'vici.inbox.dismissed.v1';
  * milestone first appeared, for the card's relative-time label.
  */
 export const INBOX_PROGRESS_STORAGE_KEY = 'vici.inbox.progress.v1';
+/**
+ * How long a card for a one-off event between people (a battle answered or proposed, a challenge
+ * answered) stays in the inbox. Past it the card ages out, so it cannot linger forever.
+ */
+export const INBOX_RECENT_EVENT_WINDOW_MS = 3 * DAY_IN_MS;

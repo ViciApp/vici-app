@@ -51,6 +51,23 @@ const requireChallengeId = (raw: string): string => {
 const isNotFound = (err: unknown): boolean =>
 	err instanceof Web2ApiError && err.status === 404 && err.code === CHALLENGE_NOT_FOUND_CODE;
 
+/** Why the API refused to issue or update a link, when the user can be told: the position was
+ * closed meanwhile, the market stopped taking predictions, or the account hit the hourly limit. */
+export type ChallengeRefusal = 'no_position' | 'market_closed' | 'rate_limited';
+
+const CHALLENGE_REFUSALS: readonly ChallengeRefusal[] = [
+	'no_position',
+	'market_closed',
+	'rate_limited'
+];
+
+const isChallengeRefusal = (code: string): code is ChallengeRefusal =>
+	(CHALLENGE_REFUSALS as readonly string[]).includes(code);
+
+/** The refusal behind a failed challenge write, or `undefined` for any other failure. */
+export const challengeRefusalOf = (err: unknown): ChallengeRefusal | undefined =>
+	err instanceof Web2ApiError && isChallengeRefusal(err.code) ? err.code : undefined;
+
 /**
  * Issues the signed-in user's link for a market, or returns their active one (same id). The
  * position on it is whatever the engine says the user holds; only the consent flag is sent.

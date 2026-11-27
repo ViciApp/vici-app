@@ -71,6 +71,20 @@ export class E2eBackend {
 		return code as string;
 	}
 
+	/** Gives an account a call on a series: an executed fill in the fake engine
+	 * (see backend/e2e/server.ts). */
+	async seedFill(fill: {
+		userId: string;
+		seriesId: string;
+		side: 'YES' | 'NO';
+		entryPriceBps: number;
+		qty: number;
+	}): Promise<void> {
+		const res = await this.request.post('/__e2e/fills', { data: fill });
+
+		expect(res.status(), await res.text()).toBe(200);
+	}
+
 	async resetRateLimits(): Promise<void> {
 		expect((await this.request.post('/__e2e/reset-rate-limits')).ok()).toBe(true);
 	}

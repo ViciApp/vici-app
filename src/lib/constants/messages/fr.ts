@@ -2642,5 +2642,54 @@ export const frMessages = {
 		'{side} à {pct} % avec {amount} VXP. Si vous avez raison, vous gagnez {earns} VXP',
 	'landing.markets.share.label': 'Partager cette question',
 	'landing.markets.share.text':
-		'{question} La communauté dit {pct} %. Et vous, quelle est votre prédiction ?'
+		'{question} La communauté dit {pct} %. Et vous, quelle est votre prédiction ?',
+	'challenge.action.label': 'Défie un ami',
+	'challenge.action.short': 'Défier',
+	'challenge.side.yes': 'Oui',
+	'challenge.side.no': 'Non',
+	'challenge.line.named': "@{handle} a prédit {side} à {pct} %. Tu crois que c'est faux ?",
+	'challenge.line.anonymous': "Un ami a prédit {side} à {pct} %. Tu crois que c'est faux ?",
+	'challenge.line.named_changed':
+		"@{handle} dit maintenant {side} à {pct} %. Tu crois que c'est faux ?",
+	'challenge.line.anonymous_changed':
+		"Un ami dit maintenant {side} à {pct} %. Tu crois que c'est faux ?",
+	'challenge.line.named_no_position': '@{handle} te défie sur celle-ci. Quelle est ta prédiction ?',
+	'challenge.line.anonymous_no_position':
+		'Un ami te défie sur celle-ci. Quelle est ta prédiction ?',
+	'challenge.line.named_closed':
+		'@{handle} a prédit {side} à {pct} % sur celle-ci. Elle est fermée.',
+	'challenge.line.anonymous_closed':
+		'Un ami a prédit {side} à {pct} % sur celle-ci. Elle est fermée.',
+	'challenge.line.anonymous_closed_no_position': "Un ami t'a défié sur celle-ci. Elle est fermée.",
+	'challenge.line.named_closed_no_position': "@{handle} t'a défié sur celle-ci. Elle est fermée.",
+	'challenge.share.loading': 'Préparation de ton lien',
+	'challenge.share.preview_label': 'Ce que voit ton ami',
+	'challenge.share.current_position_note':
+		'Le lien montre toujours ta position actuelle sur ce marché.',
+	'challenge.share.consent_label': 'Afficher mon @handle et ma prédiction sur ce lien',
+	'challenge.share.consent_note':
+		'Activé, toute personne ayant le lien voit ton @handle et cette prédiction, même si ton profil est privé.',
+	'challenge.share.send': 'Envoyer',
+	'challenge.share.copy': 'Copier le lien',
+	'challenge.share.copied': 'Lien du défi copié.',
+	'challenge.share.text_named': "@{handle} te défie sur VICI. Tu crois que c'est faux ?",
+	'challenge.share.text_anonymous': "Un ami te défie sur VICI. Tu crois que c'est faux ?",
+	'challenge.share.revoke': 'Désactiver ce lien',
+	'challenge.share.revoke_confirm': "Désactiver ce lien ? Qui l'ouvre ne trouvera rien.",
+	'challenge.share.revoke_confirm_cta': 'Désactiver',
+	'challenge.share.revoke_cancel': 'Le garder',
+	'challenge.share.revoke_note':
+		'Les discussions qui affichent déjà un aperçu du lien le gardent : désactiver le lien ou masquer ton @handle ne le retire pas.',
+	'challenge.share.revoked_title': 'Lien désactivé',
+	'challenge.share.revoked': "Ton lien de défi ne s'ouvre plus.",
+	'challenge.share.error.title': 'Défi indisponible',
+	'challenge.share.error.no_position': "Tu n'as plus de prédiction sur ce marché.",
+	'challenge.share.error.market_closed': "Ce marché n'accepte plus de prédictions.",
+	'challenge.share.error.rate_limited': 'Trop de liens de défi pour le moment. Réessaie plus tard.',
+	'challenge.share.error.generic':
+		'Impossible de préparer ton lien de défi. Réessaie dans un instant.',
+	'inbox.challenge_answer.title': 'Ton ami a répondu',
+	'inbox.challenge_answer.body':
+		'@{handle} a prédit {side} à {pct} %. Tu as dit {mySide} à {myPct} %.',
+	'inbox.challenge_answer.body_no_position': '@{handle} a prédit {side} à {pct} % sur ton défi.'
 } as const;

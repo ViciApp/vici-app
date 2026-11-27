@@ -2660,5 +2660,56 @@ export const deMessages = {
 	'landing.markets.pending':
 		'{side} bei {pct}% mit {amount} VXP. Liegst du richtig, bekommst du {earns} VXP',
 	'landing.markets.share.label': 'Diese Frage teilen',
-	'landing.markets.share.text': '{question} Die Community sagt {pct}%. Was sagst du?'
+	'landing.markets.share.text': '{question} Die Community sagt {pct}%. Was sagst du?',
+	'challenge.action.label': 'Fordere einen Freund heraus',
+	'challenge.action.short': 'Herausfordern',
+	'challenge.side.yes': 'Ja',
+	'challenge.side.no': 'Nein',
+	'challenge.line.named': '@{handle} tippt {side} bei {pct} %. Liegt @{handle} falsch?',
+	'challenge.line.anonymous': 'Ein Freund tippt {side} bei {pct} %. Liegt er falsch?',
+	'challenge.line.named_changed':
+		'@{handle} sagt jetzt {side} bei {pct} %. Liegt @{handle} falsch?',
+	'challenge.line.anonymous_changed': 'Ein Freund sagt jetzt {side} bei {pct} %. Liegt er falsch?',
+	'challenge.line.named_no_position': '@{handle} fordert dich hier heraus. Was ist dein Tipp?',
+	'challenge.line.anonymous_no_position': 'Ein Freund fordert dich hier heraus. Was ist dein Tipp?',
+	'challenge.line.named_closed':
+		'@{handle} tippte hier {side} bei {pct} %. Der Markt ist geschlossen.',
+	'challenge.line.anonymous_closed':
+		'Ein Freund tippte hier {side} bei {pct} %. Der Markt ist geschlossen.',
+	'challenge.line.anonymous_closed_no_position':
+		'Ein Freund hat dich hier herausgefordert. Der Markt ist geschlossen.',
+	'challenge.line.named_closed_no_position':
+		'@{handle} hat dich hier herausgefordert. Der Markt ist geschlossen.',
+	'challenge.share.loading': 'Dein Link wird vorbereitet',
+	'challenge.share.preview_label': 'Das sieht dein Freund',
+	'challenge.share.current_position_note':
+		'Der Link zeigt immer deine aktuelle Position in diesem Markt.',
+	'challenge.share.consent_label': 'Mein @handle und meinen Tipp auf diesem Link zeigen',
+	'challenge.share.consent_note':
+		'Ist das an, sieht jeder mit dem Link dein @handle und diesen Tipp, auch wenn dein Profil privat ist.',
+	'challenge.share.send': 'Senden',
+	'challenge.share.copy': 'Link kopieren',
+	'challenge.share.copied': 'Herausforderungslink kopiert.',
+	'challenge.share.text_named': '@{handle} fordert dich auf VICI heraus. Liegt @{handle} falsch?',
+	'challenge.share.text_anonymous': 'Ein Freund fordert dich auf VICI heraus. Liegt er falsch?',
+	'challenge.share.revoke': 'Diesen Link deaktivieren',
+	'challenge.share.revoke_confirm': 'Diesen Link deaktivieren? Wer ihn öffnet, findet nichts.',
+	'challenge.share.revoke_confirm_cta': 'Deaktivieren',
+	'challenge.share.revoke_cancel': 'Behalten',
+	'challenge.share.revoke_note':
+		'Chats, die schon eine Vorschau des Links zeigen, behalten sie: Den Link zu deaktivieren oder dein @handle zu verbergen, holt sie nicht zurück.',
+	'challenge.share.revoked_title': 'Link deaktiviert',
+	'challenge.share.revoked': 'Dein Herausforderungslink öffnet sich nicht mehr.',
+	'challenge.share.error.title': 'Herausforderung nicht verfügbar',
+	'challenge.share.error.no_position': 'Du hast keinen Tipp mehr in diesem Markt.',
+	'challenge.share.error.market_closed': 'Dieser Markt nimmt keine Tipps mehr an.',
+	'challenge.share.error.rate_limited':
+		'Gerade zu viele Herausforderungslinks. Versuch es später noch einmal.',
+	'challenge.share.error.generic':
+		'Dein Herausforderungslink konnte nicht vorbereitet werden. Versuch es gleich noch einmal.',
+	'inbox.challenge_answer.title': 'Dein Freund hat geantwortet',
+	'inbox.challenge_answer.body':
+		'@{handle} tippt {side} bei {pct} %. Du hast {mySide} bei {myPct} % gesagt.',
+	'inbox.challenge_answer.body_no_position':
+		'@{handle} tippt {side} bei {pct} % auf deine Herausforderung.'
 } as const;

@@ -8,6 +8,7 @@
 	import DesktopAppNav from '#lib/components/layout/DesktopAppNav.svelte';
 	import MobileNav from '#lib/components/layout/MobileNav.svelte';
 	import Loaders from '#lib/components/loaders/Loaders.svelte';
+	import ChallengeShareHost from '#lib/components/market/ChallengeShareHost.svelte';
 	import MenagerieCelebrationHost from '#lib/components/menagerie/MenagerieCelebrationHost.svelte';
 	import SurfaceTipHost from '#lib/components/onboarding/SurfaceTipHost.svelte';
 	import AccountReturnGate from '#lib/components/settings/AccountReturnGate.svelte';
@@ -456,6 +457,13 @@
 		beat. Inert (renders nothing) for members and plain signed-out visitors.
 	-->
 	<GuestSaveHost />
+
+	<!--
+		The challenge share sheet, opened by "Challenge a friend" on a Flow
+		card back or a market detail page. Hosted here because a Flow card's
+		transform would trap a sheet rendered inside it.
+	-->
+	<ChallengeShareHost />
 
 	<!--
 		Recovery-on-return gate. Self-hides when the profile is active, so

@@ -2636,5 +2636,51 @@ export const esMessages = {
 		'Esto es la vista previa. Reserva tu @handle para seguir prediciendo cuando VICI abra.',
 	'landing.markets.pending': '{side} al {pct}% con {amount} VXP. Si aciertas, ganas {earns} VXP',
 	'landing.markets.share.label': 'Compartir esta pregunta',
-	'landing.markets.share.text': '{question} La comunidad dice {pct}%. ¿Cuál es tu predicción?'
+	'landing.markets.share.text': '{question} La comunidad dice {pct}%. ¿Cuál es tu predicción?',
+	'challenge.action.label': 'Reta a un amigo',
+	'challenge.action.short': 'Retar',
+	'challenge.side.yes': 'Sí',
+	'challenge.side.no': 'No',
+	'challenge.line.named': '@{handle} predijo {side} al {pct}%. ¿Crees que se equivoca?',
+	'challenge.line.anonymous': 'Un amigo predijo {side} al {pct}%. ¿Crees que se equivoca?',
+	'challenge.line.named_changed': '@{handle} ahora dice {side} al {pct}%. ¿Crees que se equivoca?',
+	'challenge.line.anonymous_changed':
+		'Un amigo ahora dice {side} al {pct}%. ¿Crees que se equivoca?',
+	'challenge.line.named_no_position': '@{handle} te retó en esto. ¿Cuál es tu predicción?',
+	'challenge.line.anonymous_no_position': 'Un amigo te retó en esto. ¿Cuál es tu predicción?',
+	'challenge.line.named_closed': '@{handle} predijo {side} al {pct}% en este. Ya cerró.',
+	'challenge.line.anonymous_closed': 'Un amigo predijo {side} al {pct}% en este. Ya cerró.',
+	'challenge.line.anonymous_closed_no_position': 'Un amigo te retó en este. Ya cerró.',
+	'challenge.line.named_closed_no_position': '@{handle} te retó en este. Ya cerró.',
+	'challenge.share.loading': 'Preparando tu enlace',
+	'challenge.share.preview_label': 'Lo que ve tu amigo',
+	'challenge.share.current_position_note':
+		'El enlace siempre muestra tu posición actual en este mercado.',
+	'challenge.share.consent_label': 'Mostrar mi @handle y mi predicción en este enlace',
+	'challenge.share.consent_note':
+		'Activado, cualquiera con el enlace ve tu @handle y esta predicción, aunque tu perfil sea privado.',
+	'challenge.share.send': 'Enviar',
+	'challenge.share.copy': 'Copiar enlace',
+	'challenge.share.copied': 'Enlace del reto copiado.',
+	'challenge.share.text_named': '@{handle} te retó en VICI. ¿Crees que se equivoca?',
+	'challenge.share.text_anonymous': 'Un amigo te retó en VICI. ¿Crees que se equivoca?',
+	'challenge.share.revoke': 'Desactivar este enlace',
+	'challenge.share.revoke_confirm': '¿Desactivar este enlace? Quien lo abra no encontrará nada.',
+	'challenge.share.revoke_confirm_cta': 'Desactivar',
+	'challenge.share.revoke_cancel': 'Mantenerlo',
+	'challenge.share.revoke_note':
+		'Los chats que ya muestran una vista previa del enlace la conservan: desactivarlo u ocultar tu @handle no la retira.',
+	'challenge.share.revoked_title': 'Enlace desactivado',
+	'challenge.share.revoked': 'Tu enlace de reto ya no se abre.',
+	'challenge.share.error.title': 'Reto no disponible',
+	'challenge.share.error.no_position': 'Ya no tienes una predicción en este mercado.',
+	'challenge.share.error.market_closed': 'Este mercado está cerrado a predicciones.',
+	'challenge.share.error.rate_limited':
+		'Demasiados enlaces de reto por ahora. Inténtalo más tarde.',
+	'challenge.share.error.generic':
+		'No pudimos preparar tu enlace de reto. Inténtalo en un momento.',
+	'inbox.challenge_answer.title': 'Tu amigo respondió',
+	'inbox.challenge_answer.body':
+		'@{handle} predijo {side} al {pct}%. Tú dijiste {mySide} al {myPct}%.',
+	'inbox.challenge_answer.body_no_position': '@{handle} predijo {side} al {pct}% en tu reto.'
 } as const;
