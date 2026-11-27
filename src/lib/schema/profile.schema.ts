@@ -1,13 +1,14 @@
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
 import { UserRole } from '#lib/enums/user.ts';
-import { j, PrincipalTextSchema } from '@junobuild/schema';
+import { PrincipalTextSchema } from '@dfinity/zod-schemas';
+import * as z from 'zod';
 
-const UserRoleSchema = j.enum(UserRole);
+const UserRoleSchema = z.enum(UserRole);
 
-const ProfileVisibilitySchema = j.enum(ProfileVisibility);
+const ProfileVisibilitySchema = z.enum(ProfileVisibility);
 
-export const NicknameSchema = j.string();
+export const NicknameSchema = z.string();
 
 /**
  * Owner-private profile data: one doc per principal in the
@@ -17,19 +18,19 @@ export const NicknameSchema = j.string();
  * the email-signup flow; the collection is `managed`, so only the owner
  * and controllers can read it.
  */
-export const ProfilePrivateSchema = j.strictObject({
+export const ProfilePrivateSchema = z.strictObject({
 	owner: PrincipalTextSchema,
-	email: j.string().default('')
+	email: z.string().default('')
 });
 
 // Read only for primitive leaves: an object or array default calls
 // `defaultPreferences()` on each decode, so no two decoded profiles share one.
 const PREFERENCE_DEFAULTS = defaultPreferences();
 
-export const UserProfileSchema = j.strictObject({
+export const UserProfileSchema = z.strictObject({
 	owner: PrincipalTextSchema,
 	nickname: NicknameSchema.default(''),
-	avatar: j.string().default(''),
+	avatar: z.string().default(''),
 	// The user's faceted-avatar picks, serialized to a compact JSON string
 	// (the seven catalog keys: see `serializeParts` in
 	// `#lib/utils/vici-avatar.utils.ts`). Stored as a plain string (not a nested
@@ -38,13 +39,13 @@ export const UserProfileSchema = j.strictObject({
 	// (the surface falls back to a deterministic face seeded by the
 	// principal). Uploaded avatar images still win over this. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	avatarParts: j.string().default(''),
-	pnl: j.number().default(0),
+	avatarParts: z.string().default(''),
+	pnl: z.number().default(0),
 	visibility: ProfileVisibilitySchema.default(ProfileVisibility.FRIENDS_ONLY),
 	role: UserRoleSchema.optional(),
-	totalTrades: j.number().default(0),
-	winRate: j.number().default(0),
-	dailyStreak: j.number().default(0),
+	totalTrades: z.number().default(0),
+	winRate: z.number().default(0),
+	dailyStreak: z.number().default(0),
 	// Best daily-streak the user has ever reached; the running
 	// `max(longestStreak, dailyStreak)` maintained wherever `dailyStreak`
 	// is persisted (Flow Mode's first-swipe write and the trade-execution
@@ -52,21 +53,21 @@ export const UserProfileSchema = j.strictObject({
 	// streak hero. Defaults to 0 so legacy rows decode without a migration
 	// and self-heal up to their current `dailyStreak` on the next bump.
 	// Mirror any change here in `src/satellite/api-schemas.ts`.
-	longestStreak: j.number().default(0),
+	longestStreak: z.number().default(0),
 	// Daily-goal counter: predictions committed on `dailyGoalDate`
 	// (local `YYYY-MM-DD`). `dailyGoalDone` rolls back to 0 the first
 	// time it's touched on a new local day, mirroring the `dailyStreak`
 	// / `lastActiveDay` pairing. The target itself is a client constant,
 	// so only the count and its day are persisted.
-	dailyGoalDone: j.number().default(0),
-	dailyGoalDate: j.string().optional(),
-	streak: j.number().default(0),
-	accuracy: j.number().default(0),
-	points: j.number().default(0),
-	level: j.number().default(1),
-	archetype: j.string().default(''),
-	interests: j.array(j.string()).default([]),
-	lastActiveDay: j.string().optional(),
+	dailyGoalDone: z.number().default(0),
+	dailyGoalDate: z.string().optional(),
+	streak: z.number().default(0),
+	accuracy: z.number().default(0),
+	points: z.number().default(0),
+	level: z.number().default(1),
+	archetype: z.string().default(''),
+	interests: z.array(z.string()).default([]),
+	lastActiveDay: z.string().optional(),
 	// Soft-delete marker. PRESENCE = the account is soft-deleted (the
 	// wall-clock ms at which `deleteMyAccount` ran);
 	// ABSENCE = an active account. Intentionally `optional()` with NO
@@ -75,7 +76,7 @@ export const UserProfileSchema = j.strictObject({
 	// Within the recovery window the owner can `recoverMyAccount` to clear
 	// it; past the window the admin sweep hard-deletes the account. Mirror
 	// any change here in `src/satellite/api-schemas.ts`.
-	deletedAtMs: j.number().optional(),
+	deletedAtMs: z.number().optional(),
 	// Hibernation marker (the reversible sibling of soft-delete).
 	// PRESENCE = the account is hibernated (the wall-clock ms at which
 	// `hibernateMyAccount` ran); ABSENCE = an active account. Like
@@ -86,18 +87,18 @@ export const UserProfileSchema = j.strictObject({
 	// `resumeMyAccount` at any time to clear it. Mutually exclusive with
 	// `deletedAtMs` (a soft-deleted account can't be hibernated). Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	hibernatedAtMs: j.number().optional(),
+	hibernatedAtMs: z.number().optional(),
 	// IDs of achievements the user has ever unlocked (append-only). Source of
 	// truth for the achievement system: `evaluateAchievements` re-derives
 	// current eligibility on every stats sync, and any newly-true ids are
 	// merged in here (with their XP credited to `points`). Unlocks never
 	// rescind: if a stat regresses, the achievement stays "earned".
-	unlockedAchievements: j.array(j.string()).default([]),
+	unlockedAchievements: z.array(z.string()).default([]),
 	// Lifetime count of wins on long-shot trades (execution price at or
 	// below `CONTRARIAN_PRICE_THRESHOLD`). Drives the `contrarian`
 	// achievement progress; recomputed from clearing history during
 	// `calculateAndSyncStats`.
-	contrarianWins: j.number().default(0),
+	contrarianWins: z.number().default(0),
 	// Rarest single upset: the smallest execution consensus (0..1) among
 	// the user's settled wins; lower = rarer. Drives the Octopus trophy's
 	// reversed ladder. `optional()` with NO default: absence means "no
@@ -105,20 +106,20 @@ export const UserProfileSchema = j.strictObject({
 	// world-class upset (0) or a never-matched worst case that still reads
 	// as data (1). Recomputed from clearing history during
 	// `calculateAndSyncStats`.
-	bestUpsetConsensus: j.number().optional(),
+	bestUpsetConsensus: z.number().optional(),
 	// Longest consecutive-win run the user has ever recorded across settled
 	// history: the high-water sibling of `streak` (which tracks only the
 	// CURRENT run and resets on every loss). Drives the Snake trophy, whose
 	// rungs must not regress when a run ends. Recomputed from clearing
 	// history during `calculateAndSyncStats`, kept monotonic via
 	// `max(existing, recomputed)`.
-	onFireStreak: j.number().default(0),
+	onFireStreak: z.number().default(0),
 	// Lifetime cold-streak recoveries: settled wins that snapped a run of
 	// at least `COMEBACK_COLD_STREAK_LOSSES` consecutive settled losses.
 	// Drives the Honey Badger trophy. Recomputed from clearing history
 	// during `calculateAndSyncStats`, kept monotonic via `max(existing,
 	// recomputed)`.
-	comebacks: j.number().default(0),
+	comebacks: z.number().default(0),
 	// Breadth: distinct market categories where the user has at least
 	// `MAGPIE_MIN_CATEGORY_CALLS` settled calls at a win ratio of at least
 	// `MAGPIE_MIN_CATEGORY_ACCURACY`. Drives the Magpie trophy. Recomputed
@@ -126,7 +127,7 @@ export const UserProfileSchema = j.strictObject({
 	// kept monotonic via `max(existing, recomputed)` (the tag lookup
 	// degrades to "untagged" when market metadata isn't hydrated, and a
 	// thin sync must not strip an earned rung).
-	winningCategories: j.number().default(0),
+	winningCategories: z.number().default(0),
 	// League-life milestones (drive the Bee trophy's join → win-a-bout →
 	// found ladder). All three are recomputed from the caller's league
 	// memberships / battles during `calculateAndSyncStats` and kept
@@ -134,13 +135,13 @@ export const UserProfileSchema = j.strictObject({
 	// failed read must not strip an earned rung.
 	// High-water count of league memberships (any role), because of the
 	// monotonic guard, leaving a league never decrements it.
-	leaguesJoined: j.number().default(0),
+	leaguesJoined: z.number().default(0),
 	// High-water count of resolved battles (league bouts or duels) the
 	// user's side won.
-	boutsWon: j.number().default(0),
+	boutsWon: z.number().default(0),
 	// High-water count of leagues the user has owned, transferring or
 	// deleting a league never decrements it.
-	leaguesFounded: j.number().default(0),
+	leaguesFounded: z.number().default(0),
 	// Consecutive calendar days the user has held a top-10% global
 	// leaderboard position (rank ≤ profileCount / 10). Drives the
 	// `top-decile` achievement. Bumped at most once per local day in
@@ -148,12 +149,12 @@ export const UserProfileSchema = j.strictObject({
 	// pattern) and reset to 0 the first time a sync on a new day finds the
 	// user outside the top decile. Mirror any change here in
 	// `src/satellite/api-schemas.ts`.
-	topDecileStreak: j.number().default(0),
+	topDecileStreak: z.number().default(0),
 	// Local `YYYY-MM-DD` of the last day `topDecileStreak` was evaluated:
 	// the once-per-day guard for the streak bump. `optional()` with no
 	// default so a never-evaluated profile reads as absent. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	lastTopDecileDay: j.string().optional(),
+	lastTopDecileDay: z.string().optional(),
 	// Best monthly sharpest-eye placement the user has ever earned:
 	// `'gold'` (#1), `'silver'` (#2), or `'bronze'` (#3). Drives the
 	// `sharpest-eye` album award's tier wash. The client sets it (keeping the
@@ -163,7 +164,7 @@ export const UserProfileSchema = j.strictObject({
 	// backward-compatible state for every legacy row. A single field (not
 	// per-month history) is the v1 storage shape. Mirror any change here in
 	// `src/satellite/api-schemas.ts`.
-	sharpestEyeBestTier: j.string().optional(),
+	sharpestEyeBestTier: z.string().optional(),
 	// Verification state of the owner's Alma Mater (university affiliation):
 	// `'unverified'` | `'pending'` | `'verified'`. Drives the verification
 	// pill on the profile's Alma Mater slot. Stored as a loose string (not an
@@ -176,7 +177,7 @@ export const UserProfileSchema = j.strictObject({
 	// this to `'verified'`) is deferred to its own roadmap item; until then the
 	// only reachable state for a set school is `'unverified'`. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	schoolStatus: j.string().optional(),
+	schoolStatus: z.string().optional(),
 	// Celebrated Menagerie tier keys (the achievement "trophy layer"). Each
 	// entry is a `${slug}:${tier}` string (e.g. `owl:gold`) the owner has
 	// already SEEN a celebration for. The set is the de-dupe ledger that keeps
@@ -189,7 +190,7 @@ export const UserProfileSchema = j.strictObject({
 	// instead make every legacy row look like it had explicitly celebrated
 	// nothing, turning that first load into a celebration storm. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	earnedMenagerie: j.array(j.string()).optional(),
+	earnedMenagerie: z.array(z.string()).optional(),
 	// Wall-clock ms at which the owner last CHANGED their handle (nickname).
 	// Drives the {@link HANDLE_COOLDOWN_DAYS}-day handle-change cooldown: a
 	// rename is only allowed once this is older than the window. PRESENCE = a
@@ -199,7 +200,7 @@ export const UserProfileSchema = j.strictObject({
 	// changeable). The set-profile assert is the authority; it sets this to
 	// the message time on a change and rejects any other movement. Mirror any
 	// change here in `src/satellite/api-schemas.ts`.
-	handleLastChangeMs: j.number().optional(),
+	handleLastChangeMs: z.number().optional(),
 	// `preferences` carries every cross-device user setting. Defaults are
 	// applied at every leaf because the satellite-side encoder traps with
 	// `missing field X` the moment `app_list_leaderboard` / `app_get_profile`
@@ -213,25 +214,25 @@ export const UserProfileSchema = j.strictObject({
 	// flow deck, haptics, saved-markets list, privacy/sharing): they
 	// migrated off per-device localStorage and now round-trip through the
 	// profile so they sync across devices.
-	preferences: j
+	preferences: z
 		.strictObject({
-			defaultAmount: j
+			defaultAmount: z
 				.strictObject({
-					flow: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
-					manual: j.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
+					flow: z.string().default(PREFERENCE_DEFAULTS.defaultAmount.flow),
+					manual: z.string().default(PREFERENCE_DEFAULTS.defaultAmount.manual)
 				})
 				.default(() => defaultPreferences().defaultAmount),
-			notify: j
+			notify: z
 				.strictObject({
-					streakReminder: j.boolean().default(PREFERENCE_DEFAULTS.notify.streakReminder),
-					marketAlerts: j.boolean().default(PREFERENCE_DEFAULTS.notify.marketAlerts),
-					friendActivity: j.boolean().default(PREFERENCE_DEFAULTS.notify.friendActivity),
-					weeklyDigest: j.boolean().default(PREFERENCE_DEFAULTS.notify.weeklyDigest)
+					streakReminder: z.boolean().default(PREFERENCE_DEFAULTS.notify.streakReminder),
+					marketAlerts: z.boolean().default(PREFERENCE_DEFAULTS.notify.marketAlerts),
+					friendActivity: z.boolean().default(PREFERENCE_DEFAULTS.notify.friendActivity),
+					weeklyDigest: z.boolean().default(PREFERENCE_DEFAULTS.notify.weeklyDigest)
 				})
 				.default(() => defaultPreferences().notify),
-			flowSessionLength: j.number().default(PREFERENCE_DEFAULTS.flowSessionLength),
-			hapticsEnabled: j.boolean().default(PREFERENCE_DEFAULTS.hapticsEnabled),
-			soundEnabled: j.boolean().default(PREFERENCE_DEFAULTS.soundEnabled),
+			flowSessionLength: z.number().default(PREFERENCE_DEFAULTS.flowSessionLength),
+			hapticsEnabled: z.boolean().default(PREFERENCE_DEFAULTS.hapticsEnabled),
+			soundEnabled: z.boolean().default(PREFERENCE_DEFAULTS.soundEnabled),
 			// Privacy / sharing preference group (Settings privacy
 			// sections). Every leaf is defaulted for the same reason as the
 			// surrounding fields: a partial `preferences` shape on a legacy
@@ -242,17 +243,17 @@ export const UserProfileSchema = j.strictObject({
 			// / `worldsOptIn` default to `true` to match the current
 			// always-shown behaviour. Mirror any change here in
 			// `src/satellite/api-schemas.ts`.
-			sharing: j
+			sharing: z
 				.strictObject({
-					profileVisibility: j.string().default(PREFERENCE_DEFAULTS.sharing.profileVisibility),
-					callsPublic: j.boolean().default(PREFERENCE_DEFAULTS.sharing.callsPublic),
-					leaderboardOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.leaderboardOptIn),
-					worldsOptIn: j.boolean().default(PREFERENCE_DEFAULTS.sharing.worldsOptIn)
+					profileVisibility: z.string().default(PREFERENCE_DEFAULTS.sharing.profileVisibility),
+					callsPublic: z.boolean().default(PREFERENCE_DEFAULTS.sharing.callsPublic),
+					leaderboardOptIn: z.boolean().default(PREFERENCE_DEFAULTS.sharing.leaderboardOptIn),
+					worldsOptIn: z.boolean().default(PREFERENCE_DEFAULTS.sharing.worldsOptIn)
 				})
 				.default(() => defaultPreferences().sharing),
-			flowTags: j.array(j.string()).default(() => defaultPreferences().flowTags),
-			worldCupMode: j.boolean().default(PREFERENCE_DEFAULTS.worldCupMode),
-			savedMarketIds: j.array(j.string()).default(() => defaultPreferences().savedMarketIds),
+			flowTags: z.array(z.string()).default(() => defaultPreferences().flowTags),
+			worldCupMode: z.boolean().default(PREFERENCE_DEFAULTS.worldCupMode),
+			savedMarketIds: z.array(z.string()).default(() => defaultPreferences().savedMarketIds),
 			// Onboarding picks (Beat 1.a + 1.b). Empty string for
 			// `favoriteParticipantId` means the user skipped the team
 			// pick; empty string for `favoriteSide` means no YES/NO
@@ -260,9 +261,9 @@ export const UserProfileSchema = j.strictObject({
 			// once the 3-beat flow finishes, regardless of which picks
 			// were ultimately persisted; it's the source of truth for
 			// whether to re-prompt the user on next sign-in.
-			favoriteParticipantId: j.string().default(PREFERENCE_DEFAULTS.favoriteParticipantId),
-			favoriteSide: j.string().default(PREFERENCE_DEFAULTS.favoriteSide),
-			onboardingCompleted: j.boolean().default(PREFERENCE_DEFAULTS.onboardingCompleted)
+			favoriteParticipantId: z.string().default(PREFERENCE_DEFAULTS.favoriteParticipantId),
+			favoriteSide: z.string().default(PREFERENCE_DEFAULTS.favoriteSide),
+			onboardingCompleted: z.boolean().default(PREFERENCE_DEFAULTS.onboardingCompleted)
 		})
 		.default(defaultPreferences)
 });

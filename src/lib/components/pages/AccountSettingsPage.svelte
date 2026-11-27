@@ -2,9 +2,7 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { ArrowLeftRight, Check, ChevronRight, Mail } from '@lucide/svelte/icons';
 	import { onDestroy } from 'svelte';
-	import IconGoogle from '#lib/components/icons/IconGoogle.svelte';
 	import IconIc from '#lib/components/icons/IconIC.svelte';
-	import IconPasskey from '#lib/components/icons/IconPasskey.svelte';
 	import ScreenHeader from '#lib/components/layout/ScreenHeader.svelte';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
@@ -23,11 +21,8 @@
 	 * switch action, and the email card with an `idle → editing → sent`
 	 * change flow.
 	 *
-	 * Sign-in method is derived from the provider Juno records on the
-	 * `#user` doc (`user.data.provider`), refined by whether an address is
-	 * on file: an email surfaces the email-shaped card, `google` / a plain
-	 * `webauthn` passkey surface their own glyph + label, and Internet
-	 * Identity (including Apple, which signs in through II) is the fallback.
+	 * Sign-in method is derived from whether an address is on file: an
+	 * email surfaces the email-shaped card, anything else the fallback.
 	 * Shared with the Settings summary row via `resolveSignInMethod`.
 	 *
 	 * Switching always signs the user out and returns them to the
@@ -44,21 +39,17 @@
 
 	const EMAIL_CHANGE_ENABLED = false;
 
-	// The address lives on the owner-private `profile_private` doc (hydrated
-	// into the store at sign-in), never on the public profile.
+	// The address rides the session's auth identity (hydrated into the store
+	// at sign-in), never the public profile.
 	const email = $derived($userStore.email);
 	const hasEmail = $derived(email.length > 0);
 
-	const method = $derived(resolveSignInMethod({ user: $userStore.user, hasEmail }));
+	const method = $derived(resolveSignInMethod({ hasEmail }));
 
 	const methodLabel = $derived.by(() => {
 		switch (method) {
 			case 'email':
 				return t({ locale: $localeStore, key: 'account.method.email' });
-			case 'google':
-				return t({ locale: $localeStore, key: 'account.method.google' });
-			case 'passkey':
-				return t({ locale: $localeStore, key: 'account.method.passkey' });
 			default:
 				return t({ locale: $localeStore, key: 'account.method.ii' });
 		}
@@ -175,10 +166,6 @@
 			<div class="account-method-glyph" aria-hidden="true">
 				{#if method === 'email'}
 					<Mail size={20} strokeWidth={1.8} />
-				{:else if method === 'google'}
-					<IconGoogle size="20px" />
-				{:else if method === 'passkey'}
-					<IconPasskey size="20px" />
 				{:else}
 					<IconIc size="20px" />
 				{/if}
@@ -258,8 +245,9 @@
 					{t({ locale: $localeStore, key: 'account.email.sent_title' })}
 				</p>
 				<p class="account-sent-body num">
-					{sentBodyParts.before}<span class="account-sent-target">{newEmail}</span
-					>{sentBodyParts.after}
+					{sentBodyParts.before}<span class="account-sent-target">
+						{newEmail}
+					</span>{sentBodyParts.after}
 				</p>
 			</div>
 		{:else}

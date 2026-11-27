@@ -1,4 +1,4 @@
-import { getIdentityOrAnonymous } from '#lib/services/identity.services.ts';
+import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import {
 	queryAndUpdate,
 	type QueryAndUpdatePromiseResolution,
@@ -26,11 +26,10 @@ interface LoadWithCertificationParams<R> {
  *
  * Use this for read paths that are exposed over both query and update calls,
  * typically anything routed through a `@dfinity/utils` `Canister` (e.g. registry,
- * clearing) or an `@icp-sdk/canisters` canister (ledger, index). Juno satellite
- * `functions.*` reads do NOT have an update flavor and cannot be used with this.
+ * clearing) or an `@icp-sdk/canisters` canister (ledger, index).
  *
- * Resolves with `AnonymousIdentity` when no user is signed in, mirroring
- * `getIdentityOrAnonymous`.
+ * Runs under `AnonymousIdentity` unless the caller passes one: the client
+ * never holds a signed-in identity.
  */
 export const loadWithCertification = async <R>({
 	request,
@@ -41,9 +40,9 @@ export const loadWithCertification = async <R>({
 	resolution = 'race',
 	identity: identityOverride
 }: LoadWithCertificationParams<R>): Promise<void> => {
-	const identity = identityOverride ?? (await getIdentityOrAnonymous());
+	const identity = identityOverride ?? anonymousIdentity();
 
-	return queryAndUpdate<R>({
+	return await queryAndUpdate<R>({
 		request: ({ certified }) => request({ certified, identity }),
 		onLoad,
 		onQueryError: ({ error }) => {

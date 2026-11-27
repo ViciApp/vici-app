@@ -524,12 +524,7 @@
 						</button>
 					{:else}
 						<div onpointerdowncapture={onCommitHandle}>
-							<SignInProviderStack
-								disabled={!availability.ok}
-								handle={selectedName}
-								mode="signup"
-								onSuccess={onAuthSuccess}
-							/>
+							<SignInProviderStack disabled={!availability.ok} onSuccess={onAuthSuccess} />
 						</div>
 
 						<button

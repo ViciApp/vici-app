@@ -1,4 +1,4 @@
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Per-window ranked standings, derived from the clearing canister's

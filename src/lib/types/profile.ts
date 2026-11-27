@@ -3,10 +3,10 @@ import type {
 	ProfilePrivateSchema,
 	UserProfileSchema
 } from '#lib/schema/profile.schema.ts';
-import type { j } from '@junobuild/schema';
+import type * as z from 'zod';
 
-export type Nickname = j.infer<typeof NicknameSchema>;
+export type Nickname = z.infer<typeof NicknameSchema>;
 
-export type UserProfile = j.infer<typeof UserProfileSchema>;
+export type UserProfile = z.infer<typeof UserProfileSchema>;
 
-export type ProfilePrivate = j.infer<typeof ProfilePrivateSchema>;
+export type ProfilePrivate = z.infer<typeof ProfilePrivateSchema>;

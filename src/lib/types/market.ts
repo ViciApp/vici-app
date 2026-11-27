@@ -1,7 +1,7 @@
 import type { ClearingDid } from '#declarations';
 import type { MarketIdSchema } from '#lib/schema/market.schema.ts';
 import type { Token } from '#lib/types/token.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import type * as z from 'zod';
 
 export type MarketId = z.infer<typeof MarketIdSchema>;

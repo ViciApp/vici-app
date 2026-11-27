@@ -1,5 +1,5 @@
 import type { UserProfile } from '#lib/types/profile.ts';
-import type { User } from '@junobuild/core';
+import type { User } from '#lib/types/user.ts';
 import { writable } from 'svelte/store';
 
 interface UserStoreData {

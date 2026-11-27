@@ -484,7 +484,7 @@
 
 		void (async () => {
 			try {
-				userStats = await loadMyUserStats(profile.owner);
+				userStats = await loadMyUserStats();
 			} catch (err) {
 				console.error('ProfileDashboard: failed to load user_stats', err);
 			}
@@ -792,7 +792,6 @@
 		lastChangeMs={profile.handleLastChangeMs}
 		onClose={() => (handleEditOpen = false)}
 		onSaved={(handle) => void handleSavedHandle(handle)}
-		owner={profile.owner}
 	/>
 {/if}
 

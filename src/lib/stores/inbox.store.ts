@@ -29,6 +29,7 @@ import { profilesStore } from '#lib/stores/profiles.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { ResolutionItem, ResolutionRevealData } from '#lib/types/flow.ts';
 import type { InboxNotification, InboxNotificationKind } from '#lib/types/inbox.ts';
+import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 import type { Market } from '#lib/types/market.ts';
 import type { ResolvedPosition } from '#lib/types/position.ts';
 import type { Relation } from '#lib/types/relation.ts';
@@ -50,7 +51,6 @@ import {
 } from '#lib/utils/streak.utils.ts';
 import { browser } from '$app/env';
 import { isNullish, nonNullish } from '@dfinity/utils';
-import type { Doc } from '@junobuild/core';
 import { derived, get as getStore, writable, type Readable } from 'svelte/store';
 
 /**
@@ -64,7 +64,7 @@ const friendRequestInboxStore: Readable<InboxNotification[]> = derived(
 	([$requests, $profiles, $user, $locale]) => {
 		const viewer = $user.user?.owner;
 
-		return $requests.map((doc: Doc<Relation>) => {
+		return $requests.map((doc: KeyedDoc<Relation>) => {
 			const otherPrincipal =
 				doc.data.participants.find((p) => p !== viewer) ?? doc.data.participants[0];
 			const profile = $profiles.get(otherPrincipal);

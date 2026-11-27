@@ -1,7 +1,5 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import type { MarketTranslation, MarketTranslationInput } from '#lib/types/market-translation.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getMarketTranslation as getMarketTranslationWeb2,
 	listMarketTranslationsForLocales as listMarketTranslationsForLocalesWeb2,
@@ -15,25 +13,10 @@ export const getMarketTranslation = async ({
 }: {
 	seriesId: string;
 	locale: AppLocale;
-}): Promise<MarketTranslation | undefined> => {
-	if (isWeb2Backend()) {
-		return await getMarketTranslationWeb2({ seriesId, locale });
-	}
+}): Promise<MarketTranslation | undefined> => await getMarketTranslationWeb2({ seriesId, locale });
 
-	const { translation } = await functions.getMarketTranslation({ seriesId, locale });
-
-	return translation;
-};
-
-export const listMarketTranslations = async (seriesId: string): Promise<MarketTranslation[]> => {
-	if (isWeb2Backend()) {
-		return await listMarketTranslationsWeb2(seriesId);
-	}
-
-	const { items } = await functions.listMarketTranslations({ seriesId });
-
-	return items;
-};
+export const listMarketTranslations = async (seriesId: string): Promise<MarketTranslation[]> =>
+	await listMarketTranslationsWeb2(seriesId);
 
 /**
  * Bulk overlay read for a set of markets across a set of candidate locales
@@ -48,16 +31,13 @@ export const listMarketTranslationsForLocales = async ({
 }: {
 	seriesIds: string[];
 	locales: AppLocale[];
-}): Promise<MarketTranslation[]> => {
-	if (isWeb2Backend()) {
-		return await listMarketTranslationsForLocalesWeb2({ seriesIds, locales });
-	}
+}): Promise<MarketTranslation[]> =>
+	await listMarketTranslationsForLocalesWeb2({ seriesIds, locales });
 
-	const { items } = await functions.listMarketTranslationsForLocales({ seriesIds, locales });
-
-	return items;
-};
-
+/**
+ * The API enforces the curator gate (admin or series creator) and returns the
+ * stored doc.
+ */
 export const upsertMarketTranslation = async ({
 	seriesId,
 	locale,
@@ -66,14 +46,4 @@ export const upsertMarketTranslation = async ({
 	seriesId: string;
 	locale: AppLocale;
 	data: MarketTranslationInput;
-}): Promise<MarketTranslation> => {
-	// Both transports enforce the same curator gate (admin or series creator)
-	// server-side and return the stored doc.
-	if (isWeb2Backend()) {
-		return await upsertMarketTranslationWeb2({ seriesId, locale, data });
-	}
-
-	const { translation } = await functions.upsertMarketTranslation({ seriesId, locale, data });
-
-	return translation;
-};
+}): Promise<MarketTranslation> => await upsertMarketTranslationWeb2({ seriesId, locale, data });

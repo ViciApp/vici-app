@@ -1,4 +1,3 @@
-import juno from '@junobuild/vite-plugin';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
@@ -46,7 +45,7 @@ export default defineConfig({
 		__APP_VERSION__: JSON.stringify(appVersion),
 		__BUILD_SHA__: JSON.stringify(buildSha)
 	},
-	plugins: [sveltekit(sveltekitOptions), juno(), tailwindcss()],
+	plugins: [sveltekit(sveltekitOptions), tailwindcss()],
 	// `@lucide/svelte` ships raw `.svelte` icon sources behind a barrel that
 	// re-exports ~1,600 modules (`@lucide/svelte/icons` aliases the same
 	// barrel). Svelte component libraries are excluded from esbuild's

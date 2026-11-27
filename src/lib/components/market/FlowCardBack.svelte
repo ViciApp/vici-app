@@ -8,11 +8,7 @@
 	import FlowWhoCalling from '#lib/components/market/FlowWhoCalling.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketMetadata } from '#lib/types/market-metadata.ts';
-	import type {
-		CategoryAccuracySignal,
-		FollowedLeanSignal,
-		PriorCallSignal
-	} from '#lib/types/market-signals.ts';
+	import type { CategoryAccuracySignal, PriorCallSignal } from '#lib/types/market-signals.ts';
 	import type { CallSide, Market } from '#lib/types/market.ts';
 	import type { FlowArtCategory } from '#lib/utils/flow-art.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
@@ -29,7 +25,6 @@
 		metadata?: MarketMetadata;
 		categoryAcc?: CategoryAccuracySignal;
 		priorCall?: PriorCallSignal;
-		followedLean?: FollowedLeanSignal;
 		onClose: () => void;
 		// Mirrors FlowCard.interactive; only the topmost card is wired
 		// for the tap-to-flip-back / horizontal-swipe-commits gestures.
@@ -63,7 +58,6 @@
 		metadata,
 		categoryAcc,
 		priorCall,
-		followedLean,
 		onClose,
 		interactive = true,
 		tradeAmount,
@@ -94,7 +88,7 @@
 
 		<FlowCallSize {callSizeWarning} {market} {noPct} {onCallSizeChange} {tradeAmount} {yesPct} />
 
-		<FlowWhoCalling {followedLean} {yesPct} />
+		<FlowWhoCalling {yesPct} />
 
 		<FlowBackContext {category} {categoryAcc} {priorCall} {yesPct} />
 	</div>

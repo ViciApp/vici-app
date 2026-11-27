@@ -33,7 +33,6 @@
 	import { primaryMicro } from '#lib/constants/market-taxonomy.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
-	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { marketTags } from '#lib/derived/market-tags.derived.ts';
 	import { orders } from '#lib/derived/orders.derived.ts';
 	import { positions } from '#lib/derived/positions.derived.ts';
@@ -47,7 +46,7 @@
 		vxpHoldingsTotal,
 		vxpSpendable
 	} from '#lib/derived/vxp-holdings.derived.ts';
-	import { getProfile, syncMyStats } from '#lib/services/profile.services.ts';
+	import { getProfile } from '#lib/services/profile.services.ts';
 	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
 	import { friendsListStore } from '#lib/stores/friends.store.ts';
 	import { markResolutionsSeen, maturedResolutions } from '#lib/stores/inbox.store.ts';
@@ -372,15 +371,14 @@
 		}
 
 		try {
-			await syncMyStats({ domain: $balanceDomain });
 			const profileDoc = await getProfile(profile.owner);
 			userStore.update((s) => ({ ...s, profile: profileDoc.data }));
 		} catch (err) {
-			console.error('DashPage: failed to recompute stats', err);
+			console.error('DashPage: failed to refresh the profile', err);
 		}
 
 		try {
-			userStats = await loadMyUserStats(profile.owner);
+			userStats = await loadMyUserStats();
 		} catch (err) {
 			console.error('DashPage: failed to load user_stats', err);
 		}

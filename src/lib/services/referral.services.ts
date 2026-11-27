@@ -1,6 +1,4 @@
-import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { ReferralListItem } from '#lib/types/referral.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	claimReferralFriendship as claimReferralFriendshipWeb2,
 	getMyReferralCode as getMyReferralCodeWeb2,
@@ -10,15 +8,13 @@ import {
 	Web2ApiError
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { fromWireReferral } from '#satellite/utils/wire-format.utils.ts';
 import { isNullish } from '@dfinity/utils';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
- * The HTTP routes fold the satellite's trap reasons into the `{ error }`
- * envelope; rethrow them as the Error message so the onboarding drain's
- * reason matching (`existing_user_no_bonus`, "already redeemed", ...) stays
- * shared between transports.
+ * The HTTP routes fold the referral rejection reasons into the `{ error }`
+ * envelope; rethrow them as the Error message so the onboarding drain can
+ * match on the reason (`existing_user_no_bonus`, "already redeemed", ...).
  */
 const rethrowReferralReason = (err: unknown): never => {
 	if (err instanceof Web2ApiError && err.status === 400) {
@@ -29,74 +25,42 @@ const rethrowReferralReason = (err: unknown): never => {
 };
 
 /**
- * Thin actor wrappers around the satellite referral endpoints. UI for the registration flow
- * (entering a code) and the "Your code / Friends you referred" panel will land in a follow-up
- * PR: this file exists so those surfaces can import a typed service without re-introducing the
- * `fromWire…` conversion plumbing inline.
+ * Returns the caller's referral code. The route assigns one on first read, so
+ * a returning user who predates the feature still gets a code.
  */
+export const getMyReferralCode = async (): Promise<string | undefined> =>
+	await getMyReferralCodeWeb2();
 
 /**
- * Returns the caller's auto-generated referral code, if it has already been assigned. The code is
- * assigned by the satellite profile hook on first profile create; if a returning user is missing
- * one (e.g. signed in before the feature shipped), the next profile write backfills it.
- */
-export const getMyReferralCode = async (): Promise<string | undefined> => {
-	// The HTTP route assigns a code on first read, so the returning-user
-	// backfill wait described above never applies on that transport.
-	if (isWeb2Backend()) {
-		return await getMyReferralCodeWeb2();
-	}
-
-	const { code } = await functions.getMyReferralCode();
-
-	return code;
-};
-
-/**
- * Resolves a referral code to its owner principal (or `undefined` if unknown / malformed). Used
- * by the FE to render a "Referred by …" preview before the user confirms redemption.
+ * Resolves a referral code to its owner's account id (or `undefined` if unknown / malformed),
+ * the same `owner` string profile reads key on. Used by the FE to render a "Referred by …"
+ * preview before the user confirms redemption.
  */
 export const lookupReferralCode = async ({
 	code
 }: {
 	code: string;
-}): Promise<PrincipalText | undefined> => {
-	// web2 resolves to the owner's account id, the same `owner` string the
-	// swapped profile reads key on, so the landing preview renders unchanged.
-	if (isWeb2Backend()) {
-		return await lookupReferralCodeWeb2(code);
-	}
-
-	const { owner } = await functions.lookupReferralCode({ code });
-
-	return owner;
-};
+}): Promise<PrincipalText | undefined> => await lookupReferralCodeWeb2(code);
 
 /**
- * Submits a referral code redemption for the current caller. The satellite enforces:
- * - one-time per referee (the call traps on a second invocation),
+ * Submits a referral code redemption for the current caller. The API enforces:
+ * - one-time per referee (a second redemption is rejected),
  * - the caller must have a profile,
- * - the profile must be younger than {@link REFERRAL_SIGNUP_WINDOW_MS}: older accounts trap
- *   with {@link REFERRAL_EXISTING_USER_REASON} and should fall back to
+ * - the profile must be younger than {@link REFERRAL_SIGNUP_WINDOW_MS}: older accounts are
+ *   rejected with {@link REFERRAL_EXISTING_USER_REASON} and should fall back to
  *   {@link claimReferralFriendship},
  * - self-referrals are rejected,
  * - the code must exist.
  *
- * On success the satellite also writes a bilateral confirmed friendship between referrer and
- * referee. Both VXP bonuses are paid out asynchronously by the post-write hook.
+ * On success the API also writes a bilateral confirmed friendship between referrer and
+ * referee and pays both VXP bonuses.
  */
 export const redeemReferralCode = async ({ code }: { code: string }): Promise<void> => {
-	if (isWeb2Backend()) {
-		try {
-			await redeemReferralCodeWeb2(code);
-		} catch (err: unknown) {
-			rethrowReferralReason(err);
-		}
-
-		return;
+	try {
+		await redeemReferralCodeWeb2(code);
+	} catch (err: unknown) {
+		rethrowReferralReason(err);
 	}
-
-	await functions.redeemReferralCode({ code });
 };
 
 /**
@@ -104,20 +68,14 @@ export const redeemReferralCode = async ({ code }: { code: string }): Promise<vo
  * have already redeemed a different code. No VXP transfer; only writes a bilateral confirmed
  * friendship between the caller and the code owner. Idempotent if a relation already exists.
  *
- * The satellite still validates the code shape, looks up the owner, and rejects self-referrals.
+ * The API still validates the code shape, looks up the owner, and rejects self-referrals.
  */
 export const claimReferralFriendship = async ({ code }: { code: string }): Promise<void> => {
-	if (isWeb2Backend()) {
-		try {
-			await claimReferralFriendshipWeb2(code);
-		} catch (err: unknown) {
-			rethrowReferralReason(err);
-		}
-
-		return;
+	try {
+		await claimReferralFriendshipWeb2(code);
+	} catch (err: unknown) {
+		rethrowReferralReason(err);
 	}
-
-	await functions.claimReferralFriendship({ code });
 };
 
 /**
@@ -126,32 +84,26 @@ export const claimReferralFriendship = async ({ code }: { code: string }): Promi
  * referrer payout) so the FE can show the full monitoring view.
  */
 export const listMyReferrals = async (): Promise<ReferralListItem[]> => {
-	if (isWeb2Backend()) {
-		const items = await listMyReferralsWeb2();
+	const items = await listMyReferralsWeb2();
 
-		// The route lists rows where the caller IS the referrer, so the wire
-		// omits the referrer id; restore it from the session account. A missing
-		// session means the caller raced the /me probe: fail fast rather than
-		// emitting rows with a blank owner.
-		const referrer = getWeb2User()?.id;
+	// The route lists rows where the caller IS the referrer, so the wire
+	// omits the referrer id; restore it from the session account. A missing
+	// session means the caller raced the /me probe: fail fast rather than
+	// emitting rows with a blank owner.
+	const referrer = getWeb2User()?.id;
 
-		if (isNullish(referrer)) {
-			throw new Error('Not authenticated');
-		}
-
-		return items.map((item) => ({
-			version: 1,
-			referee: item.referee,
-			referrer,
-			code: item.code,
-			redeemedAtMs: item.redeemedAtMs,
-			withinReferrerCap: item.withinReferrerCap,
-			refereePayout: item.refereePayout,
-			referrerPayout: item.referrerPayout
-		}));
+	if (isNullish(referrer)) {
+		throw new Error('Not authenticated');
 	}
 
-	const { items } = await functions.listMyReferrals();
-
-	return items.map(fromWireReferral);
+	return items.map((item) => ({
+		version: 1,
+		referee: item.referee,
+		referrer,
+		code: item.code,
+		redeemedAtMs: item.redeemedAtMs,
+		withinReferrerCap: item.withinReferrerCap,
+		refereePayout: item.refereePayout,
+		referrerPayout: item.referrerPayout
+	}));
 };

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
-	import type { Doc } from '@junobuild/core';
 	import { UserMinus, UserPlus } from '@lucide/svelte/icons';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -30,6 +29,7 @@
 	import { notificationsStore } from '#lib/stores/notification.store.ts';
 	import { globalStandingsStore } from '#lib/stores/standings.store.ts';
 	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
+	import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 	import type { Relation } from '#lib/types/relation.ts';
 	import type { StandingsWindow } from '#lib/types/standings.ts';
 	import { shortenPrincipal } from '#lib/utils/format.utils.ts';
@@ -203,7 +203,7 @@
 
 	const isFriend = (owner: string): boolean => friendOwners.has(owner);
 
-	const pendingSentDoc = (owner: string): Doc<Relation> | undefined =>
+	const pendingSentDoc = (owner: string): KeyedDoc<Relation> | undefined =>
 		$sentFriendRequestsStore.find((doc) => doc.data.participants.includes(owner));
 
 	onMount(() => {
@@ -458,9 +458,9 @@
 		{#if provisionalRows.length > 0}
 			<div class="leaderboard-provisional">
 				<div class="leaderboard-provisional-head">
-					<span class="allcaps"
-						>{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}</span
-					>
+					<span class="allcaps">
+						{t({ locale: $localeStore, key: 'leaderboard.provisional.title' })}
+					</span>
 					<span class="num allcaps leaderboard-provisional-min">
 						{t({
 							locale: $localeStore,

@@ -1,32 +1,23 @@
 import type { ClearingDid } from '#declarations';
-import { listLeaderboard } from '#lib/api/clearing.api.ts';
-import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
 import { setGlobalStandings } from '#lib/stores/standings.store.ts';
 import type { StandingEntry, StandingsResult, StandingsWindow } from '#lib/types/standings.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { listEngineLeaderboard as listEngineLeaderboardWeb2 } from '#lib/web2/client.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
- * Per-window ranked standings, sourced from the clearing canister's
- * `list_leaderboard` query (ranked by net realized P&L over a fixed calendar
- * window). The query is `caller_is_not_anonymous`-guarded, so every read
- * needs a signed-in identity.
+ * Per-window ranked standings, sourced from the engine leaderboard read on the
+ * API's HTTP bridge (clearing's ranking by net realized P&L over a fixed
+ * calendar window).
  *
- * The clearing layer owns settlement and ranking; the satellite owns league
- * membership, so the league filter is supplied by the caller as a principal
+ * The clearing layer owns settlement and ranking; the API owns league
+ * membership, so a league filter is supplied by the caller as a principal
  * set (`members`). This service maps the wire aggregate onto the FE
  * {@link StandingEntry} view model (rank, prior-window rank, the ↑/↓ delta,
  * realized P&L, and a `win_count / settled_count` accuracy); it never
  * fabricates a figure: an empty window simply yields no entries.
  */
 
-/** Drain cap: one window's ranked list is bounded so a large global standings
- *  set can't fan out into an unbounded number of round-trips. At 500 entries
- *  per page this covers 5,000 ranked principals. */
-const MAX_STANDINGS_PAGES = 10;
 const STANDINGS_PAGE_LIMIT = 500n;
 
 const toWindow = (window: StandingsWindow): ClearingDid.LeaderboardWindow => {
@@ -75,30 +66,15 @@ export const getStandings = async ({
 }: {
 	window: StandingsWindow;
 }): Promise<StandingsResult> => {
-	// The global ranking is a public engine read on the HTTP bridge, so web2
+	// The global ranking is a public engine read on the HTTP bridge, so it
 	// needs no signed identity. `owner` on each entry is clearing's native key,
-	// the engine principal (for a web2 account, its custodial principal), never
+	// the engine principal (for an account, its custodial principal), never
 	// the account id: the bridge maps no principal back to an account, so no
 	// profile resolves for these rows and the leaderboard opt-out hides them
-	// (fail closed). The bridge drains the ranking with its own page bound,
-	// which covers the same visible depth.
-	if (isWeb2Backend()) {
-		const { items, total } = await listEngineLeaderboardWeb2({
-			window: toWindow(window),
-			limit: STANDINGS_PAGE_LIMIT
-		});
-
-		return { window, entries: items.map(toEntry), total: Number(total) };
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	const { items, total } = await listLeaderboard({
-		identity,
+	// (fail closed). The bridge drains the ranking with its own page bound.
+	const { items, total } = await listEngineLeaderboardWeb2({
 		window: toWindow(window),
-		pageLimit: STANDINGS_PAGE_LIMIT,
-		maxPages: MAX_STANDINGS_PAGES,
-		certified: false
+		limit: STANDINGS_PAGE_LIMIT
 	});
 
 	return { window, entries: items.map(toEntry), total: Number(total) };
@@ -114,8 +90,7 @@ export const getStandings = async ({
  * only the viewer's own rank (no other handle/avatar), whereas the Leaderboard
  * renders every row. Folding a hydrate-everyone fan-out in here meant the dash
  * (hit on the first authenticated page of a session) fired one `getProfile`
- * per ranked principal (up to {@link MAX_STANDINGS_PAGES} × 500), a multi-
- * thousand request burst it threw away. The Leaderboard now hydrates only the
+ * per ranked principal, a multi-thousand request burst it threw away. The Leaderboard now hydrates only the
  * rows it actually paints (see `LeaderboardPage`).
  */
 export const loadGlobalStandings = async ({
@@ -132,37 +107,18 @@ export const loadGlobalStandings = async ({
  * zeroed aggregate, so the slice covers the whole roster). Returns an empty
  * result when the roster is empty.
  *
- * Empty on the web2 backend for now: the HTTP bridge's leaderboard read has
- * no member filter, and with the leagues domain swapped the rosters carry
- * account ids while this clearing query scopes by on-chain principals, so a
- * member-filtered bridge read (with the identity mapping) has to exist before
- * this can swap. Until then every member-scoped slice renders as "no
- * standings yet", which each caller already handles.
+ * Always empty for now: the HTTP bridge's leaderboard read has no member
+ * filter, and league rosters carry account ids while clearing ranks by
+ * engine principals, so a member-filtered bridge read (with the identity
+ * mapping) has to exist first. Until then every member-scoped slice renders
+ * as "no standings yet", which each caller already handles.
  */
-export const getLeagueStandings = async ({
-	window,
-	members
+export const getLeagueStandings = ({
+	window
 }: {
 	window: StandingsWindow;
 	members: PrincipalText[];
-}): Promise<StandingsResult> => {
-	if (members.length === 0 || isWeb2Backend()) {
-		return { window, entries: [], total: 0 };
-	}
-
-	const identity = await safeGetIdentityOnce();
-
-	const { items, total } = await listLeaderboard({
-		identity,
-		window: toWindow(window),
-		members: members.map((m) => Principal.fromText(m)),
-		pageLimit: STANDINGS_PAGE_LIMIT,
-		maxPages: MAX_STANDINGS_PAGES,
-		certified: false
-	});
-
-	return { window, entries: items.map(toEntry), total: Number(total) };
-};
+}): Promise<StandingsResult> => Promise.resolve({ window, entries: [], total: 0 });
 
 /**
  * The signed-in viewer's own standing within a window, or `undefined` when

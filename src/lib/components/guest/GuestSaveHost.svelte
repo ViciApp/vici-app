@@ -5,7 +5,7 @@
 	import GuestSaveSheet from '#lib/components/guest/GuestSaveSheet.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
-	import { guestHandle, guestMode, guestPickCount } from '#lib/derived/guest.derived.ts';
+	import { guestMode, guestPickCount } from '#lib/derived/guest.derived.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
 	import { pendingOnboardingProvider } from '#lib/services/onboarding-handoff.services.ts';
@@ -155,7 +155,6 @@
 
 {#if isGuestOnFlow && overlayClear}
 	<GuestSaveSheet
-		handle={$guestHandle}
 		isOpen={sheetOpen}
 		kind={sheetKind}
 		onClose={() => (sheetOpen = false)}

@@ -228,8 +228,7 @@
 	const priceHistoryInFlight = new SvelteSet<MarketId>();
 	let userSignals = $state<UserMarketSignals>({
 		categoryAcc: {},
-		priorCalls: {},
-		followedLean: {}
+		priorCalls: {}
 	});
 
 	let exitX = $state(0);
@@ -1427,7 +1426,6 @@
 					{@const metadata = marketMetadataMap.get(currentCard.id)}
 					{@const priceSeries = priceHistoryById.get(currentCard.id)}
 					{@const priorCall = userSignals.priorCalls[currentCard.id]}
-					{@const followedLean = userSignals.followedLean[currentCard.id]}
 					{@const categoryAcc = userSignals.categoryAcc[flowCategory]}
 					{#key currentIndex}
 						{#if !flowPaused}
@@ -1447,7 +1445,6 @@
 										category={flowCategory}
 										{categoryAcc}
 										committedAction={currentCard.id === committedMarketId ? committedAction : null}
-										{followedLean}
 										gesturesArmed={deckGesturesArmed}
 										interactive
 										market={currentCard}

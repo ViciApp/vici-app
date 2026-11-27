@@ -5,12 +5,10 @@
 		"non-ambient.d.ts",
 		"./scripts/",
 		"./src/",
-		"./e2e/",
 		"./e2e-web2/",
 		"./eslint.config.js",
 		"./eslint-local-rules.cjs",
 		"./juno.config.ts",
-		"./playwright.config.ts",
 		"./playwright.web2.config.ts",
 		"./vite.config.ts"
 	],

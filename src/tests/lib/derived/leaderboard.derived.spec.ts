@@ -4,7 +4,7 @@ import { leaderboardStore } from '#lib/stores/leaderboard.store.ts';
 import { profilesStore } from '#lib/stores/profiles.store.ts';
 import { userStore } from '#lib/stores/user.store.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
-import type { User } from '@junobuild/core';
+import type { User } from '#lib/types/user.ts';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import { get } from 'svelte/store';
@@ -31,7 +31,7 @@ const profileOf = ({
 	};
 };
 
-// What the satellite's leaderboard wire decodes to: every row opted in,
+// What the API's leaderboard wire decodes to: every row opted in,
 // whatever its owner stored.
 const leaderboardRows = (owners: string[]): UserProfile[] =>
 	owners.map((owner) => profileOf({ owner }));

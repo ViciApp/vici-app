@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PrincipalText } from '@junobuild/schema';
+	import type { PrincipalText } from '@dfinity/zod-schemas';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
 	import YouBadge from '#lib/components/ui/YouBadge.svelte';
 

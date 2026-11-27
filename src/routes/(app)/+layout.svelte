@@ -2,8 +2,6 @@
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { onMount, type Snippet } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import ClaimBanner from '#lib/components/claim/ClaimBanner.svelte';
-	import MoveNoticeBanner from '#lib/components/claim/MoveNoticeBanner.svelte';
 	import GuestSaveHost from '#lib/components/guest/GuestSaveHost.svelte';
 	import DesktopAppNav from '#lib/components/layout/DesktopAppNav.svelte';
 	import MobileNav from '#lib/components/layout/MobileNav.svelte';
@@ -20,7 +18,6 @@
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { guestMode } from '#lib/derived/guest.derived.ts';
 	import { authBusy, userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
-	import { installE2eResetHook } from '#lib/dev/e2e-reset.ts';
 	import {
 		drainPendingOnboarding,
 		hasPendingOnboarding
@@ -73,10 +70,6 @@
 		// browser fires it once, early, on a cold load. Idempotent and
 		// browser-only (see `a2hs.store`).
 		initA2hs();
-
-		// Dev-only: expose the e2e profile-reset hook so the onboarding spec can
-		// escape the shared dev mock identity. No-op in production.
-		installE2eResetHook();
 
 		return () => {
 			delete document.documentElement.dataset.app;
@@ -360,18 +353,6 @@
 		a fake-mobile phone bezel.
 	-->
 	<DesktopAppNav />
-
-	<!--
-		Legacy-build-only migration banners for signed-in users: an informational
-		"VICI is moving" notice until the cutover switch, then the claim banner
-		that invites them to carry their account over. The claim service gates
-		both on the same switch so at most one renders, and neither on the web2
-		build.
-	-->
-	{#if $userSignedIn}
-		<MoveNoticeBanner />
-		<ClaimBanner />
-	{/if}
 
 	<main class="screen-scroll">
 		{#if authResolving}

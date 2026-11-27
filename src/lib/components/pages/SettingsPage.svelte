@@ -13,7 +13,6 @@
 		Lock,
 		Mail,
 		Moon,
-		Rocket,
 		Scale,
 		Search,
 		Share2,
@@ -40,10 +39,6 @@
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
 	import { flushEvents, track } from '#lib/services/analytics.services.ts';
-	import {
-		isClaimHandoffAvailable,
-		startClaimHandoff
-	} from '#lib/services/claim-handoff.services.ts';
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '#lib/services/identity.services.ts';
@@ -84,29 +79,6 @@
 	let signOutStatus = $state<ButtonStatus>('enabled');
 	let confirmingSignOut = $state(false);
 
-	// Account-claim handoff: a legacy-build-only row that signs the claim
-	// payload and opens the claim portal on the new stack in a new tab.
-	const claimAvailable = isClaimHandoffAvailable();
-	let claimBusy = $state(false);
-
-	const onStartClaim = async () => {
-		if (claimBusy) {
-			return;
-		}
-
-		claimBusy = true;
-
-		try {
-			const opened = await startClaimHandoff();
-
-			if (!opened) {
-				flashToast(t({ locale: $localeStore, key: 'claim.handoff.error' }));
-			}
-		} finally {
-			claimBusy = false;
-		}
-	};
-
 	// Local transient toast pill. Kept page-local instead of routing
 	// through `notificationsStore` because the surface wants a compact
 	// pill pinned to the bottom of the page, not a full-stack
@@ -126,14 +98,6 @@
 	};
 
 	let joinedAtMs = $state<number | undefined>(undefined);
-
-	const loadJoinedAt = async (principal: string) => {
-		try {
-			joinedAtMs = await getMyJoinedAtMs(principal);
-		} catch {
-			joinedAtMs = undefined;
-		}
-	};
 
 	const joinedLabel = $derived.by(() => {
 		if (isNullish(joinedAtMs)) {
@@ -161,11 +125,8 @@
 	const email = $derived($userStore.email);
 	const hasEmail = $derived(email.length > 0);
 
-	// Sign-in method sub: derived from the provider Juno records on the
-	// `#user` doc (refined by whether an email is on file), so Google /
-	// Passkey accounts surface their own label instead of collapsing into
-	// the old email-vs-II heuristic. Email-backed accounts show the address.
-	const signinMethod = $derived(resolveSignInMethod({ user: $userStore.user, hasEmail }));
+	// Sign-in method sub: email-backed accounts show the address.
+	const signinMethod = $derived(resolveSignInMethod({ hasEmail }));
 	const signinMethodSub = $derived.by(() => {
 		switch (signinMethod) {
 			case 'email':
@@ -174,10 +135,6 @@
 					key: 'settings.account.signin_method.email',
 					params: { email }
 				});
-			case 'google':
-				return t({ locale: $localeStore, key: 'settings.account.signin_method.google' });
-			case 'passkey':
-				return t({ locale: $localeStore, key: 'settings.account.signin_method.passkey' });
 			default:
 				return t({ locale: $localeStore, key: 'settings.account.signin_method.ii' });
 		}
@@ -314,7 +271,7 @@
 
 	onMount(() => {
 		if ($authPrincipal) {
-			void loadJoinedAt($authPrincipal);
+			joinedAtMs = getMyJoinedAtMs();
 		}
 
 		const onKey = (event: KeyboardEvent) => {
@@ -378,15 +335,6 @@
 					{/if}
 				{/snippet}
 			</SetRow>
-
-			{#if claimAvailable}
-				<SetRow
-					icon={Rocket}
-					label={t({ locale: $localeStore, key: 'claim.settings.label' })}
-					onclick={onStartClaim}
-					sub={t({ locale: $localeStore, key: 'claim.settings.sub' })}
-				/>
-			{/if}
 		</SettingsSection>
 
 		<SettingsSection title={t({ locale: $localeStore, key: 'settings.preferences' })}>

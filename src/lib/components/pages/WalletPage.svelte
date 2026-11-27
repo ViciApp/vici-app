@@ -178,16 +178,15 @@
 		return `${sign}${formatVxpBalance({ value: abs, decimals: VXP_TOKEN.decimals })}`;
 	});
 
-	// The loader answers `undefined` on the default backend (no custody gate),
-	// so "still loading" needs its own flag.
-	let sendAssets = $state<Web2WalletAsset[] | undefined>();
+	// An empty catalog offers no token, so "still loading" needs its own flag.
+	let sendAssets = $state<Web2WalletAsset[]>([]);
 	let sendAssetsLoaded = $state(false);
 
 	const loadSendAssets = async () => {
 		try {
 			sendAssets = await loadSendableWalletAssets();
 		} catch (err: unknown) {
-			// Without the catalog every web2 send is refused, so offer none.
+			// Without the catalog every send is refused, so offer none.
 			console.error('Failed to load the send asset catalog:', err);
 			sendAssets = [];
 		} finally {
@@ -223,8 +222,6 @@
 		pendingSend = send;
 
 		try {
-			// The service resolves the transport (user-signed ICRC transfer, or a
-			// custodial withdrawal in web2 mode) and the auth that goes with it.
 			await sendToken({
 				token,
 				to: intent.to,

@@ -1,6 +1,6 @@
 import type { Token } from '#lib/types/token.ts';
 import type { Web2WalletAsset } from '#lib/web2/client.ts';
-import { isNullish, nonNullish } from '@dfinity/utils';
+import { nonNullish } from '@dfinity/utils';
 
 /**
  * The custody asset a web2 send withdraws for `token`, or `undefined` when the
@@ -21,23 +21,16 @@ export const findSendableAsset = ({
 	);
 
 /**
- * The wallet tokens the Send tab may offer. `assets` is the custody catalog in
- * web2 mode; `undefined` means no custody gate applies (the default backend,
- * where every wallet token is a user-signed ICRC transfer).
+ * The wallet tokens the Send tab may offer: those the custody catalog
+ * `assets` can withdraw.
  */
 export const filterSendableTokens = ({
 	tokens,
 	assets
 }: {
 	tokens: Token[];
-	assets: Web2WalletAsset[] | undefined;
-}): Token[] => {
-	if (isNullish(assets)) {
-		return tokens;
-	}
-
-	return tokens.filter((token) => nonNullish(findSendableAsset({ assets, token })));
-};
+	assets: Web2WalletAsset[];
+}): Token[] => tokens.filter((token) => nonNullish(findSendableAsset({ assets, token })));
 
 /** What one send asks for: the token (by ledger), the amount and the
  * destination. Any change to one of them is another send. */

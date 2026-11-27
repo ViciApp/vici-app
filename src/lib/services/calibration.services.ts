@@ -46,14 +46,7 @@ export const getCalibrationDeck = async (): Promise<CalibrationCard[]> => {
 	// The reward pays in VXP, so scope the deck to the ViciXp domain.
 	const domain: RegistryDid.BalanceDomain = { ViciXp: null };
 
-	// Both inputs must share a certification level: `getMarketsLite` forces
-	// `certified: true`, so the settled set must too. Mixing a certified
-	// catalog with an uncertified settled set can transiently drop a
-	// recently-settled series, wrongly flipping its eligibility.
-	const [markets, settledIds] = await Promise.all([
-		getMarketsLite(domain),
-		getSettledSeriesIds({ certified: true, balanceDomain: domain })
-	]);
+	const [markets, settledIds] = await Promise.all([getMarketsLite(domain), getSettledSeriesIds()]);
 
 	return markets
 		.filter((market) => isCalibrationEligible({ market, settledIds }))

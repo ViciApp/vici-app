@@ -1,4 +1,4 @@
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { writable, type Readable } from 'svelte/store';
 
 /**

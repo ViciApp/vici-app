@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { localeStore } from '#lib/stores/locale.store.ts';
-	import type { FollowedLeanSignal } from '#lib/types/market-signals.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		yesPct: number;
-		followedLean?: FollowedLeanSignal;
 	}
 
-	const { yesPct, followedLean }: Props = $props();
+	const { yesPct }: Props = $props();
 
 	// Sharp-predictor lean: `sharpPct = min(95, yes + 10)` keeps the
 	// top-decile band leaning 10pp further than consensus, capped at 95.
@@ -16,10 +14,9 @@
 	const sharpDiff = $derived(sharpPct - yesPct);
 </script>
 
-<!-- Three-row "Who's calling what" split: the differentiating
-     value of VICI's reputation layer. Row 1 = all callers, Row 2
-     = sharp predictors (with a +/- diff badge vs consensus), Row
-     3 = predictors you follow (dot grid). -->
+<!-- Two-row "Who's calling what" split: the differentiating value of
+     VICI's reputation layer. Row 1 = all callers, Row 2 = sharp
+     predictors (with a +/- diff badge vs consensus). -->
 <section class="flow-back-block flow-split">
 	<p class="eyebrow flow-back-label">
 		{t({ locale: $localeStore, key: 'card.back.who_calling' })}
@@ -59,36 +56,6 @@
 			<i style:width="{sharpPct}%" class="flow-split-fill-yes"></i>
 		</div>
 	</div>
-
-	{#if followedLean}
-		<div class="flow-split-row">
-			<div class="flow-split-meta">
-				<span class="flow-split-label">
-					{t({ locale: $localeStore, key: 'card.back.predictors_you_follow' })}
-				</span>
-				<span class="flow-split-pct num">
-					{t({
-						locale: $localeStore,
-						key: 'card.back.followed_count',
-						params: { count: followedLean.yes, total: followedLean.total }
-					})}
-				</span>
-			</div>
-			<div
-				class="flow-followed-dots"
-				aria-label={t({
-					locale: $localeStore,
-					key: 'card.back.followed_count',
-					params: { count: followedLean.yes, total: followedLean.total }
-				})}
-				role="img"
-			>
-				{#each Array.from({ length: followedLean.total }, (_, i) => i) as i (i)}
-					<span class="flow-followed-dot" class:is-yes={i < followedLean.yes}></span>
-				{/each}
-			</div>
-		</div>
-	{/if}
 </section>
 
 <style lang="postcss">
@@ -174,22 +141,5 @@
 		background: var(--yes);
 		opacity: 0.95;
 		transition: width 480ms var(--ease-vici);
-	}
-
-	.flow-followed-dots {
-		display: flex;
-		gap: 6px;
-	}
-	.flow-followed-dot {
-		width: 10px;
-		height: 10px;
-		border-radius: var(--r-pill);
-		background: var(--no);
-		opacity: 0.78;
-		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
-	}
-	.flow-followed-dot.is-yes {
-		background: var(--yes);
-		opacity: 1;
 	}
 </style>

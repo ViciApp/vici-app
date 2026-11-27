@@ -152,8 +152,7 @@
 				description: trimmedDescription || undefined,
 				accentColor: color,
 				emblem,
-				privacy,
-				inviteCode
+				privacy
 			});
 			track({ name: 'league_created', leagueId: league.id, label: privacy });
 			onCreated(league);

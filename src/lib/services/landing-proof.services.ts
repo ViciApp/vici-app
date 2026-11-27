@@ -1,22 +1,10 @@
-import { Collection } from '#lib/constants/collections.constants.ts';
-import type { UserProfile } from '#lib/types/profile.ts';
+import { countProfiles } from '#lib/web2/client.ts';
 import { nonNullish } from '@dfinity/utils';
-import { listDocs } from '@junobuild/core';
 
 /**
  * Real, anonymous proof figure for the landing band: the total number of
- * registered VICI users.
- *
- * The figure is the count of docs in the public `profiles` datastore
- * collection ({@link Collection.PROFILES}, `read: 'public'`). That read is
- * anonymous by construction: the pre-auth landing already runs under an
- * initialised satellite (see the root `+layout.svelte`), and public-collection
- * reads need no sign-in, the same path the rest of the marketing surface uses.
- *
- * We never page the full collection: a single `listDocs` with a one-item page
- * returns the total in `ListResults.matches_length` (total matching docs,
- * ignoring pagination), so the cost is one minimal query regardless of how
- * many users exist. This is a genuine, always-non-zero platform-wide figure.
+ * registered VICI users, read from the API's public profile count (one
+ * aggregate, never the profiles themselves).
  */
 
 /**
@@ -38,14 +26,7 @@ export const getViciUserCount = async (): Promise<number | undefined> => {
 	}
 
 	try {
-		// One minimal page: we only need the total, exposed as `matches_length`
-		// (total matching docs, ignoring pagination), never the doc bodies.
-		const { matches_length } = await listDocs<UserProfile>({
-			collection: Collection.PROFILES,
-			filter: { paginate: { limit: 1 } }
-		});
-
-		const total = Number(matches_length);
+		const total = await countProfiles();
 
 		if (!Number.isFinite(total) || total <= 0) {
 			return;

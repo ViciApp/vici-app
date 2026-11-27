@@ -1,5 +1,5 @@
 import type { VxpMilestoneState } from '#lib/types/vxp-onboarding.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /**
  * Row in the `referral_codes` collection: reverse lookup from code → owner.

@@ -1,18 +1,7 @@
 import type { ClearingDid, RegistryDid } from '#declarations';
-import {
-	getSeriesPriceHistory as getSeriesPriceHistoryApi,
-	getTradeHistory as getTradeHistoryApi,
-	listSeriesTradeHistory as listSeriesTradeHistoryApi
-} from '#lib/api/clearing.api.ts';
 import { ZERO } from '#lib/constants/app.constants.ts';
-import {
-	getIdentity,
-	getIdentityOrAnonymous,
-	safeGetIdentityOnce,
-	web2PlaceholderIdentity
-} from '#lib/services/identity.services.ts';
+import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import { fetchMarketsLite } from '#lib/services/market.services.ts';
-import { loadWithCertification } from '#lib/services/query-update.services.ts';
 import { filterByMarketIds } from '#lib/utils/balance-domain.utils.ts';
 import {
 	deriveMarketPriceSeries,
@@ -21,7 +10,6 @@ import {
 	type MarketPriceSeries,
 	type PriceHistoryPeriod
 } from '#lib/utils/market-price-history.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEnginePriceHistory as getEnginePriceHistoryWeb2,
 	listEngineSeriesTrades as listEngineSeriesTradesWeb2,
@@ -29,27 +17,19 @@ import {
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
 import { fromNullable, isNullish } from '@dfinity/utils';
-import type { Identity } from '@icp-sdk/core/agent';
 
 /**
- * Core fetch for user trade history, restricted to the current app domain.
+ * Trade/settlement events for the signed-in user, restricted to the markets
+ * visible in the current app domain.
  */
-const fetchUserTradeHistory = async ({
-	identity,
-	certified,
-	domain
-}: {
-	identity: Identity;
-	certified: boolean;
-	domain: RegistryDid.BalanceDomain;
-}): Promise<ClearingDid.Event[]> => {
+const fetchUserTradeHistory = async (
+	domain: RegistryDid.BalanceDomain
+): Promise<ClearingDid.Event[]> => {
 	const [events, markets] = await Promise.all([
-		isWeb2Backend() ? listEngineTradeHistoryWeb2() : getTradeHistoryApi({ identity, certified }),
+		listEngineTradeHistoryWeb2(),
 		// Order-book-free: trade history only needs the market id set to scope
-		// events to the current domain. Threads the pass's own `certified` so the
-		// uncertified query pass isn't blocked on a certified catalog, while each
-		// pass stays self-consistent (no tearing).
-		fetchMarketsLite({ identity, certified, domain })
+		// events to the current domain.
+		fetchMarketsLite({ identity: anonymousIdentity(), certified: true, domain })
 	]);
 
 	const marketIds = new Set(markets.map((m) => m.id));
@@ -58,36 +38,23 @@ const fetchUserTradeHistory = async ({
 };
 
 /**
- * Trade/settlement events for the user, restricted to markets visible in the current app domain.
- *
- * Performs a single certified update. Prefer {@link loadUserTradeHistory} for
- * UI flows that benefit from the fast-then-certified render pattern.
+ * Trade/settlement events for the user, restricted to markets visible in the
+ * current app domain. Throws when nobody is signed in.
  */
 export const getUserTradeHistory = async (
 	domain: RegistryDid.BalanceDomain
 ): Promise<ClearingDid.Event[]> => {
-	// web2 gates on the cookie session, mirroring the signed-out throw of the
-	// identity path.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			throw new Error('Not authenticated');
-		}
-
-		return fetchUserTradeHistory({
-			identity: web2PlaceholderIdentity(),
-			certified: true,
-			domain
-		});
+	if (isNullish(getWeb2User())) {
+		throw new Error('Not authenticated');
 	}
 
-	const identity = await safeGetIdentityOnce();
-
-	return fetchUserTradeHistory({ identity, certified: true, domain });
+	return await fetchUserTradeHistory(domain);
 };
 
 /**
- * Callback-based variant of {@link getUserTradeHistory}. No-op when the user
- * is not signed in.
+ * Callback-based variant of {@link getUserTradeHistory}. No-op when nobody is
+ * signed in. The API answers once, so the single response is the final
+ * (`certified: true`) pass.
  */
 export const loadUserTradeHistory = async ({
 	domain,
@@ -98,41 +65,15 @@ export const loadUserTradeHistory = async ({
 	onLoad: (options: { certified: boolean; response: ClearingDid.Event[] }) => void;
 	onUpdateError?: (error: unknown) => void;
 }): Promise<void> => {
-	// Single-pass web2 read, delivered as the final (`certified: true`) pass.
-	if (isWeb2Backend()) {
-		if (isNullish(getWeb2User())) {
-			return;
-		}
-
-		try {
-			onLoad({
-				certified: true,
-				response: await fetchUserTradeHistory({
-					identity: web2PlaceholderIdentity(),
-					certified: true,
-					domain
-				})
-			});
-		} catch (err: unknown) {
-			onUpdateError?.(err);
-		}
-
+	if (isNullish(getWeb2User())) {
 		return;
 	}
 
-	const identity = await getIdentity();
-
-	if (isNullish(identity)) {
-		return;
+	try {
+		onLoad({ certified: true, response: await fetchUserTradeHistory(domain) });
+	} catch (err: unknown) {
+		onUpdateError?.(err);
 	}
-
-	return loadWithCertification<ClearingDid.Event[]>({
-		identity,
-		request: ({ certified, identity: reqIdentity }) =>
-			fetchUserTradeHistory({ identity: reqIdentity, certified, domain }),
-		onLoad,
-		onUpdateError
-	});
 };
 
 /**
@@ -141,7 +82,7 @@ export const loadUserTradeHistory = async ({
  *
  * The query is market-wide (not caller-scoped), so the derived
  * YES-percentage series reflects the TRUE market movement for every viewer
- * including signed-out visitors, who read it under the anonymous identity
+ * including signed-out visitors,
  * rather than the viewer's own fills. `period` selects the query window
  * (resolution + lower bound; see {@link priceHistoryQueryWindow}) so the
  * `1d / 7d / 30d / all` chips re-scope the chart instead of replotting the
@@ -170,58 +111,26 @@ export const loadMarketPriceCandles = async ({
 }): Promise<void> => {
 	const { interval, startTimeNs, endTimeNs } = priceHistoryQueryWindow(period);
 
-	// web2 reads the candles once from the public HTTP bridge: there is no
-	// query/update pair on that transport, so the single response is delivered
-	// as the final (`certified: true`) pass and the on-chain double read below
-	// never runs.
-	if (isWeb2Backend()) {
-		try {
-			const response = await getEnginePriceHistoryWeb2({ seriesId, interval, startTimeNs });
-			const windowStartNs = startTimeNs ?? response[0]?.bucket_start_ns ?? endTimeNs;
+	// The candles are one read from the public HTTP bridge, delivered as the
+	// final (`certified: true`) pass.
+	try {
+		const response = await getEnginePriceHistoryWeb2({ seriesId, interval, startTimeNs });
+		// `all` has no lower query bound, so anchor the x-axis to the earliest
+		// returned candle; bounded periods anchor to the requested window start.
+		const windowStartNs = startTimeNs ?? response[0]?.bucket_start_ns ?? endTimeNs;
 
-			onLoad({
-				certified: true,
-				response: deriveMarketPriceSeries({
-					candles: response,
-					windowStartNs,
-					windowEndNs: endTimeNs
-				}),
-				windowStartNs
-			});
-		} catch (err: unknown) {
-			onUpdateError?.(err);
-		}
-
-		return;
-	}
-
-	return loadWithCertification<ClearingDid.SeriesPriceCandle[]>({
-		request: ({ certified, identity: reqIdentity }) =>
-			getSeriesPriceHistoryApi({
-				identity: reqIdentity,
-				seriesId,
-				interval,
-				startTimeNs,
-				certified
+		onLoad({
+			certified: true,
+			response: deriveMarketPriceSeries({
+				candles: response,
+				windowStartNs,
+				windowEndNs: endTimeNs
 			}),
-		onLoad: ({ certified, response }) => {
-			// `all` has no lower query bound, so anchor the x-axis to the
-			// earliest returned candle; bounded periods anchor to the requested
-			// window start.
-			const windowStartNs = startTimeNs ?? response[0]?.bucket_start_ns ?? endTimeNs;
-
-			onLoad({
-				certified,
-				response: deriveMarketPriceSeries({
-					candles: response,
-					windowStartNs,
-					windowEndNs: endTimeNs
-				}),
-				windowStartNs
-			});
-		},
-		onUpdateError
-	});
+			windowStartNs
+		});
+	} catch (err: unknown) {
+		onUpdateError?.(err);
+	}
 };
 
 // Page size for the traded-volume drain. `list_series_trade_history` returns
@@ -241,8 +150,8 @@ const TRADE_HISTORY_PAGE_SIZE = BigInt(1000);
  * to exhaustion keeps the total exact rather than a windowed sample. The detail
  * page calls this once on the foreground load (not the 30s consensus poll).
  * `decimals` is the payout token's precision so the result formats like the
- * other token stats. Read under the anonymous identity when signed-out, so a
- * public visitor sees the same figure.
+ * other token stats. A public read, so a signed-out visitor sees the same
+ * figure.
  */
 export const getSeriesTradeVolume = async ({
 	seriesId,
@@ -251,28 +160,16 @@ export const getSeriesTradeVolume = async ({
 	seriesId: string;
 	decimals: number;
 }): Promise<bigint> => {
-	// The trade tape is a public engine read: web2 drains the same pages from
-	// the HTTP bridge (no signing identity exists in that mode); the default
-	// path keeps the anonymous on-chain query.
-	const identity = isWeb2Backend() ? undefined : await getIdentityOrAnonymous();
-
+	// The trade tape is a public engine read through the HTTP bridge.
 	let volume = ZERO;
 	let startAfter: bigint | undefined;
 
 	for (;;) {
-		const { items, next_cursor } = isNullish(identity)
-			? await listEngineSeriesTradesWeb2({
-					seriesId,
-					startAfter,
-					limit: TRADE_HISTORY_PAGE_SIZE
-				})
-			: await listSeriesTradeHistoryApi({
-					identity,
-					seriesId,
-					startAfter,
-					limit: TRADE_HISTORY_PAGE_SIZE,
-					certified: false
-				});
+		const { items, next_cursor } = await listEngineSeriesTradesWeb2({
+			seriesId,
+			startAfter,
+			limit: TRADE_HISTORY_PAGE_SIZE
+		});
 
 		volume += tradeHistoryNotional({ trades: items, decimals });
 

@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { EMPTY_VALUE } from '#lib/constants/app.constants.ts';
-	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
-	import { syncMyStats } from '#lib/services/profile.services.ts';
 	import { loadMyUserStats } from '#lib/services/user-stats.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
@@ -35,17 +33,11 @@
 
 	let userStats = $state<UserStatsDoc | undefined>(undefined);
 
-	// Recompute then load the caller's stats. Mirrors `DashPage`: a user who
-	// stayed signed in through World-Cup settlements would otherwise see the
-	// last persisted snapshot, so we recompute from clearing history first,
-	// then read the refreshed `user_stats` doc. `userStats` is cleared on
-	// every owner change (including sign-out) so a shared device / account
-	// switch can never flash the previous user's WC figures.
+	// Load the caller's stats. `userStats` is cleared on every owner change
+	// (including sign-out) so a shared device / account switch can never
+	// flash the previous user's WC figures.
 	$effect(() => {
 		const owner = $userStore.profile?.owner;
-		// Capture the domain synchronously so it's both a tracked dependency
-		// and a stable value for the async recompute below.
-		const domain = $balanceDomain;
 
 		userStats = undefined;
 
@@ -57,13 +49,7 @@
 
 		void (async () => {
 			try {
-				await syncMyStats({ domain });
-			} catch (err) {
-				console.error('WorldCupRecapCard: failed to recompute stats', err);
-			}
-
-			try {
-				const doc = await loadMyUserStats(owner);
+				const doc = await loadMyUserStats();
 
 				if (!cancelled) {
 					userStats = doc;

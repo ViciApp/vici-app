@@ -1,23 +1,19 @@
 import { RelationCategory, RelationState } from '#lib/enums/relation.ts';
 import { UserRole } from '#lib/enums/user.ts';
-import { j, PrincipalTextSchema } from '@junobuild/schema';
+import { PrincipalTextSchema } from '@dfinity/zod-schemas';
+import * as z from 'zod';
 
-const RelationCategorySchema = j.enum(RelationCategory);
+const RelationCategorySchema = z.enum(RelationCategory);
 
-const RelationStateSchema = j.enum(RelationState);
+const RelationStateSchema = z.enum(RelationState);
 
-export const RelationSchema = j.strictObject({
+export const RelationSchema = z.strictObject({
 	category: RelationCategorySchema,
 	state: RelationStateSchema,
-	participants: j.array(PrincipalTextSchema),
+	participants: z.array(PrincipalTextSchema),
 	viewerPrincipal: PrincipalTextSchema.optional(),
-	viewerRole: j.enum(UserRole).optional(),
-	isFriend: j.boolean().optional()
-});
-
-export const CheckFriendshipArgsSchema = j.strictObject({
-	userA: PrincipalTextSchema,
-	userB: PrincipalTextSchema
+	viewerRole: z.enum(UserRole).optional(),
+	isFriend: z.boolean().optional()
 });
 
 /**
@@ -26,13 +22,13 @@ export const CheckFriendshipArgsSchema = j.strictObject({
  * for `rejected_cooldown`, the `retryAtMs` the wait is counted from).
  * Unexpected failures still trap and reach the FE as thrown errors.
  */
-export const FriendRequestOutcomeSchema = j.strictObject({
-	status: j.enum([
+export const FriendRequestOutcomeSchema = z.strictObject({
+	status: z.enum([
 		'sent',
 		'auto_accepted',
 		'already_friends',
 		'already_pending',
 		'rejected_cooldown'
 	]),
-	retryAtMs: j.number().optional()
+	retryAtMs: z.number().optional()
 });

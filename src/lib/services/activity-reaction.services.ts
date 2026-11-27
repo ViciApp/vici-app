@@ -1,10 +1,6 @@
-import { Collection } from '#lib/constants/collections.constants.ts';
 import { track } from '#lib/services/analytics.services.ts';
 import type { ActivityReaction } from '#lib/types/social.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import { listReceivedActivityReactions as listReceivedActivityReactionsWeb2 } from '#lib/web2/client.ts';
-import { listDocs } from '@junobuild/core';
-import type { PrincipalText } from '@junobuild/schema';
 
 /**
  * Record a failed reaction read as an observable `app_error` event rather than
@@ -28,54 +24,31 @@ const trackReactionReadFailure = ({
 };
 
 /**
- * Cap on the received-reactions scan: likes on the viewer's OWN calls (the like-received inbox
- * source). Scoped to one author's activities by the key prefix, so this is a small set even when the
- * global feed is busy.
+ * Cap on the received-reactions read: likes on the viewer's OWN calls (the like-received inbox
+ * source). Scoped to one author's activities, so this is a small set even when the global feed is
+ * busy.
  */
 const RECEIVED_REACTIONS_READ_LIMIT = 200;
 
 /**
- * Every like on `author`'s own activities. The reaction doc key is `${author}#${ts}#${type}#${liker}`,
- * so the author (the liked call's owner) is the key prefix; a single key-prefix `listDocs` returns
- * all likes on their calls, bounded and scoped to that author (not the global feed window). Backs
- * the like-received inbox card; `author` is the viewer's principal.
+ * Every like on the signed-in account's own activities, bounded and scoped to that author (not the
+ * global feed window): the API scopes the read to the session account. Backs the like-received
+ * inbox card.
  */
 export const getReceivedActivityReactions = async ({
-	author,
-	limit = RECEIVED_REACTIONS_READ_LIMIT,
-	certified = false
+	limit = RECEIVED_REACTIONS_READ_LIMIT
 }: {
-	author: PrincipalText;
 	limit?: number;
-	certified?: boolean;
-}): Promise<ActivityReaction[]> => {
+} = {}): Promise<ActivityReaction[]> => {
 	if (limit <= 0) {
 		return [];
 	}
 
 	try {
-		// The API scopes the read to the session account, which is `author`
-		// in this mode.
-		if (isWeb2Backend()) {
-			return await listReceivedActivityReactionsWeb2({ limit });
-		}
-
-		const { items } = await listDocs<ActivityReaction>({
-			collection: Collection.ACTIVITY_REACTIONS,
-			filter: {
-				// Principal text is `[a-z0-9-]` only, so it carries no regex metacharacters; a bare `^…#`
-				// prefix matches exactly the author segment (principals never contain `#`).
-				matcher: { key: `^${author}#` },
-				order: { field: 'created_at', desc: true },
-				paginate: { limit }
-			},
-			options: { certified }
-		});
-
-		return items.map(({ data }) => data);
+		return await listReceivedActivityReactionsWeb2({ limit });
 	} catch (err: unknown) {
 		trackReactionReadFailure({
-			collection: Collection.ACTIVITY_REACTIONS,
+			collection: 'activity_reactions',
 			operation: 'list_received',
 			err
 		});

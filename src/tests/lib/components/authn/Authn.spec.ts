@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 
 // The component and the stores it resets import SvelteKit modules, which this
 // runner cannot load, so the spec reads the component source: every auth
-// transition, in both backend modes, must run the one identity reset, and the
+// transition must run the one identity reset, and the
 // component must hold no reset of its own beside it.
 const source = readFileSync(
 	new URL('../../../../lib/components/authn/Authn.svelte', import.meta.url),
@@ -28,7 +28,7 @@ const functionBody = (name: string): string => {
 };
 
 describe('Authn identity reset', () => {
-	for (const transition of ['updateUserStore', 'hydrateWeb2AppShell', 'clearWeb2AppShell']) {
+	for (const transition of ['hydrateWeb2AppShell', 'clearWeb2AppShell']) {
 		it(`${transition} runs the identity reset`, () => {
 			assert.ok(functionBody(transition).includes(RESET_CALL));
 		});

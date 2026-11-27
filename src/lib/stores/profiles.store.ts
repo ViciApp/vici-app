@@ -1,5 +1,5 @@
 import type { UserProfile } from '#lib/types/profile.ts';
-import type { PrincipalText } from '@junobuild/schema';
+import type { PrincipalText } from '@dfinity/zod-schemas';
 import { writable } from 'svelte/store';
 
 /**

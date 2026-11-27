@@ -1,27 +1,12 @@
 import type { RegistryDid } from '#declarations';
-import {
-	getSettlementStatus,
-	listOrders as listOrdersApi,
-	listSeriesTradedVolumes as listSeriesTradedVolumesApi
-} from '#lib/api/clearing.api.ts';
-import { addSeries, getSeries, listSeries } from '#lib/api/registry.api.ts';
-import {
-	PAYOFF_TYPE,
-	PRICE_DECIMALS,
-	RESOLUTION_CLAUSE_MAX_LENGTH,
-	STRIKE,
-	USD_DECIMALS,
-	VICI_ORACLE_V1
-} from '#lib/constants/app.constants.ts';
+import { listOrders as listOrdersApi } from '#lib/api/clearing.api.ts';
+import { USD_DECIMALS } from '#lib/constants/app.constants.ts';
 import { CURRENT_FEATURED_EVENT } from '#lib/constants/featured-event.constants.ts';
-import { VICI_ENGINE_ID } from '#lib/constants/icdc.constants.ts';
-import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import { classificationMacros } from '#lib/constants/market-taxonomy.constants.ts';
 import { DAY_IN_MS, MILLISECOND_IN_NANOSECONDS } from '#lib/constants/time.constants.ts';
 import { ActivityType } from '#lib/enums/social.ts';
-import { UserRole } from '#lib/enums/user.ts';
-import { getSettlementActivities, logActivity } from '#lib/services/activity.services.ts';
-import { getIdentityOrAnonymous, safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+import { getSettlementActivities } from '#lib/services/activity.services.ts';
+import { anonymousIdentity } from '#lib/services/identity.services.ts';
 import {
 	listMarketMetadataBySeries,
 	listMarketTagsBySeries
@@ -50,9 +35,7 @@ import {
 	parseSettlementOutcome
 } from '#lib/utils/market.utils.ts';
 import { settlementInputOutcome, settlementInputTimestamp } from '#lib/utils/payoff.utils.ts';
-import { refreshMarkets } from '#lib/utils/refresh.utils.ts';
 import { parseMarketId } from '#lib/validation/market.validation.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	getEngineSeries as getEngineSeriesWeb2,
 	getEngineSettlementStatus as getEngineSettlementStatusWeb2,
@@ -60,194 +43,15 @@ import {
 	listEngineSeries as listEngineSeriesWeb2
 } from '#lib/web2/client.ts';
 import { getWeb2User } from '#lib/web2/session.ts';
-import { isEmptyString, isNullish, nonNullish, notEmptyString, toNullable } from '@dfinity/utils';
+import { isNullish, nonNullish, toNullable } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 
 /**
- * Creates a new prediction market.
- * Only Admins and Creators are authorized.
+ * The full series catalog (every payoff type, expired included). A public
+ * engine read through the HTTP bridge, which runs the anonymous registry query
+ * server-side.
  */
-export const createMarket = async ({
-	title,
-	resolution,
-	description,
-	expiryDate,
-	outcomes = [],
-	payoutUnit: payoutUnitOverride,
-	socialReward,
-	balanceDomain,
-	tradingAccess = [{ Open: null }],
-	locale
-}: {
-	title: string;
-	/**
-	 * The compulsory on-chain settlement clause (`Resolution.clause`) stating
-	 * how this market resolves. The registry rejects an empty or over-long
-	 * clause (`ResolutionClauseEmpty` / `ResolutionClauseTooLong`); callers must
-	 * supply a non-empty value, which is trimmed and capped at
-	 * {@link RESOLUTION_CLAUSE_MAX_LENGTH} here.
-	 */
-	resolution: string;
-	/**
-	 * Free-text descriptive blurb. Optional: when omitted (or blank) it falls
-	 * back to the {@link resolution} clause, since `AddSeriesParams.description`
-	 * is still a required field on chain.
-	 */
-	description?: string;
-	expiryDate: bigint;
-	outcomes?: string[];
-	payoutUnit?: RegistryDid.PayoutUnit;
-	socialReward?: { title: string; description?: string; iconUrl?: string };
-	balanceDomain: RegistryDid.BalanceDomain;
-	tradingAccess?: RegistryDid.TradingAccess[];
-	/**
-	 * BCP 47 source language of `title`, `description`, `outcomes`, and
-	 * `socialReward`. Stored as metadata on the registry; the canister never
-	 * stores translations and treats `None` as `"en"` by default. Off-chain
-	 * translations (see `MARKET_TRANSLATIONS` collection) overlay this source
-	 * for each user's preferred locale.
-	 */
-	locale?: AppLocale;
-}): Promise<string> => {
-	const identity = await safeGetIdentityOnce();
-
-	const domain = balanceDomain;
-	const payoutUnit: RegistryDid.PayoutUnit = nonNullish(socialReward)
-		? {
-				NonMonetary: {
-					Social: {
-						title: socialReward.title,
-						description: toNullable(socialReward.description),
-						icon_url: toNullable(socialReward.iconUrl)
-					}
-				}
-			}
-		: (payoutUnitOverride ?? { Fiat: { Usd: null } });
-
-	const profileDoc = await getProfile(identity.getPrincipal().toText());
-
-	const { role } = profileDoc.data;
-	const isSocialMarket = 'Social' in domain;
-	const isEngineCreator = role === UserRole.ADMIN || role === UserRole.CREATOR;
-
-	if (!isEngineCreator && !isSocialMarket) {
-		throw new Error(
-			'Unauthorized: only admins or creators can create financial markets. ' +
-				'Regular users may only create social (bragging-stakes) challenges.'
-		);
-	}
-
-	// Mirrors the on-chain invariant enforced by the registry (`SocialMarketMustBeRestricted`):
-	// a Social market must have at least one `Restricted` policy and may not contain `Open`.
-	// Catching it here surfaces a deterministic error to callers instead of an opaque
-	// `Failed to add series: {SocialMarketMustBeRestricted: null}` from the canister.
-	if (
-		isSocialMarket &&
-		(tradingAccess.length === 0 || !tradingAccess.every((ta) => 'Restricted' in ta))
-	) {
-		throw new Error(
-			'Social challenges must be restricted to a group (friends or a custom group). ' +
-				'Public social challenges are not supported by the registry.'
-		);
-	}
-
-	const underlying = title
-		.trim()
-		.toUpperCase()
-		.replace(/\s+/g, '_')
-		.replace(/[^A-Z0-9_-]/g, '');
-
-	// The registry requires a non-empty resolution clause on every series, so
-	// trim + cap it to mirror `ResolutionClauseEmpty` / `ResolutionClauseTooLong`.
-	// Fail fast on a blank clause rather than letting the canister reject it.
-	const resolutionClause = resolution.trim().slice(0, RESOLUTION_CLAUSE_MAX_LENGTH);
-
-	if (isEmptyString(resolutionClause)) {
-		throw new Error('A market requires a non-empty resolution clause.');
-	}
-
-	// `description` is optional for callers; on chain it is still required, so
-	// fall back to the resolution clause when no blurb is provided.
-	const trimmedDescription = description?.trim();
-	const descriptionText = notEmptyString(trimmedDescription)
-		? trimmedDescription
-		: resolutionClause;
-
-	const params: RegistryDid.AddSeriesParams = {
-		underlying,
-		title,
-		description: {
-			plain: descriptionText,
-			markdown: toNullable(),
-			html: toNullable()
-		},
-		resolution: { clause: resolutionClause },
-		expiry_ns: expiryDate * MILLISECOND_IN_NANOSECONDS,
-		// `None` registers the series as already live (no future trading-open gate);
-		// Vici markets open immediately and close at `expiry_ns`.
-		start_ns: toNullable(),
-		payout_unit: payoutUnit,
-		strike: STRIKE,
-		icon_url: toNullable(),
-		banner_url: toNullable(),
-		price_precision: PRICE_DECIMALS,
-		payoff_type: outcomes.length > 0 ? { Categorical: null } : PAYOFF_TYPE,
-		outcomes: toNullable(
-			outcomes.length > 0
-				? outcomes.map((o) => ({
-						id: o.trim().toLowerCase().replace(/\s+/g, '-'),
-						title: o,
-						description: toNullable(),
-						icon_url: toNullable()
-					}))
-				: undefined
-		),
-		balance_domain: domain,
-		oracle_source: VICI_ORACLE_V1,
-		trading_access: tradingAccess,
-		// Engine tier vs. Social tier on the registry is selected by the presence of
-		// `engine_id`. Engine Creators (ADMIN/CREATOR) go through `CreationTier::Creator`
-		// on `eng_0`. Regular users creating a Social market must send `None` so the
-		// call routes to `CreationTier::Social` instead of being rejected with
-		// `EngineRoleNotHeld`.
-		engine_id: isEngineCreator ? toNullable(VICI_ENGINE_ID) : toNullable(),
-		// BCP 47 source language of the human-readable fields above. `undefined`
-		// → `None` on chain, which the canister treats as `"en"`.
-		locale: toNullable(locale)
-	};
-
-	const seriesId = await addSeries({
-		identity,
-		params
-	});
-
-	await logActivity({
-		type: ActivityType.TRADE,
-		user: identity.getPrincipal().toText(),
-		marketId: seriesId,
-		title: `Market created: ${title}`,
-		details: descriptionText
-	});
-
-	refreshMarkets();
-
-	return seriesId;
-};
-
-/**
- * The full series catalog (every payoff type, expired included). It is a
- * public engine read: web2 routes it through the HTTP bridge (which runs the
- * same anonymous registry query server-side); the default path is the
- * on-chain call.
- */
-export const listSeriesCatalog = ({
-	identity,
-	certified
-}: {
-	identity: Identity;
-	certified: boolean;
-}): Promise<RegistryDid.Series[]> =>
-	isWeb2Backend() ? listEngineSeriesWeb2() : listSeries({ identity, certified });
+export const listSeriesCatalog = (): Promise<RegistryDid.Series[]> => listEngineSeriesWeb2();
 
 /**
  * Core market-loading logic: series + enrichment + resolution merge.
@@ -257,9 +61,6 @@ export const listSeriesCatalog = ({
  * Callers thread that flag per use: {@link loadMarketsProgressive} and
  * {@link fetchMarketsLite} run uncertified, while {@link getMarketsLite} forces
  * certified for set reads that must match a certified counterpart.
- *
- * Note: Juno-backed calls (`getSettlementActivities`) honor the same flag but tap
- * the satellite datastore, not an ICDC canister.
  */
 const fetchMarkets = async ({
 	identity,
@@ -278,9 +79,9 @@ const fetchMarkets = async ({
 	includeOrderBook?: boolean;
 }): Promise<Market[]> => {
 	const [allSeries, settledIds, settlementActivities] = await Promise.all([
-		listSeriesCatalog({ identity, certified }),
-		getSettledSeriesIds({ identity, certified }),
-		getSettlementActivities({ certified })
+		listSeriesCatalog(),
+		getSettledSeriesIds(),
+		getSettlementActivities()
 	]);
 
 	// TODO(temporary): until multiple-choice (categorical) markets are fully
@@ -382,9 +183,7 @@ const fetchMarkets = async ({
 		[...settledIds]
 			.filter((id) => !activeSeriesIds.has(id))
 			.map(async (id) => {
-				const series = isWeb2Backend()
-					? await getEngineSeriesWeb2(id)
-					: await getSeries({ identity, certified, seriesId: id });
+				const series = await getEngineSeriesWeb2(id);
 
 				if (isNullish(series)) {
 					return;
@@ -416,31 +215,6 @@ const fetchMarkets = async ({
 };
 
 /**
- * Builds a `ListSeriesParams` that asks the registry for the
- * still-tradeable (unexpired) catalog, with every other filter left open.
- * `only_unexpired: toNullable(true)` tells the canister to drop expired
- * series using its own clock; pagination is left unset so the canister-side
- * paginator
- * (drained in {@link RegistryCanister.listSeries}) returns the full set.
- */
-const unexpiredSeriesParams = (): RegistryDid.ListSeriesParams => ({
-	strike: toNullable(),
-	creator: toNullable(),
-	payoff_type: toNullable(),
-	payout_unit: toNullable(),
-	pagination: toNullable(),
-	underlying: toNullable(),
-	only_unexpired: toNullable(true),
-	// `None` applies no extra window filter: `only_unexpired` already drops
-	// expired series, and Vici series carry no future start gate.
-	tradeable_now: toNullable(),
-	search_term: toNullable(),
-	balance_domain: toNullable(),
-	oracle_source: toNullable(),
-	due: toNullable()
-});
-
-/**
  * Cheap variant of {@link fetchMarkets} used by the Flow ranking path:
  * builds `Market` view-models straight from the *open* series set,
  * *without* a per-market `getOrderBook` call.
@@ -463,12 +237,8 @@ const unexpiredSeriesParams = (): RegistryDid.ListSeriesParams => ({
  * `/flow` entry off the N+1 fan-out.
  */
 const fetchOpenBinaryMarketsLite = async ({
-	identity,
-	certified,
 	domain
 }: {
-	identity: Identity;
-	certified: boolean;
 	domain: RegistryDid.BalanceDomain;
 }): Promise<Market[]> => {
 	// Both reads are server-filtered and paginated. The unexpired candidate
@@ -478,13 +248,11 @@ const fetchOpenBinaryMarketsLite = async ({
 	// Social; narrowing either query by a single `balance_domain` would drop
 	// the Social half of the playground feed.
 	const [unexpiredSeries, settledIds] = await Promise.all([
-		// web2 asks the HTTP bridge for the tradeable-now catalog, which equals
-		// the on-chain `only_unexpired` read for this app's series (none carries
-		// a future start gate, so tradeable-now reduces to unexpired).
-		isWeb2Backend()
-			? listEngineSeriesWeb2({ tradeableNow: true })
-			: listSeries({ identity, certified, params: unexpiredSeriesParams() }),
-		getSettledSeriesIds({ identity, certified })
+		// The tradeable-now catalog equals the `only_unexpired` read for this
+		// app's series (none carries a future start gate, so tradeable-now
+		// reduces to unexpired).
+		listEngineSeriesWeb2({ tradeableNow: true }),
+		getSettledSeriesIds()
 	]);
 
 	const markets = unexpiredSeries
@@ -633,11 +401,8 @@ export const fetchMarketsLite = (params: {
  * `queryAndUpdate` flow (e.g. the calibration deck, which must match a
  * certified settled-id read).
  */
-export const getMarketsLite = async (domain: RegistryDid.BalanceDomain): Promise<Market[]> => {
-	const identity = await getIdentityOrAnonymous();
-
-	return fetchMarketsLite({ identity, certified: true, domain });
-};
+export const getMarketsLite = (domain: RegistryDid.BalanceDomain): Promise<Market[]> =>
+	fetchMarketsLite({ identity: anonymousIdentity(), certified: true, domain });
 
 // How many order-book reads the progressive list enrichment runs at once. The
 // list can span the whole catalog, so an unbounded `Promise.all` would open a
@@ -676,35 +441,16 @@ const scaleVolumeToTokenBase = ({
  * leaves the markets' existing `totalVolume` untouched, so the list still
  * renders (cards fall back to the "New" cue).
  *
- * No-op for the anonymous identity: `list_series_traded_volumes` is guarded by
- * `caller_is_not_anonymous`, so a signed-out call can only reject; short-circuit
- * it so a logged-out visitor (e.g. the public homepage feed) paints instantly on
- * the seeded volume rather than waiting on a round-trip that can't succeed.
  */
-const enrichMarketsWithVolume = async ({
-	markets,
-	identity,
-	certified
-}: {
-	markets: Market[];
-	identity: Identity;
-	certified: boolean;
-}): Promise<Market[]> => {
-	// The anonymous short-circuit is on-chain-only: the HTTP bridge exposes the
-	// volumes read publicly (its server-side call is not anonymous), so web2
-	// mode, which holds no signing identity at all, must not skip it.
-	if (markets.length === 0 || (!isWeb2Backend() && identity.getPrincipal().isAnonymous())) {
+const enrichMarketsWithVolume = async ({ markets }: { markets: Market[] }): Promise<Market[]> => {
+	if (markets.length === 0) {
 		return markets;
 	}
 
 	try {
-		const volumes = isWeb2Backend()
-			? await listEngineSeriesVolumesWeb2(markets.map(({ id }) => id))
-			: await listSeriesTradedVolumesApi({
-					identity,
-					certified,
-					seriesIds: markets.map(({ id }) => id)
-				});
+		// The HTTP bridge exposes the volumes read publicly (its server-side call
+		// is not anonymous).
+		const volumes = await listEngineSeriesVolumesWeb2(markets.map(({ id }) => id));
 
 		const volumeById = new Map(volumes.map(({ series_id, volume }) => [series_id, volume]));
 
@@ -769,13 +515,9 @@ const MARKETS_ENRICH_BATCH_SIZE = 8;
  * same way the phase-1 seeding does for markets that arrived already labelled.
  */
 const backfillResolutionOutcomes = async ({
-	markets,
-	identity,
-	certified
+	markets
 }: {
 	markets: Market[];
-	identity: Identity;
-	certified: boolean;
 }): Promise<Market[]> => {
 	const unlabelled = markets.filter(
 		({ status, outcome }) => status === 'Resolved' && isNullish(outcome)
@@ -786,9 +528,7 @@ const backfillResolutionOutcomes = async ({
 	}
 
 	const details = await loadSettlementOutcomes({
-		seriesIds: unlabelled.map(({ id }) => id),
-		identity,
-		certified
+		seriesIds: unlabelled.map(({ id }) => id)
 	});
 
 	if (details.size === 0) {
@@ -826,7 +566,7 @@ export const loadMarketsProgressive = async ({
 	previous?: Market[];
 	isStale?: () => boolean;
 }): Promise<void> => {
-	const identity = await getIdentityOrAnonymous();
+	const identity = anonymousIdentity();
 
 	// Phase 1: instant render from the order-book-free set (open + resolved).
 	const lite = await fetchMarkets({ identity, certified: false, domain, includeOrderBook: false });
@@ -889,7 +629,7 @@ export const loadMarketsProgressive = async ({
 	// Phase 1.5: one batch read fills in real traded volume before first paint,
 	// so the volume-sorted list lands in its final order instead of reshuffling
 	// when volume arrives. Fails open (keeps the seeded / last-known volume).
-	const withVolume = await enrichMarketsWithVolume({ markets: seeded, identity, certified: false });
+	const withVolume = await enrichMarketsWithVolume({ markets: seeded });
 
 	if (isStale?.()) {
 		return;
@@ -900,11 +640,7 @@ export const loadMarketsProgressive = async ({
 	// Phase 1.75: repair resolved markets the activity log couldn't label, from
 	// clearing. Runs behind the painted list and only over the unlabelled subset,
 	// so a healthy catalog pays nothing.
-	const repaired = await backfillResolutionOutcomes({
-		markets: withVolume,
-		identity,
-		certified: false
-	});
+	const repaired = await backfillResolutionOutcomes({ markets: withVolume });
 
 	if (isStale?.()) {
 		return;
@@ -957,26 +693,20 @@ const fetchMarket = async ({
 	certified: boolean;
 	marketId: MarketId;
 }): Promise<Market | undefined> => {
-	// Series + settlement are public engine reads with a web2 HTTP path; the
-	// order book has no HTTP surface yet and stays an anonymous on-chain query
-	// on both transports (it is publicly readable, so web2 mode still prices).
+	// Series + settlement are public engine reads over HTTP; the order book has
+	// no HTTP surface yet and stays an anonymous on-chain query (it is publicly
+	// readable).
 	const [s, rawOrders, settlementStatus] = await Promise.all([
-		isWeb2Backend()
-			? getEngineSeriesWeb2(marketId)
-			: getSeries({ identity, certified, seriesId: marketId }),
-		// In web2 mode the book is the page's only on-chain read, next to two
-		// HTTP ones: a failed book read prices the market as unknown (empty
-		// book) instead of failing the whole detail and blanking the page.
-		isWeb2Backend()
-			? getOrderBook({ marketId, identity, certified }).catch((err: unknown) => {
-					console.warn('market detail: order book read failed, pricing as unknown', err);
+		getEngineSeriesWeb2(marketId),
+		// The book is the page's only on-chain read, next to two HTTP ones: a
+		// failed book read prices the market as unknown (empty book) instead of
+		// failing the whole detail and blanking the page.
+		getOrderBook({ marketId, identity, certified }).catch((err: unknown) => {
+			console.warn('market detail: order book read failed, pricing as unknown', err);
 
-					return [];
-				})
-			: getOrderBook({ marketId, identity, certified }),
-		isWeb2Backend()
-			? getEngineSettlementStatusWeb2(marketId)
-			: getSettlementStatus({ identity, certified, seriesId: marketId })
+			return [];
+		}),
+		getEngineSettlementStatusWeb2(marketId)
 	]);
 
 	const { midPrice, bids, asks } = calculateMarketStats({
@@ -1251,13 +981,10 @@ export const getFlowQueue = async ({
 	tagMappings?: Record<string, string[]> | Promise<Record<string, string[]>>;
 	metadataBySeries?: Record<string, MarketMetadata> | Promise<Record<string, MarketMetadata>>;
 }): Promise<Market[]> => {
-	const identity = await getIdentityOrAnonymous();
-	// web2 keys profiles by the session's account id: there is no on-chain
-	// identity, so the principal above is the anonymous placeholder and owns no
-	// profile (a signed-out visitor still falls back to it and reads empty).
-	const profileOwner = isWeb2Backend()
-		? (getWeb2User()?.id ?? identity.getPrincipal().toText())
-		: identity.getPrincipal().toText();
+	const identity = anonymousIdentity();
+	// Profiles key on the session's account id; a signed-out visitor falls back
+	// to the anonymous principal, which owns no profile and reads empty.
+	const profileOwner = getWeb2User()?.id ?? identity.getPrincipal().toText();
 
 	const [markets, profile, resolvedTags, resolvedMeta] = await Promise.all([
 		// The Flow deck is a read-only preview: ranking candidates only needs
@@ -1265,7 +992,7 @@ export const getFlowQueue = async ({
 		// (non-certified) queries instead of paying the ~replicated-update
 		// latency on the entry critical path. Certified reads still back the
 		// market-detail / trade-execution paths (`fetchMarket`, order placement).
-		fetchOpenBinaryMarketsLite({ identity, certified: false, domain }),
+		fetchOpenBinaryMarketsLite({ domain }),
 		getProfile(profileOwner),
 		tagMappings ?? listMarketTagsBySeries().catch(() => ({})),
 		metadataBySeries ?? listMarketMetadataBySeries().catch(() => ({}))
@@ -1303,7 +1030,7 @@ export const enrichFlowMarketsWithOrderBook = async (markets: Market[]): Promise
 		return markets;
 	}
 
-	const identity = await getIdentityOrAnonymous();
+	const identity = anonymousIdentity();
 
 	// Non-certified (query) book reads. The deck shows an *indicative*
 	// consensus % per card, not a settlement-grade figure, so the fast query
@@ -1323,5 +1050,5 @@ export const enrichFlowMarketsWithOrderBook = async (markets: Market[]): Promise
 	// as a card reaches the top of the deck); do NOT revert all ≤MAX_MARKETS
 	// reads to certified, which would just reintroduce the slow fan-out this
 	// path exists to remove.
-	return enrichMarketsWithOrderBook({ markets, identity, certified: false });
+	return await enrichMarketsWithOrderBook({ markets, identity, certified: false });
 };

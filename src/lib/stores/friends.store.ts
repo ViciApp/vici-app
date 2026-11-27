@@ -5,9 +5,9 @@ import {
 	getSentFriendRequests
 } from '#lib/services/relation-queries.services.ts';
 import { userStore } from '#lib/stores/user.store.ts';
+import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 import type { Relation } from '#lib/types/relation.ts';
 import { createLoadEpoch } from '#lib/utils/async.utils.ts';
-import type { Doc } from '@junobuild/core';
 import { get, writable } from 'svelte/store';
 
 /**
@@ -20,8 +20,8 @@ import { get, writable } from 'svelte/store';
  * to repopulate these stores.
  */
 export const friendsListStore = writable<Relation[]>([]);
-export const friendRequestsStore = writable<Doc<Relation>[]>([]);
-export const sentFriendRequestsStore = writable<Doc<Relation>[]>([]);
+export const friendRequestsStore = writable<KeyedDoc<Relation>[]>([]);
+export const sentFriendRequestsStore = writable<KeyedDoc<Relation>[]>([]);
 
 /**
  * Flips to `true` the first time `refreshFriendRelations` loads all three
@@ -40,8 +40,8 @@ const collectCounterparts = ({
 }: {
 	viewer: string | undefined;
 	friends: Relation[];
-	requests: Doc<Relation>[];
-	sent: Doc<Relation>[];
+	requests: KeyedDoc<Relation>[];
+	sent: KeyedDoc<Relation>[];
 }): string[] => {
 	const targets = new Set<string>();
 

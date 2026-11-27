@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import { AnonymousIdentity } from '@icp-sdk/core/agent';
 	import { onMount } from 'svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
@@ -47,10 +46,7 @@
 		}
 
 		try {
-			const series = await listSeriesCatalog({
-				identity: new AnonymousIdentity(),
-				certified: true
-			});
+			const series = await listSeriesCatalog();
 
 			// Exactly one match or nothing: a colliding suffix must degrade to
 			// the markets board, never redirect to whichever market sorts

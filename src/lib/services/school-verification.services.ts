@@ -1,19 +1,17 @@
 /**
  * School membership verification: submit + 6-digit code (backend B.1).
  *
- * Thin FE wrapper over the two satellite endpoints:
+ * Thin FE wrapper over the two API routes:
  *
- *   functions.submitSchool({ name, country?, schoolId?, email, locale })
- *     -> { submissionId }
- *     · the satellite re-runs the `spMatchEmail` domain gate, rate-limits,
- *       mints a `raw_rand` 6-digit code, stores its digest (~30-min TTL +
- *       attempt cap), and mails it via the `vici-courier` relay.
+ *   submitSchool({ name, country, email, locale }) -> { submissionId }
+ *     · the API re-runs the email domain gate, rate-limits, mints a
+ *       6-digit code, stores its digest (~30-min TTL + attempt cap), and
+ *       mails it via the `vici-courier` relay.
  *
- *   functions.verifySchoolCode({ submissionId, code })
+ *   verifySchoolCode({ submissionId, code })
  *     -> { ok, schoolId?, status?, message? }
- *     · on success the satellite attaches the school (bumps the verified-
- *       member count, public at 3) and flips the owner's profile
- *       `schoolStatus`.
+ *     · on success the API attaches the school (bumps the verified-member
+ *       count, public at 3) and flips the owner's profile `schoolStatus`.
  *
  * Both round-trips are wrapped in a hard timeout (mirroring
  * `worlds.services.ts`) so the picker's "Sending…" / "Verifying…"
@@ -22,14 +20,12 @@
  *
  * Reachable only when `SCHOOL_PASS2_ENABLED` is on. Note: in any given
  * environment `submitSchool` also needs the `vici-courier` relay deployed
- * and the `app_config/school_relay` doc set there, otherwise the server
- * returns a "relay not configured" error instead of mailing a code.
+ * and configured there, otherwise the server returns a "relay not
+ * configured" error instead of mailing a code.
  */
 
-import { functions } from '#declarations/satellite/satellite.api.ts';
 import type { AppLocale } from '#lib/constants/locale.constants.ts';
 import { withTimeout } from '#lib/utils/async.utils.ts';
-import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	submitSchool as submitSchoolWeb2,
 	verifySchoolCode as verifySchoolCodeWeb2
@@ -73,7 +69,7 @@ interface SchoolVerifyResult {
 }
 
 /**
- * `POST /schools/submit`. Asks the satellite to mail a fresh 6-digit code
+ * `POST /schools/submit`. Asks the API to mail a fresh 6-digit code
  * to `email`. Throws on transport failure / timeout / server rejection
  * (bad domain, rate limit, relay unconfigured): the picker maps that to
  * its "couldn't send" copy.
@@ -82,22 +78,13 @@ export const submitSchool = async ({
 	name,
 	country,
 	email,
-	schoolId,
 	locale
 }: SchoolSubmitInput): Promise<SchoolSubmitResult> => {
-	// The HTTP route re-resolves the school from the email domain (plus
+	// The route re-resolves the school from the email domain (plus
 	// name/country for a new entry) server-side, so the `schoolId` hint is
-	// not part of its contract; the same shared timeout wraps both transports.
+	// not part of its contract.
 	const { submissionId } = await withTimeout({
-		operation: isWeb2Backend()
-			? submitSchoolWeb2({ name, country, email, locale })
-			: functions.submitSchool({
-					name,
-					country: country ?? undefined,
-					schoolId: schoolId ?? undefined,
-					email,
-					locale
-				}),
+		operation: submitSchoolWeb2({ name, country, email, locale }),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'submitSchool'
 	});
@@ -116,9 +103,7 @@ export const verifySchoolCode = async ({
 	code
 }: SchoolVerifyInput): Promise<SchoolVerifyResult> => {
 	const result = await withTimeout({
-		operation: isWeb2Backend()
-			? verifySchoolCodeWeb2({ submissionId, code })
-			: functions.verifySchoolCode({ submissionId, code }),
+		operation: verifySchoolCodeWeb2({ submissionId, code }),
 		timeoutMs: SCHOOL_VERIFY_TIMEOUT_MS,
 		label: 'verifySchoolCode'
 	});

@@ -84,7 +84,7 @@ export const loadWeb2Session = async (): Promise<Web2Me | undefined> => {
 
 /**
  * Imperative read of the current session user, for services that gate work on
- * "signed in" the way the on-chain path gates on `getIdentity()`. `undefined`
+ * "signed in". `undefined`
  * both while the first probe is in flight and in the signed-out steady state;
  * callers that need to distinguish the two subscribe to the store instead.
  */
