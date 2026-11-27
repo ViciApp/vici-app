@@ -15,7 +15,7 @@ export const featuredEvent: Readable<FeaturedEvent> = readable(CURRENT_FEATURED_
  * surfaces the hero, whether Flow filters to event markets, and whether
  * the Worlds event-battle is visible.
  */
-export const featuredEventStatus: Readable<FeaturedEventStatus> = derived(
+const featuredEventStatus: Readable<FeaturedEventStatus> = derived(
 	[featuredEvent, minuteTick_ms],
 	([event, t]) => statusFor({ event, now_ms: t })
 );

@@ -185,9 +185,20 @@ export const createLeague = async ({
 	}
 
 	return await tx(async (q) => {
-		const existing = await q<{ id: string }>(`select id from leagues where id = $1`, [id]);
+		// Battles and tournament brackets keep a disbanded league's id, so a
+		// new league under it would inherit that history: the id stays taken.
+		const [taken] = await q<{ taken: boolean }>(
+			`select exists (select 1 from leagues where id = $1)
+			   or exists (
+			     select 1 from battles where kind = 'league' and (side_a = $1 or side_b = $1)
+			   )
+			   or exists (
+			     select 1 from tournament_matches where from_league_id = $1 or to_league_id = $1
+			   ) as taken`,
+			[id]
+		);
 
-		if (nonNullish(existing[0])) {
+		if (taken?.taken === true) {
 			throw new LeagueError(`league "${id}" already exists.`);
 		}
 
