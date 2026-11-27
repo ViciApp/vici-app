@@ -59,7 +59,7 @@ Title per state (the description is always the market's registry title followed 
 
 ## Linked issues
 
-GitHub issue search was not possible from the authoring session (no access to the repository's issues). No issue is linked. The implementer searches open issues for "og", "preview" and "share card" before flipping the status and records the result here.
+Searched at implementation (2026-11-27): no open issue matches "og", "preview", "share card" or "link preview". No issue is linked.
 
 ## Analytics
 
@@ -111,11 +111,11 @@ None, deliberately. Preview fetches are made by crawlers, not people, and counti
 
 ## Open questions
 
-1. **nginx SSI behaviour in the web image.** Confirm in a container built from `Dockerfile.web`: (a) SSI in a regex location that serves `index.html` through `try_files` processes the directives; (b) the include accepts the id from a location capture or a `set` variable; (c) the stub block is emitted on an upstream timeout and on a 404; (d) the SSI comments in `src/app.html` survive `npm run build` unchanged; (e) the head patterns in `scripts/build/generate-seo-assets.ts` still match with the markers around them. If (a) to (c) fail, switch to the crawler-only proxy under "Decisions". If (d) or (e) fails, emit a dedicated shell copy for `/c/` when the image is built instead of marking `app.html`.
-2. **How nginx reaches the API.** Over Fly's private network (is the API listening there?) or through `https://api.vici.app`. Over the public route every include carries the web machine's address, so the API cannot limit per visitor and nginx's own limits are the only ones.
-3. **Which file is the generic share card, and on which domain.** `src/app.html` today points its `og:image` and canonical at `https://vici.market/branding/og-image.png`. Confirm the image the landing ships for vici.app and whether the generic head on the web2 build should name vici.app; this spec's fragment always names vici.app.
-4. **Is vici.app proxied by Cloudflare?** If so its cache and bot rules must neither cache `/c/*` HTML across ids nor challenge preview crawlers.
-5. **Open issues.** Run the issue search that was not possible at authoring time.
+1. **nginx SSI behaviour in the web image.** Answered: all five hold, verified in a container built from `Dockerfile.web` (web2 args) against a stub upstream. (a) SSI runs when the `/c/` location serves the shell with `try_files /index.html =404` (a `try_files` fallback to `/index.html` would redirect into the SSI-less `= /index.html` location instead); (b) the include takes the id from the location's named capture; (c) a 404, a 500 and a timeout all emit the stub, through `proxy_intercept_errors` turning them into an empty 204; (d) the comments survive `npm run build`; (e) `seo:web2-head` still matches every tag, with `<title>`, the description and the canonical moved next to the OG tags so one block holds them all. `/` and other paths are byte-identical to `build/index.html`. Original question: confirm in a container built from `Dockerfile.web`: (a) SSI in a regex location that serves `index.html` through `try_files` processes the directives; (b) the include accepts the id from a location capture or a `set` variable; (c) the stub block is emitted on an upstream timeout and on a 404; (d) the SSI comments in `src/app.html` survive `npm run build` unchanged; (e) the head patterns in `scripts/build/generate-seo-assets.ts` still match with the markers around them. If (a) to (c) fail, switch to the crawler-only proxy under "Decisions". If (d) or (e) fails, emit a dedicated shell copy for `/c/` when the image is built instead of marking `app.html`.
+2. **How nginx reaches the API.** Answered: through `https://api.vici.app` (the API listens on IPv4 only, so the IPv6 private network would need a listener change). nginx's per-visitor `limit_req` and micro-cache are the client-facing limits; the API's own limit on the route is a ceiling for the whole web tier. Original question: over Fly's private network (is the API listening there?) or through `https://api.vici.app`. Over the public route every include carries the web machine's address, so the API cannot limit per visitor and nginx's own limits are the only ones.
+3. **Which file is the generic share card, and on which domain.** Answered: `static/branding/landing-share.jpg` on vici.app, the card `seo:web2-head` (#1738) already points the web2 shell at. Original question: `src/app.html` today points its `og:image` and canonical at `https://vici.market/branding/og-image.png`. Confirm the image the landing ships for vici.app and whether the generic head on the web2 build should name vici.app; this spec's fragment always names vici.app.
+4. **Is vici.app proxied by Cloudflare?** Answered: no, vici.app resolves to Fly and answers with Fly's headers only. Original question: If so its cache and bot rules must neither cache `/c/*` HTML across ids nor challenge preview crawlers.
+5. **Open issues.** Answered: none (see "Linked issues").
 
 ## Decisions
 
@@ -127,3 +127,4 @@ None, deliberately. Preview fetches are made by crawlers, not people, and counti
   - The include serves one document to everyone, needs no crawler list, leaves the SPA shell owned by the web build, and fails to the generic card.
 - **English previews.** A crawler has no recipient locale; the page is localised once it loads.
 - **No analytics on preview fetches.** They are crawler traffic.
+- **Implementation choices (2026-11-27).** The renderer lives in its own module, `backend/src/social/challenge-head.ts`, next to `challenges.ts` rather than inside it, and `escapeHtml` moved from the school verification module to `backend/src/lib/html.ts` so both read one helper. A visitor past the `/c/` `limit_req` budget gets the shell without SSI (generic preview), not an error page. The API origin is one image `ENV` (`CHALLENGE_HEAD_UPSTREAM` in `Dockerfile.web`) filled into the nginx config by the image's entrypoint, so `fly.web.toml` is unchanged.

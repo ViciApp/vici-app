@@ -11,6 +11,7 @@ import { readAppSetting } from '../admin/settings';
 import { captureServerEvents, type ServerEventInput } from '../analytics/events';
 import { query, tx, type TxQuery } from '../db/client';
 import { codeExpiryNotice, sendEmail } from '../lib/email';
+import { escapeHtml } from '../lib/html';
 import { logger } from '../lib/logger';
 import { MINUTE_IN_MS } from '../lib/time';
 import { SCHOOL_DIRECTORY } from './directory';
@@ -256,14 +257,6 @@ const sendCodeEmail = async ({
 			`<p style="color:#888">${codeExpiryNotice(SCHOOL_CODE_TTL_MS)}</p>`
 	});
 };
-
-export const escapeHtml = (value: string): string =>
-	value
-		.replaceAll('&', '&amp;')
-		.replaceAll('<', '&lt;')
-		.replaceAll('>', '&gt;')
-		.replaceAll('"', '&quot;')
-		.replaceAll("'", '&#39;');
 
 /**
  * Submit a school + school email: re-runs the domain gate server-side (any

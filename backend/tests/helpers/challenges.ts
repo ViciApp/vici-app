@@ -22,7 +22,10 @@ export const NS_PER_MS = BigInt(1_000_000);
 // The fake engine: each principal's trade history, the registry's series and
 // the series with a settlement plan.
 export const fills = new Map<string, ClearingDid.Event[]>();
-const seriesById = new Map<string, { expiryMs: number; binary: boolean; engineId: string }>();
+const seriesById = new Map<
+	string,
+	{ expiryMs: number; binary: boolean; engineId: string; title: string }
+>();
 export const settledSeries = new Set<string>();
 /** The series of each batched settlement read the fake engine answered. */
 export const settlementReads: string[][] = [];
@@ -72,6 +75,7 @@ export const installChallengeEngine = (): { ledger: LedgerStub; restore: () => v
 							: [
 									{
 										series_id: seriesId,
+										title: series.title,
 										engine_id: [series.engineId],
 										payoff_type: series.binary ? { Binary: null } : { Linear: null },
 										expiry_ns: BigInt(series.expiryMs) * NS_PER_MS
@@ -94,11 +98,12 @@ export const installChallengeEngine = (): { ledger: LedgerStub; restore: () => v
 export const newSeries = ({
 	expiryMs = Date.now() + 30 * DAY_IN_MS,
 	binary = true,
-	engineId = 'eng_0'
-}: { expiryMs?: number; binary?: boolean; engineId?: string } = {}): string => {
+	engineId = 'eng_0',
+	title = 'Will it happen?'
+}: { expiryMs?: number; binary?: boolean; engineId?: string; title?: string } = {}): string => {
 	const seriesId = `series-challenge-${randomBytes(6).toString('hex')}`;
 
-	seriesById.set(seriesId, { expiryMs, binary, engineId });
+	seriesById.set(seriesId, { expiryMs, binary, engineId, title });
 
 	return seriesId;
 };

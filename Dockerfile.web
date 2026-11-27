@@ -28,6 +28,13 @@ ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 RUN npx svelte-kit sync && npm run build && npm run seo:web2-head
 
 FROM nginx:alpine
-COPY nginx.web.conf /etc/nginx/conf.d/default.conf
+# nginx.web.conf is a template: the image's entrypoint fills in the API origin
+# the challenge-link preview includes its head fragment from, and the
+# machine's DNS resolver, when the container starts. The filter keeps
+# envsubst away from nginx's own $variables.
+ENV CHALLENGE_HEAD_UPSTREAM="https://api.vici.app"
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+ENV NGINX_ENVSUBST_FILTER="^(CHALLENGE_HEAD_UPSTREAM|NGINX_LOCAL_RESOLVERS)$"
+COPY nginx.web.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 8080
