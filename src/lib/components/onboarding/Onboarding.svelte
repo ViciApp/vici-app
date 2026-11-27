@@ -10,7 +10,7 @@
 	import { newUserVxpAmountMilestone1BaseUnits } from '#lib/constants/vxp-onboarding.constants.ts';
 	import { featuredEvent } from '#lib/derived/featured-event.derived.ts';
 	import { track } from '#lib/services/analytics.services.ts';
-	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
+	import { checkHandleAvailabilityPublic } from '#lib/services/handle-availability.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
@@ -187,7 +187,7 @@
 		checkTimer = setTimeout(() => {
 			void (async () => {
 				try {
-					const res = await checkNicknameAvailability({ nickname: candidate });
+					const res = await checkHandleAvailabilityPublic({ handle: candidate });
 
 					if (token !== checkToken) {
 						return;
@@ -291,7 +291,7 @@
 		isClaiming = true;
 
 		try {
-			const res = await checkNicknameAvailability({ nickname: selectedName });
+			const res = await checkHandleAvailabilityPublic({ handle: selectedName });
 
 			if (!res.available) {
 				sessionTaken.add(selectedName);
