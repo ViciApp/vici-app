@@ -1,28 +1,31 @@
 <script lang="ts">
-	import { nonNullish } from '@dfinity/utils';
+	import { isNullish, nonNullish } from '@dfinity/utils';
 	import { X } from '@lucide/svelte/icons';
 	import { untrack } from 'svelte';
 	import BottomSheet from '#lib/components/ui/BottomSheet.svelte';
 	import {
-		cleanHandle,
-		handleCooldownDaysLeft,
-		HANDLE_COOLDOWN_DAYS,
+		HANDLE_PATTERN,
 		MAX_HANDLE_LENGTH,
-		isReservedHandle,
 		MIN_HANDLE_LENGTH
+	} from '#lib/constants/handle.constants.ts';
+	import {
+		handleCooldownDaysLeft,
+		HANDLE_COOLDOWN_DAYS
 	} from '#lib/constants/profile.constants.ts';
-	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
+	import { checkNicknameAvailability, isHandleChange } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
+	import { handleFormatIssue, sanitizeHandleInput } from '#lib/utils/handle.utils.ts';
 	import { haptic } from '#lib/utils/haptics.utils.ts';
 	import { t, type MessageKey } from '#lib/utils/i18n.utils.ts';
 
 	/**
 	 * Editable-handle sheet. The handle is the public `@`-name (the same
 	 * field as the profile nickname). Mirrors the identity-edit affordance:
-	 * a single text input with an inline availability indicator, lowercase /
-	 * `[a-z0-9_]` / 3–15-char client-side normalisation, a backend
-	 * availability probe, and a once-every-{@link HANDLE_COOLDOWN_DAYS}-days
-	 * change limit.
+	 * a single text input cleaned to the handle rule as it is typed, an inline
+	 * availability indicator, a backend availability probe, and a
+	 * once-every-{@link HANDLE_COOLDOWN_DAYS}-days change limit. Tidying a
+	 * handle outside the rule to its own key (`José` to `jose`) is not a
+	 * change, so it stays possible inside the window.
 	 *
 	 * The cooldown is server-authoritative: the set-profile assertion is the
 	 * authority. This sheet mirrors the rule from the profile's
@@ -46,31 +49,40 @@
 	// every open (gated behind `{#if handleEditOpen}` in the parent), so
 	// capturing "now" at init is intentional: there's no in-session change.
 	const daysLeft = untrack(() => handleCooldownDaysLeft({ lastChangeMs, nowMs: Date.now() }));
-	const locked = daysLeft > 0;
 
 	// One-time seed from the current handle. The sheet is remounted on
 	// every open (it's gated behind `{#if handleEditOpen}` in the parent),
 	// so capturing the prop's initial value here is intentional: there's
 	// no later `current` change to track within a single open.
 	const initialHandle = untrack(() => current ?? '');
-	let value = $state(initialHandle);
-	const clean = $derived(cleanHandle(value));
 
-	const tooShort = $derived(clean.length < MIN_HANDLE_LENGTH);
-	// Exact (not folded) so re-casing/re-accenting your own handle is saveable.
+	// Inside the window the sheet stays open only for a handle outside the
+	// rule, and then only for tidying it to its own key.
+	const locked = daysLeft > 0 && HANDLE_PATTERN.test(initialHandle);
+
+	let value = $state(initialHandle);
+	const clean = $derived(sanitizeHandleInput(value));
+
+	const formatIssue = $derived(handleFormatIssue(clean));
+	// Exact, not folded: tidying your own handle to the rule is saveable.
 	const unchanged = $derived(clean === initialHandle);
-	// Folded so "Admin" / "ádmin" can't slip past the reserved set.
-	const reserved = $derived(isReservedHandle(clean));
+	const blockedByCooldown = $derived(
+		daysLeft > 0 && isHandleChange({ next: clean, current: initialHandle })
+	);
 
 	type ErrorKey = MessageKey | null;
 
 	const errorKey = $derived.by<ErrorKey>(() => {
-		if (tooShort) {
-			// Empty input shows the neutral hint, not an error.
-			return clean.length === 0 ? null : 'profile.handle.error_short';
+		// Empty input shows the neutral hint, not an error.
+		if (formatIssue === 'required') {
+			return null;
 		}
 
-		if (reserved) {
+		if (formatIssue === 'too_short') {
+			return 'profile.handle.error_short';
+		}
+
+		if (formatIssue === 'reserved') {
 			return 'profile.handle.error_reserved';
 		}
 
@@ -78,10 +90,14 @@
 			return 'profile.handle.error_unchanged';
 		}
 
+		if (blockedByCooldown) {
+			return daysLeft === 1 ? 'profile.handle.locked_one' : 'profile.handle.locked';
+		}
+
 		return null;
 	});
 
-	const localValid = $derived(!tooShort && !unchanged && !reserved);
+	const localValid = $derived(isNullish(formatIssue) && !unchanged && !blockedByCooldown);
 
 	// Backend availability probe: debounced; only runs once the candidate
 	// clears the local checks.
@@ -156,6 +172,8 @@
 
 		return 'profile.handle.hint';
 	});
+
+	const hintParams = { days: daysLeft, min: MIN_HANDLE_LENGTH };
 
 	const hintIsError = $derived(
 		nonNullish(errorKey) || availability === 'taken' || availability === 'failed'
@@ -275,7 +293,7 @@
 				class:is-error={hintIsError}
 				aria-live="polite"
 			>
-				{t({ locale: $localeStore, key: hintKey })}
+				{t({ locale: $localeStore, key: hintKey, params: hintParams })}
 			</p>
 		{/if}
 	</div>

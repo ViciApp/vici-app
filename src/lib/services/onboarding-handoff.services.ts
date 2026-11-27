@@ -19,6 +19,7 @@ import { LEAGUE_INVITE_CODE_REGEX } from '#lib/types/league.ts';
 import type { CallSide } from '#lib/types/market.ts';
 import type { OnboardingPicks } from '#lib/types/onboarding.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
+import { sanitizeHandleInput } from '#lib/utils/handle.utils.ts';
 import { t } from '#lib/utils/i18n.utils.ts';
 import { formatVxpBalance } from '#lib/utils/playground-display.utils.ts';
 import { browser } from '$app/env';
@@ -118,11 +119,14 @@ const parsePendingOnboarding = (raw: string): PendingOnboarding | undefined => {
 
 	// Tolerate legacy payloads: older clients wrote `handle` as the
 	// only required field. New clients also serialize team + side, but
-	// any combination of {handle, participantId, side} may be null.
-	const handle =
-		'handle' in parsed && typeof parsed.handle === 'string' && parsed.handle.length > 0
-			? parsed.handle
-			: null;
+	// any combination of {handle, participantId, side} may be null. A handle
+	// stashed under an older, wider rule is tidied to the handle rule, not
+	// dropped.
+	const stashedHandle =
+		'handle' in parsed && typeof parsed.handle === 'string'
+			? sanitizeHandleInput(parsed.handle)
+			: '';
+	const handle = stashedHandle.length > 0 ? stashedHandle : null;
 	const participantId =
 		'participantId' in parsed &&
 		typeof parsed.participantId === 'string' &&

@@ -181,9 +181,9 @@
 				{scrubTime ?? ''}
 			{:else}
 				{#if change !== 0}
-					<b class={direction}
-						><span class="lpch-arrow">{change > 0 ? '▲' : '▼'}</span>{Math.abs(change)}</b
-					>
+					<b class={direction}>
+						<span class="lpch-arrow">{change > 0 ? '▲' : '▼'}</span>{Math.abs(change)}
+					</b>
 				{/if}
 				{changeText}
 			{/if}

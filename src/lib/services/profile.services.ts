@@ -1,4 +1,4 @@
-import { nicknameUniqueKey } from '#lib/constants/profile.constants.ts';
+import { handleUniqueKey } from '#lib/constants/handle.constants.ts';
 import { defaultPreferences } from '#lib/constants/settings.constants.ts';
 import { MINUTE_IN_MS } from '#lib/constants/time.constants.ts';
 import { ProfileVisibility } from '#lib/enums/profile.ts';
@@ -9,6 +9,7 @@ import type { KeyedDoc } from '#lib/types/keyed-doc.ts';
 import type { UserProfile } from '#lib/types/profile.ts';
 import { evaluateAchievements, mergeUnlockedAchievements } from '#lib/utils/achievements.utils.ts';
 import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+import type { HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { applyDailyStreakBump } from '#lib/utils/streak.utils.ts';
 import {
 	checkNicknameAvailability as checkNicknameAvailabilityWeb2,
@@ -446,7 +447,7 @@ export const applyOnboardingPicks = async ({
 				// Stamp the handle-change time only on a real change so the
 				// profile write accepts it; the default
 				// nickname almost always differs from the picked handle.
-				if (nicknameUniqueKey(handle) !== nicknameUniqueKey(current.nickname ?? '')) {
+				if (isHandleChange({ next: handle, current: current.nickname ?? '' })) {
 					patch.handleLastChangeMs = Date.now();
 				}
 			}
@@ -489,12 +490,20 @@ export const applyOnboardingPicks = async ({
 export const searchProfiles = (query: string): Promise<UserProfile[]> => searchProfilesWeb2(query);
 
 /**
+ * Whether writing `next` over `current` changes the handle, so the write must
+ * stamp `handleLastChangeMs` and the cooldown applies. Compared on the handle
+ * key the API's cooldown compares, so tidying `José` to `jose` or `a.b` to
+ * `ab` is free.
+ */
+export const isHandleChange = ({ next, current }: { next: string; current: string }): boolean =>
+	handleUniqueKey(next) !== handleUniqueKey(current);
+
+/**
  * Outcome of a nickname availability probe. The FE uses this to render typed
  * inline errors (instead of regex-parsing thrown messages).
  */
 export type NicknameAvailability =
-	| { available: true }
-	| { available: false; reason: 'required' | 'too_short' | 'invalid' | 'taken' };
+	{ available: true } | { available: false; reason: HandleRefusal };
 
 /**
  * Pre-flight check for the create-account and profile-edit flows. Runs
@@ -514,11 +523,7 @@ export const checkNicknameAvailability = async ({
 		return { available: true };
 	}
 
-	// The validator can report `too_long`, which the FE outcome folds into
-	// `invalid` (the charset/format bucket).
-	const reason = result.reason === 'too_long' ? 'invalid' : (result.reason ?? 'taken');
-
-	return { available: false, reason };
+	return { available: false, reason: result.reason ?? 'taken' };
 };
 
 /**

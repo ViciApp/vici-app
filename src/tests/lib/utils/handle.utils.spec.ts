@@ -1,28 +1,23 @@
 import {
 	HANDLE_PATTERN,
-	MAX_HANDLE_LENGTH,
-	MIN_HANDLE_LENGTH
-} from '#lib/constants/profile.constants.ts';
-import { handleFormatIssue, sanitizeHandleInput } from '#lib/utils/handle.utils.ts';
+	isReservedHandle,
+	MAX_HANDLE_LENGTH
+} from '#lib/constants/handle.constants.ts';
+import {
+	generateHandle,
+	HANDLE_SUGGESTIONS,
+	handleFormatIssue,
+	sanitizeHandleInput
+} from '#lib/utils/handle.utils.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-// A handle is lowercase a-z and 0-9 only, 3 to 15 characters, so two handles
-// never differ by case, an accent or a separator.
-
-describe('HANDLE_PATTERN', () => {
-	it('is lowercase a-z and 0-9, 3 to 15 characters', () => {
-		assert.equal(MIN_HANDLE_LENGTH, 3);
-		assert.equal(MAX_HANDLE_LENGTH, 15);
-		assert.equal(HANDLE_PATTERN.source, '^[a-z0-9]{3,15}$');
-	});
-});
 
 describe('sanitizeHandleInput', () => {
 	it('lowercases and strips everything else as the visitor types', () => {
 		assert.equal(sanitizeHandleInput('@Antonio.Ventilii'), 'antonioventilii');
 		assert.equal(sanitizeHandleInput('Anna_B-99'), 'annab99');
 		assert.equal(sanitizeHandleInput(' an na '), 'anna');
+		assert.equal(sanitizeHandleInput('José.M'), 'josem');
 	});
 
 	it('folds accented Latin letters to their base letter', () => {
@@ -31,6 +26,13 @@ describe('sanitizeHandleInput', () => {
 		assert.equal(sanitizeHandleInput('ñ'), 'n');
 		assert.equal(sanitizeHandleInput('Peña_Çelik'), 'penacelik');
 		assert.equal(sanitizeHandleInput('JOSÉ'), 'jose');
+	});
+
+	it('spells the letters with no accent to strip plainly', () => {
+		assert.equal(sanitizeHandleInput('Straße'), 'strasse');
+		assert.equal(sanitizeHandleInput('Strøm'), 'strom');
+		assert.equal(sanitizeHandleInput('Łódź'), 'lodz');
+		assert.equal(sanitizeHandleInput('Þór'), 'thor');
 	});
 
 	it('still strips other scripts and symbols', () => {
@@ -44,6 +46,15 @@ describe('sanitizeHandleInput', () => {
 			sanitizeHandleInput(`@${'b'.repeat(MAX_HANDLE_LENGTH)}`),
 			'b'.repeat(MAX_HANDLE_LENGTH)
 		);
+	});
+
+	it('only ever yields the rule, or something too short for it', () => {
+		for (const raw of ['José.M', 'a', 'Ab', '@x.y.z', 'Straße', '東京', 'Ølé!', '  Ana  ']) {
+			const handle = sanitizeHandleInput(raw);
+			const issue = handleFormatIssue(handle);
+
+			assert.ok(HANDLE_PATTERN.test(handle) || issue === 'required' || issue === 'too_short', raw);
+		}
 	});
 });
 
@@ -68,12 +79,49 @@ describe('handleFormatIssue', () => {
 	it('keeps the platform names reserved', () => {
 		assert.equal(handleFormatIssue('admin'), 'reserved');
 		assert.equal(handleFormatIssue('vici'), 'reserved');
+		assert.equal(handleFormatIssue('oracle'), 'reserved');
 	});
 
 	it('accepts every sanitized handle of a valid length', () => {
 		const handle = sanitizeHandleInput('@Antonio.Ventilii');
 
 		assert.equal(handleFormatIssue(handle), undefined);
-		assert.equal(HANDLE_PATTERN.test(handle), true);
+	});
+});
+
+describe('HANDLE_SUGGESTIONS', () => {
+	it('holds only claimable handles', () => {
+		assert.ok(HANDLE_SUGGESTIONS.length > 0);
+
+		for (const name of HANDLE_SUGGESTIONS) {
+			assert.equal(handleFormatIssue(name), undefined, name);
+		}
+	});
+});
+
+describe('generateHandle', () => {
+	it('is a suggestion plus two digits', () => {
+		assert.equal(
+			generateHandle(() => 0),
+			`${HANDLE_SUGGESTIONS[0].slice(0, MAX_HANDLE_LENGTH - 2)}00`
+		);
+	});
+
+	it('is always within the rule and never reserved', () => {
+		for (let i = 0; i < 500; i++) {
+			const handle = generateHandle();
+
+			assert.match(handle, /[0-9]{2}$/, handle);
+			assert.equal(handleFormatIssue(handle), undefined, handle);
+			assert.equal(isReservedHandle(handle), false, handle);
+		}
+	});
+
+	it('cuts a long name so the digits still fit', () => {
+		for (let i = 0; i < HANDLE_SUGGESTIONS.length; i++) {
+			const handle = generateHandle(() => (i + 0.5) / HANDLE_SUGGESTIONS.length);
+
+			assert.ok(handle.length <= MAX_HANDLE_LENGTH, handle);
+		}
 	});
 });

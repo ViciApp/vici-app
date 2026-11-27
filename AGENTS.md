@@ -75,6 +75,7 @@ The rules every repository shares live in **one place only**: [Officina `standar
 | Understand how Vici talks to icdc-core                | [`docs/engine-integration.md`](./docs/engine-integration.md)                                                                                  |
 | Reset, repair or operate the Vici engine              | [`.agents/workflows/`](./.agents/workflows/) (`icdc-engine-reset.md`, `icdc-engine-operations.md`)                                            |
 | Ship a release to production                          | [`pr-and-ci.md` § 5](./docs/ai/pr-and-ci.md#5-ci-jobs-you-must-keep-green) (`web2-deploy.yml`)                                                |
+| Cut vici.market over to vici.app (legacy shutdown)    | [`.agents/workflows/cutover.md`](./.agents/workflows/cutover.md)                                                                              |
 
 ## 6. Governance
 

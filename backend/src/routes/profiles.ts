@@ -1,5 +1,5 @@
 // Profile surface: own-profile read/write, the availability probe (signed in,
-// or anonymous behind a bot check), public lookup and search, the
+// or anonymous behind a bot check), public lookup by id or handle and search, the
 // server-authoritative Flow swipe counter, and the dashboard stat caches. Reads that back public surfaces stay public;
 // everything caller-scoped is session-gated.
 
@@ -21,6 +21,7 @@ import {
 } from '../profiles/nickname';
 import {
 	countProfiles,
+	getProfileByHandle,
 	getProfileRow,
 	getProfileView,
 	ProfileValidationError,
@@ -44,6 +45,9 @@ const NICKNAME_CHECK_PROOF_LIMIT_PER_TEN_MINUTES = 10;
 // while leaving room for a shared school or office network.
 const PUBLIC_NICKNAME_CHECK_LIMIT_PER_MINUTE = 30;
 const PUBLIC_NICKNAME_CHECK_LIMIT_PER_HOUR = 300;
+
+// The add-friend input is a typed handle; anything longer is not one.
+const PROFILE_BY_HANDLE_MAX_LENGTH = 64;
 
 export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 	.get('/me', async ({ request, set }) => {
@@ -184,6 +188,40 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 			return await checkNicknameAvailability({ nickname: params.nickname });
 		},
 		{ query: t.Object({ nickname: t.String(), proof: t.Optional(t.String()) }) }
+	)
+	.get(
+		'/by-handle',
+		async ({ request, set, query: params }) => {
+			const user = await requireUser(request);
+
+			if (isNullish(user)) {
+				return unauthenticated(set);
+			}
+
+			// One indexed lookup per guess would otherwise sidestep the search cap.
+			const limited = enforceLimit({
+				set,
+				name: 'profile_by_handle',
+				ip: clientIp(request),
+				limit: PROFILE_SEARCH_LIMIT_PER_HOUR,
+				windowMs: HOUR_IN_MS
+			});
+
+			if (limited) {
+				return limited;
+			}
+
+			const profile = await getProfileByHandle(params.handle);
+
+			if (isNullish(profile)) {
+				set.status = 404;
+
+				return { error: 'not_found' };
+			}
+
+			return { profile };
+		},
+		{ query: t.Object({ handle: t.String({ maxLength: PROFILE_BY_HANDLE_MAX_LENGTH }) }) }
 	)
 	.get(
 		'/search',

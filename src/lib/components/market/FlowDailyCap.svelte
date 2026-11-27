@@ -90,14 +90,14 @@
 		{t({ locale: $localeStore, key: 'flow.cap.body', params: { count: hardCap } })}
 	</p>
 	<div class="flow-cap-actions">
-		<Button onclick={onClose} size="lg"
-			>{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}</Button
-		>
+		<Button onclick={onClose} size="lg">
+			{t({ locale: $localeStore, key: 'flow.end.back_to_dashboard' })}
+		</Button>
 	</div>
 	<div class="flow-cap-links">
-		<button class="flow-cap-link" onclick={inviteFriend} type="button"
-			>{t({ locale: $localeStore, key: 'flow.cap.invite' })}</button
-		>
+		<button class="flow-cap-link" onclick={inviteFriend} type="button">
+			{t({ locale: $localeStore, key: 'flow.cap.invite' })}
+		</button>
 	</div>
 </div>
 

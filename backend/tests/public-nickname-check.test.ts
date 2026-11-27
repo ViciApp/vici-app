@@ -242,10 +242,14 @@ describe.if(dbAvailable)('public nickname availability', () => {
 		const proof = await proofFor(ip);
 		const { profile } = await createTestProfile();
 
-		const taken = await probe({ nickname: profile.nickname.toUpperCase(), proof, ip });
+		const taken = await probe({ nickname: profile.nickname, proof, ip });
 
 		expect(taken.status).toBe(200);
 		expect(await taken.json()).toEqual({ available: false, reason: 'taken' });
+
+		const reserved = await probe({ nickname: 'admin', proof, ip });
+
+		expect(await reserved.json()).toEqual({ available: false, reason: 'reserved' });
 
 		const free = await probe({ nickname: uniqueNickname(), proof, ip });
 

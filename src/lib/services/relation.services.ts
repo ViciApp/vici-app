@@ -4,11 +4,12 @@ import {
 	acceptFriendRequest as acceptFriendRequestWeb2,
 	cancelFriendRequest as cancelFriendRequestWeb2,
 	followUser as followUserWeb2,
+	getProfileByHandle as getProfileByHandleWeb2,
 	rejectFriendRequest as rejectFriendRequestWeb2,
-	searchProfiles as searchProfilesWeb2,
 	sendFriendRequest as sendFriendRequestWeb2,
 	unfriendUser as unfriendUserWeb2
 } from '#lib/web2/client.ts';
+import { nonNullish } from '@dfinity/utils';
 import type { PrincipalText } from '@dfinity/zod-schemas';
 
 /** Matches a bare account id (uuid) pasted into the add-friend input, so a
@@ -17,7 +18,9 @@ const ACCOUNT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 
 /**
  * Resolves the add-friend input to an account id. The Friends UI accepts an
- * `@handle` (nickname) or a raw account id, while the API only takes the id.
+ * `@handle` (resolved through the by-handle lookup, lookalikes included, so
+ * `@antonio.ventilii` finds `antonioventilii`) or a raw account id, while the
+ * API only takes the id.
  *
  * Throws a typed `Error` with one of these codes on the message; the caller
  * is expected to map them to i18n strings:
@@ -33,18 +36,14 @@ const resolveTargetUserId = async ({
 }): Promise<PrincipalText> => {
 	const stripped = input.replace(/^@+/, '').trim();
 
-	// An input of just `@` (or whitespace) would otherwise search with an empty
-	// query, which matches every profile: a needlessly heavy read from one
-	// malformed click.
+	// An input of just `@` (or whitespace) names nobody.
 	if (stripped === '') {
 		throw new Error('not_found');
 	}
 
-	const normalized = stripped.toLowerCase();
-	const items = await searchProfilesWeb2(normalized);
-	const match = items.find((p) => p.nickname.trim().toLowerCase() === normalized);
+	const match = await getProfileByHandleWeb2(stripped);
 
-	if (match) {
+	if (nonNullish(match)) {
 		if (match.owner === sender) {
 			throw new Error('self');
 		}

@@ -204,7 +204,7 @@ While both stacks coexist, some contracts are deliberately duplicated between th
 | `src/vxp/constants.ts`                       | `src/lib/utils/achievements.utils.ts`, `src/lib/utils/streak.utils.ts`, `src/lib/constants/flow-rewards.constants.ts`                                                                                                                                                                                                                                        | achievement thresholds and streak window (static extraction)                                                                                                                    |
 | `src/account/`                               | `src/lib/constants/app.constants.ts`, `src/lib/types/exit-signal.ts`, `src/lib/constants/referral.constants.ts`                                                                                                                                                                                                                                              | recovery window, exit-signal reasons and note cap, referral code format                                                                                                         |
 | `src/profiles/`                              | `src/lib/constants/profile.constants.ts`, `src/lib/constants/flow-rewards.constants.ts`, `src/lib/types/user-stats.ts`, `src/lib/types/user-monthly-stats.ts`                                                                                                                                                                                                | nickname bounds and charset, handle cooldown, Flow hard cap, stats limits                                                                                                       |
-| `src/profiles/nickname.ts`                   | `src/lib/constants/turnstile.constants.ts`                                                                                                                                                                                                                                                                                                                   | Turnstile action of the anonymous handle probe                                                                                                                                  |
+| `src/profiles/nickname.ts`                   | `src/lib/constants/turnstile.constants.ts`, `src/lib/constants/handle.constants.ts`, `src/lib/utils/handle.utils.ts`                                                                                                                                                                                                                                         | Turnstile action of the anonymous handle probe; the handle rule, its letter table, the reserved keys and the refusal reasons                                                    |
 | `src/leagues/` + `src/tournaments/`          | `src/lib/types/league.ts`, `src/lib/types/battle.ts`, `src/lib/types/tournament.ts`                                                                                                                                                                                                                                                                          | league and battle bounds, cover encoding, tournament bracket and windows                                                                                                        |
 | `src/worlds/` + `src/school/`                | `src/lib/types/affiliation.ts`, `src/lib/types/affiliation-stats.ts`, `src/lib/utils/month-anchor.utils.ts`, `src/lib/types/school.ts`, `src/lib/constants/school-picker.constants.ts`                                                                                                                                                                       | switch lock, ranking bar, month anchor, school code limits                                                                                                                      |
 | `src/school/` (directory, matcher)           | `src/lib/constants/worlds-affiliations.constants.ts`, `src/lib/utils/school-picker.utils.ts`                                                                                                                                                                                                                                                                 | university roster, name normalizer, email host and consumer patterns                                                                                                            |
@@ -259,6 +259,61 @@ bun run etl:verify -- ./etl-export           # 6. parity report + spot checks
 ```
 
 Cutover delta run: freeze legacy writes, then repeat steps 2-6 with a fresh export (`bun run etl:export -- ./etl-export-delta --fresh`, then import/verify against that directory). Because every import upserts and award/referral progress is never demoted, the delta pass only applies what changed since the bulk run.
+
+## Cutover
+
+`scripts/cutover/` hands the legacy accounts over once the final ETL delta has landed. Three steps, each a dry run by default and safe to re-run:
+
+- `cutover:list-unmatched [out.csv]` writes the sheet of every unadopted provisional account (`claim_pending`, not hard-deleted, still holding an `'etl'` link): `user_id`, `handle`, `display_name`, `legacy_principals`, `legacy_provider` (when the export knows it), `school` (the Worlds university slot), `known_email` (addresses the export already holds: those adopt on first login without help) and an empty `email` column. Stdout without a path.
+- `cutover:assign-emails <filled.csv> [--execute]` gives each account whose sheet row has an `email` that address, as `legacy_auth_identities.profile_email` of one of its `'etl'` principals (inserting the row when the export has none): the column adoption and the beta gate already match on (trimmed, lowercased), so the first verified sign-in with it adopts the account in place. It refuses a malformed user id or email, an account that is not an unadopted provisional one, a user id or an email on two rows, an email that already signs in to a web2 account (that login never reaches adoption) and an email the export holds for another principal (two accounts would compete for one login); an address the account already carries is `already_assigned`. `--execute` plans again inside one transaction under the per-email login locks of the requested addresses and of the legacy addresses the accounts already carry (so a first login with either runs before the plan, which then finds the account adopted, or after the write) and writes only the `assign` rows; refused rows exit 1.
+- `cutover:reassign [--execute] [--principal <p> ...] [--report <out.jsonl>]` moves each `legacy_principals` principal's clearing account (collateral in every domain, cash, reserved margin, positions, and the custody funds clearing holds for it) to `userIcPrincipalText(user_id)` through clearing's controller-only `admin_reassign_account`, with `reassignment_id = vici-cutover:<old principal>`. The user id survives adoption, so a still-provisional account moves too. Before anything is read from the engine it refuses an unset `ROOT_SECRET` and checks the derived targets against every stored `ic` custody address in scope (at least one must exist): one mismatch aborts, dry run included. The dry run then reads open orders under the old principal, its settled history, the VXP left in its own ledger wallet and the target's clearing state, and writes one JSONL row per principal plus a summary; `--execute` calls principal by principal, appending each answer to the report. A user with several principals gets them in order of settled history, open orders, then wallet VXP; once one of them ends in anything that may leave its account unmoved (a `replay`, or a refusal for its own state such as `OpenOrdersExist`), the account's later principals are `deferred` (a replay) to the next run, so a lower-ranked one never moves first. A target whose state cannot be read is `target_unreadable`: reported, never called, retried on the next run. `--principal` limits the run (a canary), and its scope must still include an account with a custody address.
+
+| Answer of `admin_reassign_account`                                                                     | Disposition       | Next                                                                                     |
+| ------------------------------------------------------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------- |
+| `Ok` (also a replay of a finished id)                                                                  | `moved`           | nothing                                                                                  |
+| `AccountNotFound`                                                                                      | `nothing_to_move` | nothing: the principal never had a clearing account                                      |
+| `InFlightPlansExist`, `ReassignmentInProgress`, `CustodyTransferFailed`, a thrown call                 | `replay`          | run the same command again: the id resumes the pending reassignment                      |
+| `TargetAccountNotEmpty`, `OpenOrdersExist`, `PendingPositionTransfersExist`, `UnsupportedCustodyAsset` | `manual`          | someone acts first (a second principal of an account that already moved is a merge case) |
+| `ReassignmentIdReused`, `SameOwner`, `AnonymousOwner`                                                  | `manual`          | the data disagree with the plan: look before anything else                               |
+| `Common` (`Unauthorized` stops the run)                                                                | `error`           | fix the key or the canister config, then replay                                          |
+
+Not moved: VXP in the old principal's own ledger wallet (it is not part of the clearing account and only its owner can sign for it; the report lists it). Clearing has no controller cancel, so a principal with resting orders stays `manual` until its owner cancels them on the legacy app. Settled history keeps counting under the legacy principal through the link (`settlementPrincipalsByUser`).
+
+Env: `DATABASE_URL`; `ROOT_SECRET` (required by `cutover:reassign`, the production value: without it the env falls back to the public dev secret); `CUTOVER_CONTROLLER_PEM` (`--execute` only: path to a clearing controller key, Ed25519 PKCS#8 or secp256k1, loaded like `ETL_SATELLITE_PEM`); `IC_HOST` and `CLEARING_CANISTER_ID` (mainnet defaults). Leave `NODE_ENV` unset, as for the ETL. Sheets (`backend/*.csv`) and reports (`backend/cutover-*.jsonl`) hold user emails and are git-ignored there; keep them off shared drives.
+
+Operator sequence, after the legacy write freeze:
+
+```bash
+cd backend
+export DATABASE_URL=...                         # production Postgres
+export ETL_SATELLITE_PEM=/path/to/admin.pem ETL_SATELLITE_ID=<satellite-id>
+
+# 1. Final ETL delta (Data migration above). etl:drain-auth must be the LAST drain.
+bun run etl:drain-auth
+bun run etl:export -- ./etl-export-delta --fresh
+bun run etl:import -- ./etl-export-delta
+bun run etl:images
+bun run etl:verify -- ./etl-export-delta
+
+# 2. The sheet; the team fills `email` for the rows without a known_email.
+bun run cutover:list-unmatched -- unmatched.csv
+
+# 3. Assign the collected emails: review the dry run, then write.
+bun run cutover:assign-emails -- filled.csv
+bun run cutover:assign-emails -- filled.csv --execute
+
+# 4. Move the clearing accounts: dry run, one canary, then everyone; repeat
+#    the last command until no row is `replay`, then work the `manual` list.
+export ROOT_SECRET=...                          # the production value
+export CUTOVER_CONTROLLER_PEM=/path/to/clearing-controller.pem
+bun run cutover:reassign
+bun run cutover:reassign -- --execute --principal <one-principal-with-state>
+bun run cutover:reassign -- --execute
+```
+
+Step 5 releases the beta gate, signed in as an admin (no code change; `readAppSetting` is uncached, so it applies at once): `PUT /api/v1/admin/settings/beta_gate` with `{ "value": { "enabled": false, "emails": [] } }`, or `DELETE /api/v1/admin/settings/beta_gate`. Until then every assigned address gets `legacy_account_pending`. Release it after step 4, so nobody gives a target account web2 state (which `admin_reassign_account` refuses to merge into) before its legacy account has moved.
+
+`etl:drain-auth` rewrites `profile_email` from the satellite (empty for passkey and Internet Identity logins), wiping every assigned email: a drain after step 3 means running step 3 again with the same file. Both email steps print this warning.
 
 ## End-to-end stack (test only)
 
@@ -327,4 +382,5 @@ backend/
   e2e/              # test-only E2E server, fake engine, fixtures and seed (not in the image)
   scripts/
     etl/            # data-migration tooling: drain, export, import, image re-host, parity
+    cutover/        # account handover: unmatched sheet, email assignment, clearing reassignment
 ```

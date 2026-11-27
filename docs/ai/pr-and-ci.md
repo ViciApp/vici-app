@@ -193,9 +193,10 @@ detached HEAD, and it won't commit again when the branch head is already its own
 
 A job that checks out a pull request by branch name (`github.event.pull_request.head.ref`, as every `apply-changes` job must) adds no cache of its own: it restores with `actions/cache/restore` the caches a sibling job saves from the default checkout (`format` reads the ones `lint` saves). The one cache such a job still saves is setup-node's npm cache, which [`prepare`](../../.github/actions/prepare/action.yml) (`cache: 'npm'`) writes in its post step, keyed on `package-lock.json`. A job that needs the PR's code but not its branch checks it out by `github.event.pull_request.head.sha`. The reason is GitHub's cache scopes: a run on `push` to `main`, `schedule` or `workflow_dispatch` writes to `main`'s scope, which every branch and PR reads. CodeQL's cache-poisoning queries (`actions/cache-poisoning/*`) take a job's events from the workflow's `on:` and ignore `if:`, so an `event_name` guard on the checkout does not count: in a workflow that also runs on `schedule` or `workflow_dispatch`, a checkout by PR branch name followed by a cache write, or in a job without secrets by any step that runs repo code, is flagged.
 
-`juno.config.ts` (the retired satellite's redirect and write freeze) is applied
-**manually** with `juno config apply` and the Administrator `JUNO_TOKEN`, never in
-CI.
+`juno.config.ts` (the retired satellite's write freeze) is applied **manually**
+with `VITE_LEGACY_SHUTDOWN=true juno config apply --mode production` and the
+Administrator `JUNO_TOKEN`, never in CI; see
+[`cutover.md`](../../.agents/workflows/cutover.md).
 
 If your change is doc-only, the `format` and `lint` jobs still run because
 they cover the whole repo. The `check` job covers `*.svelte` / `*.ts` only,

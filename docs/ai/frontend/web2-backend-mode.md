@@ -126,7 +126,15 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
 - `handle-availability.services.ts`: a visitor before sign-up probes
   `/public-nickname-availability` with a Turnstile-backed proof (one solve per
   window, see the "Anonymous handle probe" section of
-  [`backend/README.md`](../../../backend/README.md)).
+  [`backend/README.md`](../../../backend/README.md)). Once the API answers
+  `turnstile_unconfigured` (no secret in production), the probe replays that
+  refusal for the rest of the page without contacting Cloudflare or the API
+  (`latchesPublicProbe` in `handle-probe.utils.ts`). A picker that serves both
+  signed-in users and visitors (the onboarding handle field and its
+  claim-time re-check) probes through `checkHandleAvailability`, which takes
+  the public probe with no session (`handleProbeRoute`) and the session probe
+  otherwise; the handle editor and the post-sign-in drain stay on the session
+  probe, the authoritative re-check.
 - `leaderboard.services.ts` / `menagerie.services.ts`: the API ranks from
   settled history, never `points` (see
   [`PRODUCT.md`](../PRODUCT.md#global-leaderboard-qualify-gate--confidence-adjusted-ranking)).

@@ -39,3 +39,7 @@ target
 
 # ETL snapshots of the legacy collections (backend/README.md runbook) hold user data
 /backend/etl-export*/
+
+# Cutover sheets and reports (backend/README.md "Cutover") hold user emails
+/backend/*.csv
+/backend/cutover-*.jsonl
