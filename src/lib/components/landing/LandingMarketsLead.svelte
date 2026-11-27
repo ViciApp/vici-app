@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { nonNullish } from '@dfinity/utils';
+	import LandingMarketsArt from '#lib/components/landing/LandingMarketsArt.svelte';
 	import LandingMarketsLeadCall from '#lib/components/landing/LandingMarketsLeadCall.svelte';
 	import LandingMarketsLeadChart from '#lib/components/landing/LandingMarketsLeadChart.svelte';
-	import MarketArtwork from '#lib/components/market/MarketArtwork.svelte';
 	import MarketProbabilitySkeleton from '#lib/components/market/MarketProbabilitySkeleton.svelte';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { LandingMarketsView } from '#lib/types/landing-markets.ts';
@@ -66,8 +66,8 @@
 		></button>
 	{/if}
 
-	<span class="lml-art" aria-hidden="true">
-		<MarketArtwork bleed category={view.artOf(market)} fill seed={market.id} size={320} {title} />
+	<span class="lml-art" aria-hidden="true" data-landing-markets-lead-art>
+		<LandingMarketsArt {market} size={320} {title} {view} />
 	</span>
 
 	<div class="lml-body" class:is-passive={nonNullish(onselect)}>

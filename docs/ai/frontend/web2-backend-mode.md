@@ -125,8 +125,6 @@ per-domain sections:
   In web2 mode `getFollowedLean` returns an empty map (the Flow card and the
   market detail already treat that as "no followed lean") and the market
   page hides the Top predictors section (`areMarketTopPredictorsAvailable`).
-- **Landing proof figure** (`landing-proof.services.ts`): an anonymous
-  public satellite count; works identically from a web2 build.
 - **On-chain sign-in plumbing** (`apple-signin.services.ts` and the Juno
   identity layer): replaced wholesale by the session flow in web2 mode.
 
@@ -263,7 +261,7 @@ every would-be new user to the new app. One service gate,
 minus the dev-only e2e opt-in), drives two surfaces:
 
 - **`/signup`** renders `authn/MovedToNewApp.svelte` instead of the
-  onboarding. Every sign-up entry (landing CTAs, the sign-in screen's switch,
+  onboarding. Every sign-up entry (the sign-in screen's switch,
   `/i/{code}`, `/join/{code}`, `/league/{code}`, the `?ref=` share capture)
   already funnels through `/signup` via the pending-onboarding stash, so the
   moved screen's link (`loadNewAppSignupUrl`) re-targets the stashed codes at

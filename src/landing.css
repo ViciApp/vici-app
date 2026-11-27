@@ -1921,35 +1921,6 @@ html[data-ios][data-theme='peach'] .dnav.is-scrolled {
 	overflow-x: clip;
 }
 
-/* iOS contained-scroll viewport for the landing.
-   ----------------------------------------------------------------------------
-   iOS Chrome runs inside the OS WebView and collapses its address bar on
-   *document* scroll; it can't animate pinned `position: sticky` elements in step
-   with that WebView resize, so the sticky nav pill judders as you scroll. Android
-   and desktop resize smoothly, so they're unaffected. The authenticated app
-   shell already sidesteps this by never scrolling the document; it locks the
-   body and scrolls an inner viewport (`html[data-app] body { overflow: hidden }`
-   + `.screen-scroll`). We give the landing the same treatment on iOS only: `.lpc`
-   becomes the scroll viewport, so the document never scrolls, the address bar
-   never collapses, and the nav stays put. `data-landing-scroll` (set by
-   WelcomePage) scopes the body lock to this page; `WelcomeNav` resolves `.lpc`
-   as its scroll root at runtime. Non-iOS keeps natural document scroll. */
-html[data-ios][data-landing-scroll],
-html[data-ios][data-landing-scroll] body {
-	height: 100%;
-	margin: 0;
-}
-html[data-ios][data-landing-scroll] body {
-	overflow: hidden;
-}
-html[data-ios] .lpc {
-	height: 100dvh;
-	overflow-x: hidden;
-	overflow-y: auto;
-	-webkit-overflow-scrolling: touch;
-	overscroll-behavior-y: contain;
-}
-
 .lpc * {
 	box-sizing: border-box;
 }

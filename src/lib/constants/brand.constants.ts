@@ -1,18 +1,11 @@
 /**
  * Brand literals that are NOT translatable copy; the same in every
- * locale (Latin motto, wordmark). Keep these out of the i18n catalogs
- * and reference the constants wherever the motto appears, so the brand
+ * locale (the wordmark). Keep these out of the i18n catalogs, so the brand
  * lives in exactly one place.
  */
 
-/** Leading part of the Latin motto: "Veni · Vidi · ". */
-export const LATIN_MOTTO_LEAD = 'Veni · Vidi · ';
-
-/** Accented tail of the Latin motto: "Vici." (rendered in the gold accent). */
-export const LATIN_MOTTO_TAIL = 'Vici.';
-
-/** The wordmark: the landing's whole document title. */
-export const BRAND_WORDMARK = 'VICI';
+/** The wordmark, as document titles carry it. */
+const BRAND_WORDMARK = 'VICI';
 
 /**
  * The standard document title: the page's localized name, then the

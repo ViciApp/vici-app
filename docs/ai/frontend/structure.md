@@ -12,19 +12,20 @@ src/
 ├── app.d.ts                Ambient SvelteKit types
 ├── app.html                HTML shell
 ├── custom-events.d.ts      Ambient custom-event types for Svelte
-├── landing.css             Unscoped landing styles (`.lp-*`, `.dnav-*`), imported by app.css
+├── landing.css             Unscoped shared primitives (`.flow-card`, `.btn`, `.tag`, …), imported by app.css
 │
 ├── routes/                 SvelteKit file-based routing, one folder per URL
 │   ├── (app)/              App shell group: +layout.svelte mounts navs, loaders, hosts
 │   │   ├── +layout.svelte
 │   │   └── admin/ app/ arena/ calibration/ dash/ flow/ info/ markets/
 │   │       notifications/ portfolio/ profile/ settings/ wallet/
-│   ├── about/ claim/ signin/ signup/ welcome/        Public pages
+│   ├── claim/ signin/ signup/                        Public pages
+│   ├── about/ welcome/                               Earlier marketing URLs: redirect to `/`
 │   ├── i/[code]/ join/[code]/ league/[code]/ m/[id]/ Invite / share links
 │   ├── auth/callback/google/                         OAuth callback flow
 │   ├── +layout.svelte
 │   ├── +layout.ts
-│   └── +page.svelte        Root landing gate (signed in → /flow, else WelcomePage)
+│   └── +page.svelte        Root landing gate (signed in → /flow, else LandingPage)
 │
 ├── lib/                    Application code (cross-route)
 │   ├── components/         UI grouped by feature (see below)
@@ -74,8 +75,8 @@ top-level group:
 - `dev/`: dev-build-only tooling (`TweaksPanel`).
 - `guest/`: signed-out guest conversion funnel.
 - `icons/`: bespoke icons not covered by `@lucide/svelte`.
-- `layout/`: app chrome (`ScreenHeader`, `DesktopAppNav`, `MobileNav`, `WelcomeNav`).
-- `landing/`: public marketing sections (`WelcomeHero`, `WelcomeProof`, `WelcomeFooter`, …).
+- `layout/`: app chrome (`ScreenHeader`, `DesktopAppNav`, `MobileNav`).
+- `landing/`: the signed-out landing's pieces (`LandingNav`, `LandingDeck`, `LandingMarkets`, `LandingFooter`, …).
 - `leagues/`: leagues, battles and the affiliation picker.
 - `loaders/`: loader shells and the `LoaderXxx` cache fillers mounted by `Loaders`.
 - `market/`: prediction-market UI (filters, cards, detail, order book, …).

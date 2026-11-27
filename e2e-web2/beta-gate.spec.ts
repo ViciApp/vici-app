@@ -33,13 +33,13 @@ test.describe('beta access gate', () => {
 
 		await admin.setBetaGate({ enabled: true, emails: [E2E_ADMIN_EMAIL], allowNewUsers: true });
 
-		// A new person gets a code and a session.
+		// A new person gets a code and a session, and is asked for a handle.
 		const newcomer = uniqueEmail('newcomer');
 
 		await page.goto('/signin');
 		await app.requestCode(newcomer);
 		await app.enterCode({ email: newcomer, backend });
-		await app.waitForSignedInShell();
+		await app.waitForNewAccountHandleStep();
 
 		// An address with a legacy account is told to stay on the legacy app.
 		await page.context().clearCookies();

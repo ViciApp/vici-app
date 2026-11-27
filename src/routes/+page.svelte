@@ -1,5 +1,5 @@
 <script lang="ts">
-	import WelcomePage from '#lib/components/pages/WelcomePage.svelte';
+	import LandingPage from '#lib/components/pages/LandingPage.svelte';
 	import LoadingSpinner from '#lib/components/ui/LoadingSpinner.svelte';
 	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
 	import { AppPath } from '#lib/constants/routes.constants.ts';
@@ -26,8 +26,8 @@
 	//   else sees the blank brand shell: this keeps the marketing surface
 	//   from ever flashing for a signed-in user the hint missed (private
 	//   mode, cleared storage), and a stale hint only costs a brief spinner
-	//   before `WelcomePage`.
-	// - For signed-out visitors, we render `WelcomePage` once the auth
+	//   before `LandingPage`.
+	// - For signed-out visitors, we render `LandingPage` once the auth
 	//   handshake has settled.
 	// One-time, non-reactive snapshot of the device hint: read once at
 	// mount, never re-read, so a plain const (not `$state`) is correct.
@@ -48,12 +48,12 @@
 </script>
 
 <svelte:head>
-	<title>{t({ locale: $localeStore, key: 'seo.home.title' })}</title>
-	<meta name="description" content={t({ locale: $localeStore, key: 'seo.home.description' })} />
+	<title>{t({ locale: $localeStore, key: 'seo.landing.title' })}</title>
+	<meta name="description" content={t({ locale: $localeStore, key: 'seo.landing.description' })} />
 </svelte:head>
 
 {#if $userSignedOutResolved}
-	<WelcomePage />
+	<LandingPage />
 {:else if resumingSession}
 	<div class="bg-background flex min-h-dvh items-center justify-center">
 		<LoadingSpinner size="lg" />

@@ -35,7 +35,7 @@
 {#if hasDeckFilm(entry)}
 	<LandingDeckMedia {clip} {entry} {playing} {preload} {priority} {viewport} />
 {:else}
-	<div style:width="{side}px" class="art" aria-hidden="true">
+	<div style:width="{side}px" class="art" aria-hidden="true" data-landing-deck-art>
 		<MarketArtwork
 			bleed
 			category={resolveFlowArtCategory({ tags: [], seed: entry.seriesId })}

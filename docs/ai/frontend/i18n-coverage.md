@@ -51,7 +51,6 @@ translate the file and delete its row, or move the row to § Exempt.
 - `src/lib/components/menagerie/MenagerieBadgeSkeleton.svelte`
 - `src/lib/components/menagerie/MenagerieCelebrationHost.svelte`
 - `src/lib/components/menagerie/MenagerieSprite.svelte`
-- `src/lib/components/pages/WelcomePage.svelte`
 - `src/lib/components/profile/Avatar.svelte`
 - `src/lib/components/ui/CountUp.svelte`
 - `src/lib/components/ui/CountryFlag.svelte`
