@@ -268,7 +268,7 @@ export const SERVER_ANALYTICS_EVENT_NAMES = [
 	'exit_signal'
 ] as const satisfies readonly AnalyticsEventName[];
 
-export type ServerAnalyticsEventName = (typeof SERVER_ANALYTICS_EVENT_NAMES)[number];
+type ServerAnalyticsEventName = (typeof SERVER_ANALYTICS_EVENT_NAMES)[number];
 
 /** The events a client may send through `trackEvents`. */
 export type ClientAnalyticsEventName = Exclude<AnalyticsEventName, ServerAnalyticsEventName>;

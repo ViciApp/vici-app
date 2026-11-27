@@ -7,7 +7,7 @@ import type { PrincipalText } from '@junobuild/schema';
 /**
  * Juno document payload for the roles collection.
  */
-export interface RoleDoc {
+interface RoleDoc {
 	role: UserRole;
 }
 

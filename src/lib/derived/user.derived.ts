@@ -25,7 +25,7 @@ export const authPrincipal: Readable<PrincipalText | undefined> = derived(
 	({ user }) => user?.owner
 );
 
-export const userRole: Readable<UserRole | undefined> = derived(
+const userRole: Readable<UserRole | undefined> = derived(
 	[authPrincipal, userStore],
 	([$authPrincipal, { profile }]) =>
 		userRoleOf({ principal: $authPrincipal, profileRole: profile?.role })

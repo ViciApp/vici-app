@@ -56,7 +56,7 @@ export type MenagerieSlug =
 	| 'goat';
 
 /** One rung of an animal's ladder: the tier and the metric threshold it needs. */
-export interface MenagerieTierStep {
+interface MenagerieTierStep {
 	tier: MenagerieTier;
 	/** Threshold the animal's metric must reach (or, for reversed metrics, fall to). */
 	t: number;
