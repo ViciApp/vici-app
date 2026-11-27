@@ -54,7 +54,8 @@
 		| 'signin.otp.bot_check_unavailable'
 		| 'signin.otp.rate_limited'
 		| 'signin.beta_closed'
-		| 'signin.legacy_pending.body';
+		| 'signin.legacy_pending.body'
+		| 'signin.oauth_failed';
 	let errorKey = $state<ErrorKey | null>(null);
 
 	const CODE_REQUEST_ERROR_KEYS: Record<EmailSignInCodeRefusal, ErrorKey> = {
@@ -86,8 +87,10 @@
 		return 'signin.otp.error';
 	};
 
-	// The OAuth callbacks cannot carry a JSON error body, so a gated refusal
-	// lands back on `/signin?e=<marker>`.
+	// The OAuth callbacks cannot carry a JSON error body, so a refusal or a
+	// failed handshake lands back on the team sign-in screen as
+	// `/team?e=<marker>`: `beta` and `legacy` are the gate's refusals, `state`,
+	// `google` and `apple` a callback that did not complete.
 	const errorKeyForMarker = (marker: string | null): ErrorKey | null => {
 		if (marker === 'beta') {
 			return 'signin.beta_closed';
@@ -95,6 +98,10 @@
 
 		if (marker === 'legacy') {
 			return 'signin.legacy_pending.body';
+		}
+
+		if (marker === 'state' || marker === 'google' || marker === 'apple') {
+			return 'signin.oauth_failed';
 		}
 
 		return null;

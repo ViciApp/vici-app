@@ -16,7 +16,7 @@ test.describe('beta access gate', () => {
 
 		await admin.setBetaGate({ enabled: true, emails: [E2E_ADMIN_EMAIL] });
 
-		await page.goto('/signin');
+		await app.openSignIn();
 		await app.requestCode(uniqueEmail('closed'));
 
 		await expect(app.betaClosedMessage).toBeVisible();
@@ -36,14 +36,14 @@ test.describe('beta access gate', () => {
 		// A new person gets a code and a session, and is asked for a handle.
 		const newcomer = uniqueEmail('newcomer');
 
-		await page.goto('/signin');
+		await app.openSignIn();
 		await app.requestCode(newcomer);
 		await app.enterCode({ email: newcomer, backend });
 		await app.waitForNewAccountHandleStep();
 
 		// An address with a legacy account is told to stay on the legacy app.
 		await page.context().clearCookies();
-		await page.goto('/signin');
+		await app.openSignIn();
 		await app.requestCode(E2E_LEGACY_PENDING.email);
 
 		await expect(app.legacyPendingMessage).toBeVisible();
@@ -54,10 +54,10 @@ test.describe('beta access gate', () => {
 	test('the OAuth refusal marker renders the legacy message and is stripped', async ({ page }) => {
 		const app = new Web2AppPage(page);
 
-		await page.goto('/signin?e=legacy');
+		await app.openSignIn('?e=legacy');
 
 		await expect(app.legacyPendingMessage).toBeVisible();
 		await expect(app.legacyAppLink).toBeVisible();
-		await expect(page).toHaveURL(/\/signin$/);
+		await expect(page).toHaveURL(/\/team$/);
 	});
 });

@@ -21,10 +21,14 @@
 		// every authenticated session; routes calling this from a layout
 		// can pass a different post-auth target.
 		onSuccess?: () => void;
+		// Off where accounts are not open to everyone: the footer's switch to
+		// the other mode is not shown.
+		canSwitch?: boolean;
 	}
 
 	const {
 		mode = 'signin',
+		canSwitch = true,
 		onSuccess = () => {
 			void goto(resolveAppPath(AppPath.Flow));
 		}
@@ -125,12 +129,14 @@
 			<SignInProviderStack {mode} {onSuccess} />
 		</div>
 
-		<div class="signin-foot">
-			<span class="mute">{t({ locale: $localeStore, key: footerPromptKey })}</span>
-			<button class="signin-link" onclick={handleSwitch} type="button">
-				{t({ locale: $localeStore, key: footerCtaKey })}
-			</button>
-		</div>
+		{#if canSwitch}
+			<div class="signin-foot">
+				<span class="mute">{t({ locale: $localeStore, key: footerPromptKey })}</span>
+				<button class="signin-link" onclick={handleSwitch} type="button">
+					{t({ locale: $localeStore, key: footerCtaKey })}
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	<div class="signin-legal">

@@ -7,6 +7,7 @@
 	import { worldCupActive, worldCupMode } from '#lib/derived/world-cup.derived.ts';
 	import { isDev } from '#lib/env/app.env.ts';
 	import { signOut } from '#lib/services/identity.services.ts';
+	import { signInScreenPath } from '#lib/services/new-app-redirect.services.ts';
 	import { preferencesStore } from '#lib/stores/preferences.store.ts';
 	import { leaderboardQualifyMin } from '#lib/stores/tweaks.store.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
@@ -38,11 +39,11 @@
 		try {
 			await signOut();
 		} catch {
-			// Already signed out / network glitch: push to /signin
+			// Already signed out / network glitch: push to sign-in
 			// regardless so the panel doesn't get stuck.
 		}
 
-		await goto(resolve(PublicPath.SignIn), { replace: true });
+		await goto(signInScreenPath(), { replace: true });
 	};
 </script>
 
@@ -110,20 +111,22 @@
 				<section class="tweaks-section">
 					<span class="allcaps tweaks-label">Quick jumps</span>
 					<div class="tweaks-jumps">
-						<button onclick={() => jumpTo(resolveAppPath(AppPath.Home))} type="button"
-							>Home (/)</button
-						>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Home))} type="button">
+							Home (/)
+						</button>
 						<button onclick={() => jumpTo(resolveAppPath(AppPath.Flow))} type="button">Flow</button>
 						<button onclick={() => jumpTo(resolveAppPath(AppPath.Portfolio))} type="button">
 							Portfolio
 						</button>
-						<button onclick={() => jumpTo(resolveAppPath(AppPath.Profile))} type="button"
-							>Profile</button
-						>
-						<button onclick={() => jumpTo(resolve(PublicPath.SignIn))} type="button">Sign in</button
-						>
-						<button onclick={() => jumpTo(resolve(PublicPath.SignUp))} type="button">Sign up</button
-						>
+						<button onclick={() => jumpTo(resolveAppPath(AppPath.Profile))} type="button">
+							Profile
+						</button>
+						<button onclick={() => jumpTo(resolve(PublicPath.SignIn))} type="button">
+							Sign in
+						</button>
+						<button onclick={() => jumpTo(resolve(PublicPath.SignUp))} type="button">
+							Sign up
+						</button>
 					</div>
 				</section>
 

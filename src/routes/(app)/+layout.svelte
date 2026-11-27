@@ -18,6 +18,7 @@
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { authBusy, userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
 	import { installE2eResetHook } from '#lib/dev/e2e-reset.ts';
+	import { signedOutHomePath } from '#lib/services/new-app-redirect.services.ts';
 	import {
 		drainPendingOnboarding,
 		hasPendingOnboarding
@@ -118,7 +119,7 @@
 	// Auth gate: every (app) route requires a session. We only
 	// redirect once `userSignedOutResolved` is true, i.e. after the
 	// initial auth handshake has completed. Reacting to `authBusy`
-	// directly would bounce users to /signin during a normal page
+	// directly would bounce users out during a normal page
 	// load. See `docs/ai/frontend/design.md` §8.1.
 	//
 	// Belt-and-braces: also require `!$userSignedIn` so a transient
@@ -150,14 +151,15 @@
 
 		// The markets board (`/app`) has a public counterpart, the landing's
 		// Markets view: a signed-out visitor goes there, the query string
-		// riding along. Every other surface needs an account, so `/signin`.
+		// riding along. Every other surface needs an account, and there is no
+		// public way in to one where sign-in is team-only: `signedOutHomePath()`.
 		if (page.url.pathname === resolveAppPath(AppPath.Home)) {
 			void goto(signedOutMarketsHref(page.url.search), { replace: true });
 
 			return;
 		}
 
-		void goto(resolve(PublicPath.SignIn), { replace: true });
+		void goto(signedOutHomePath(), { replace: true });
 	});
 
 	// Post-signin onboarding handoff. The drain logic (parse the pre-auth

@@ -5,11 +5,11 @@
 	import MovedToNewApp from '#lib/components/authn/MovedToNewApp.svelte';
 	import { SIGNED_IN_FLAG_KEY } from '#lib/constants/app.constants.ts';
 	import { NEW_ACCOUNT_MOVED_SESSION_KEY } from '#lib/constants/claim.constants.ts';
-	import { PublicPath } from '#lib/constants/routes.constants.ts';
 	import { balanceDomain } from '#lib/derived/balance-domain.derived.ts';
 	import { trackLoginSyncSettled } from '#lib/dev/e2e-reset.ts';
 	import { resetIdentityScopedState } from '#lib/services/identity-reset.services.ts';
 	import { safeGetIdentityOnce } from '#lib/services/identity.services.ts';
+	import { signInScreenPath } from '#lib/services/new-app-redirect.services.ts';
 	import {
 		ensureProfile,
 		calculateAndSyncStats,
@@ -23,7 +23,6 @@
 	import { loadWeb2Session, watchWeb2Session, web2SessionStore } from '#lib/web2/session.ts';
 	import { browser } from '$app/env';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 
 	/**
 	 * Write (or clear) the `SIGNED_IN_FLAG_KEY` hint that this device has an
@@ -134,7 +133,7 @@
 	const dismissNewAccountMoved = (): void => {
 		setNewAccountMoved(false);
 
-		void goto(resolve(PublicPath.SignIn));
+		void goto(signInScreenPath());
 	};
 
 	const updateUserStore = async (user: User | null) => {

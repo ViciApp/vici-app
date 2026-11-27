@@ -29,16 +29,23 @@ export enum AppPath {
 
 /**
  * Public surfaces: accessible without an authenticated session.
- * The (app) layout gate redirects unauthenticated users to `/signin`
- * unless they're already on a path in this set.
+ * The (app) layout gate redirects unauthenticated users to
+ * `signedOutHomePath()` (the landing where sign-in is team-only, `/signin`
+ * on the legacy build) unless they're already on a path in this set.
  *
- * `SignIn` is the canonical landing surface for unauthenticated users;
+ * `SignIn` is the legacy build's landing surface for unauthenticated users;
  * `SignUp` hosts the pre-sign-in onboarding flow (). `/auth/...`
  * is the OAuth callback path used by `signInWithGoogle` and friends.
  */
 export enum PublicPath {
 	SignIn = '/signin',
 	SignUp = '/signup',
+	/**
+	 * The team's sign-in while sign-in is team-only: linked from no page,
+	 * `noindex`, absent from the sitemap. The public `/signin` and `/signup`
+	 * send a signed-out visitor to the landing instead.
+	 */
+	Team = '/team',
 	/**
 	 * The root: the signed-out landing page. A signed-in session is sent on
 	 * to Flow from there. `/about` and `/welcome`, earlier addresses of the

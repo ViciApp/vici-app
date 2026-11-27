@@ -86,6 +86,29 @@ export const loadNewAppSignupUrl = (): string => {
 export const isLegacyShutDown = (): boolean =>
 	!isWeb2Backend() && viteEnv()?.VITE_LEGACY_SHUTDOWN === 'true';
 
+/**
+ * While the new app is closed to the public, sign-in there is for the team
+ * only: the API refuses every other address, so no public page offers a way
+ * in, and the team signs in at the unlinked `/team`. The legacy build keeps
+ * its sign-in screen for its existing accounts.
+ */
+export const isTeamOnlySignIn = (): boolean => isWeb2Backend();
+
+/**
+ * Where a visitor with no session is sent: the landing where sign-in is
+ * team-only, the sign-in screen on the legacy build.
+ */
+export const signedOutHomePath = (): string =>
+	isTeamOnlySignIn() ? resolve(PublicPath.Landing) : resolve(PublicPath.SignIn);
+
+/**
+ * The sign-in screen, for someone already inside who signs in again (another
+ * method, a dismissed refusal): the team's `/team` where sign-in is team-only,
+ * `/signin` on the legacy build.
+ */
+export const signInScreenPath = (): string =>
+	isTeamOnlySignIn() ? resolve(PublicPath.Team) : resolve(PublicPath.SignIn);
+
 /** The page being viewed, on the new app. */
 export const loadNewAppPageUrl = (): string => {
 	if (!browser) {

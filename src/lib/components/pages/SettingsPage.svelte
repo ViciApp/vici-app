@@ -47,6 +47,7 @@
 	// The dual-mode sign-out: the Juno delegation drop on the default
 	// backend, the cookie-session revoke in web2 mode.
 	import { signOut } from '#lib/services/identity.services.ts';
+	import { signedOutHomePath } from '#lib/services/new-app-redirect.services.ts';
 	import { getMyJoinedAtMs, persistPreferences } from '#lib/services/profile.services.ts';
 	import { canInstall } from '#lib/stores/a2hs.store.ts';
 	import { localeStore, setLocale } from '#lib/stores/locale.store.ts';
@@ -61,7 +62,6 @@
 	import { resolveSignInMethod } from '#lib/utils/signin-method.utils.ts';
 	import { visibilityToProfile } from '#lib/utils/visibility.utils.ts';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 
 	// Delete-account flow: the six-beat flow lives in
 	// `DeleteAccountFlow`; this page only owns the open/close toggle.
@@ -297,11 +297,11 @@
 		// the idle label. Deliberately outside the try: a `goto` abort (a
 		// concurrent redirect already taking us away) is not a sign-out failure
 		// and must not re-enable the controls.
-		await goto(resolve(PublicPath.SignIn), { replace: true });
+		await goto(signedOutHomePath(), { replace: true });
 	};
 
 	/**
-	 * Drop auth so the user lands on the sign-in screen. Reused both by
+	 * Drop auth so the user lands where a signed-out visitor goes. Reused by
 	 * the in-page sign-out confirm and as the `DeleteAccountFlow`'s
 	 * sign-out hook (after a successful delete or a 30-day pause).
 	 * `signOut()` clears local stores; `setAuthBusy` keeps the global

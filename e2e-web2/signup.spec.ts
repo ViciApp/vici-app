@@ -2,10 +2,10 @@ import { Web2AppPage, uniqueEmail, uniqueHandle } from './pages/web2-app.page';
 import { apiUrl, expect, test, type MeBody } from './support/fixtures';
 
 /**
- * A brand-new person signs up with an email one-time code: the `/signup`
- * onboarding claims a handle, the API mints the account on the verified
- * address, and the onboarding handoff writes the claimed handle onto the new
- * profile once the app shell hydrates the session.
+ * A brand-new team member signs in with an email one-time code on `/team`: the
+ * API mints the account on the verified address, and the `/signup` handle step
+ * the app sends a handle-less account to writes the claimed handle onto the
+ * new profile.
  */
 test.describe('email sign-up', () => {
 	test('a new user signs up with a code and lands in the app with the claimed handle', async ({

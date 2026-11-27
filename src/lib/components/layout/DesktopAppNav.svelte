@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { Settings, User } from '@lucide/svelte/icons';
 	import { navItems } from '#lib/constants/nav.constants.ts';
-	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
+	import { AppPath } from '#lib/constants/routes.constants.ts';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { userSignedIn } from '#lib/derived/user.derived.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { userStore } from '#lib/stores/user.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
 	/**
@@ -149,14 +148,6 @@
 					<User aria-hidden="true" size={14} strokeWidth={2} />
 					<span>{userNickname ?? '@you'}</span>
 				</a>
-			{:else}
-				<button
-					class="app-desktop-nav-signin"
-					onclick={() => void goto(PublicPath.SignIn)}
-					type="button"
-				>
-					{t({ locale: $localeStore, key: 'cta.primary' })}
-				</button>
 			{/if}
 		</div>
 	</div>
@@ -292,25 +283,5 @@
 
 	.app-desktop-nav-handle:hover {
 		border-color: var(--border-strong);
-	}
-
-	.app-desktop-nav-signin {
-		appearance: none;
-		display: inline-flex;
-		align-items: center;
-		padding: 0.5rem 1rem;
-		border-radius: var(--r-pill);
-		font: inherit;
-		font-size: var(--t-13);
-		font-weight: 600;
-		color: var(--color-primary-foreground, var(--ink));
-		background: var(--color-primary, var(--laurel));
-		border: 0;
-		cursor: pointer;
-		transition: background-color var(--d-hover, 120ms) ease;
-	}
-
-	.app-desktop-nav-signin:hover {
-		background: color-mix(in srgb, var(--color-primary, var(--laurel)) 88%, var(--text-base));
 	}
 </style>

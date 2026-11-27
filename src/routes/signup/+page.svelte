@@ -5,8 +5,8 @@
 	import { pageTitle } from '#lib/constants/brand.constants.ts';
 	import { PENDING_ONBOARDING_STORAGE_KEY } from '#lib/constants/profile.constants.ts';
 	import { AppPath, PublicPath } from '#lib/constants/routes.constants.ts';
-	import { userSignedIn } from '#lib/derived/user.derived.ts';
-	import { areNewSignupsMoved } from '#lib/services/new-app-redirect.services.ts';
+	import { userSignedIn, userSignedOutResolved } from '#lib/derived/user.derived.ts';
+	import { areNewSignupsMoved, isTeamOnlySignIn } from '#lib/services/new-app-redirect.services.ts';
 	import {
 		applyOnboardingPicks,
 		checkNicknameAvailability
@@ -54,6 +54,17 @@
 	// them all into the moved-to-the-new-app screen in one place. Fixed for the
 	// page lifetime, hence a plain read.
 	const signupsMoved = areNewSignupsMoved();
+
+	// Where sign-in is team-only there is no public sign-up: a visitor without
+	// a session is sent to the landing. A team member's first sign-in still
+	// lands here, signed in, for the handle step.
+	const teamOnly = isTeamOnlySignIn();
+
+	$effect(() => {
+		if (teamOnly && $userSignedOutResolved) {
+			void goto(resolve(PublicPath.Landing), { replace: true });
+		}
+	});
 
 	// Pre-auth completion (signed-out): we persist the picks to
 	// `PENDING_ONBOARDING_STORAGE_KEY` so the post-sign-in layout effect
@@ -271,7 +282,7 @@
 
 {#if signupsMoved}
 	<MovedToNewApp onSignIn={() => void goto(resolve(PublicPath.SignIn))} reason="signup" />
-{:else}
+{:else if !teamOnly || $userSignedIn}
 	<Onboarding
 		{authenticated}
 		onComplete={handleComplete}
