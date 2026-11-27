@@ -82,15 +82,13 @@
 		return ms > 0 && ms <= DAY_IN_MS;
 	});
 
-	// When the market carries outcome data we surface the real headcount:
-	// including a genuine 0 ("0 predicting"). Only when no outcome data is
-	// present at all do we fall back to a representative figure, so the
-	// meta row still reads as a complete editorial line.
+	// The real headcount, including a genuine 0, when the market carries
+	// outcome data; without it the count is unknown and the segment is
+	// hidden rather than filled with a sample figure.
 	const hasOutcomeData = $derived((market.outcomes?.length ?? 0) > 0);
 	const predictorsCount = $derived(
 		market.outcomes?.reduce((acc, outcome) => acc + (outcome.totalPredictions ?? 0), 0) ?? 0
 	);
-	const predicting = $derived(hasOutcomeData ? predictorsCount : 1240);
 </script>
 
 <h3 class="flow-back-title">{title}</h3>
@@ -109,14 +107,16 @@
 	{#if countdownUrgent}
 		<span class="flow-back-countdown-pulse" aria-hidden="true"></span>
 	{/if}
-	<span class="flow-meta-dot" aria-hidden="true">·</span>
-	<span>
-		{t({
-			locale: $localeStore,
-			key: 'card.predicting_count',
-			params: { count: predicting.toLocaleString() }
-		})}
-	</span>
+	{#if hasOutcomeData}
+		<span class="flow-meta-dot" aria-hidden="true">·</span>
+		<span>
+			{t({
+				locale: $localeStore,
+				key: 'card.predicting_count',
+				params: { count: predictorsCount.toLocaleString() }
+			})}
+		</span>
+	{/if}
 </div>
 
 <style lang="postcss">

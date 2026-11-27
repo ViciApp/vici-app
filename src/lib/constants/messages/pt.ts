@@ -761,12 +761,9 @@ export const ptMessages = {
 	'card.back.rules_body':
 		'A resolução é final no fecho das previsões. Casos limítrofes seguem o texto oficial da fonte.',
 	'card.back.settles_date': 'Resolve em {date}',
-	'card.back.sharp_diff_ahead': '+{count} pts à frente',
-	'card.back.sharp_diff_behind': '−{count} pts atrás',
 	'card.back.show_rules': 'Mostrar regras completas',
 	'card.back.source_official': 'Fonte: registo oficial',
 	'card.back.this_week': 'esta semana',
-	'card.back.top_accuracy': 'Precisão top 10%',
 	'card.back.who_calling': 'Quem está a prever o quê',
 	'card.call_size': 'TAMANHO DA CALL',
 	'card.call_size_cap': 'TAMANHO DA CALL · LIMITE',
