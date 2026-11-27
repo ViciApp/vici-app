@@ -127,6 +127,10 @@
 	const open = $derived(
 		isNullish(allMarkets) ? [] : callableMarkets({ markets: allMarkets, nowMs })
 	);
+	// Volume is public for signed-out visitors on the web2 build (the HTTP
+	// bridge reads it server-side). On a web3 build the engine refuses the
+	// anonymous volume read, so every market carries none and the lead and
+	// the mover candidates fall to the soonest to settle.
 	const trending = $derived(pickTrendingMarket(open));
 
 	const tagsOf = (id: string): string[] => tagsById[id] ?? [];

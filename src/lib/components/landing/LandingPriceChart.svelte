@@ -19,7 +19,8 @@
 	 * The landing price chart for one series: loads its real, market-wide
 	 * history (the anonymous / public engine read) and renders
 	 * `LandingPriceChartPlot`, with the 1W / 1M / All window buttons when
-	 * `ranges` is on. Used by the Markets detail and the deck's card back.
+	 * `ranges` is on. Used by the Markets detail; designed to be passed into
+	 * the deck's `backChart` slot by the page that composes both.
 	 * A series with no trades yet draws a flat line at `livePercent`.
 	 */
 	interface Props {
