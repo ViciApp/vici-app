@@ -15,12 +15,13 @@ import {
 } from '../custody/collateral-operations';
 import type { ClearingDid } from '../declarations';
 import * as clearing from '../engine/clearing';
-import { OrderRejectedError } from '../engine/order-rejections';
+import { INVALID_CALL_SIZE, OrderRejectedError } from '../engine/order-rejections';
 import * as registry from '../engine/registry';
 import { toJson } from '../engine/serialize';
 import { ZERO } from '../lib/constants';
 import { badRequest, type StatusContext } from '../lib/http';
 import { logger } from '../lib/logger';
+import { limitOrderCallSizeRefused, marketLegCallSizeRefused } from '../vxp/call-size';
 
 /** Runs a collateral call under its id's claim. A finished id answers without
  * touching the chain and a held one answers 409. A refusal, or a failure before
@@ -299,6 +300,21 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
+			const qty = BigInt(body.qty);
+			const decimal = { value: BigInt(body.priceValue), decimals: body.priceDecimals };
+
+			if (
+				await limitOrderCallSizeRefused({
+					seriesId: body.seriesId,
+					buys: body.side === 'buy',
+					qty,
+					price: decimal,
+					callSize: body.callSize
+				})
+			) {
+				return badRequest(set, INVALID_CALL_SIZE);
+			}
+
 			return await runOrderCall({
 				set,
 				run: async () => ({
@@ -309,12 +325,8 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 							series_id: body.seriesId,
 							outcome_id: toNullable(body.outcomeId),
 							side: body.side === 'buy' ? { Buy: null } : { Sell: null },
-							qty: BigInt(body.qty),
-							price: {
-								timestamp: toNullable(),
-								oracle_id: toNullable(),
-								decimal: { value: BigInt(body.priceValue), decimals: body.priceDecimals }
-							}
+							qty,
+							price: { timestamp: toNullable(), oracle_id: toNullable(), decimal }
 						}
 					})
 				})
@@ -330,7 +342,11 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				/** Fixed-point price: mantissa + decimals, matching the engine's
 				 * DecimalValue encoding. */
 				priceValue: t.String({ pattern: '^\\d+$' }),
-				priceDecimals: t.Integer({ minimum: 0, maximum: 18 })
+				priceDecimals: t.Integer({ minimum: 0, maximum: 18 }),
+				/** The ViciXp call size in whole VXP the order is sized on. A
+				 * number, not an integer schema, so a fraction answers
+				 * `invalid_call_size` like any other size outside the set. */
+				callSize: t.Optional(t.Number())
 			})
 		}
 	)
@@ -343,6 +359,19 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 				return unauthenticated(set);
 			}
 
+			const qty = optionalBigInt(body.qty);
+
+			if (
+				await marketLegCallSizeRefused({
+					seriesId: body.seriesId,
+					matchingOrderId: body.matchingOrderId,
+					qty,
+					callSize: body.callSize
+				})
+			) {
+				return badRequest(set, INVALID_CALL_SIZE);
+			}
+
 			return await runOrderCall({
 				set,
 				run: async () => ({
@@ -351,7 +380,7 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 						params: {
 							trade_id: body.tradeId,
 							matching_order_id: body.matchingOrderId,
-							qty: toNullable(optionalBigInt(body.qty))
+							qty: toNullable(qty)
 						}
 					})
 				})
@@ -360,8 +389,12 @@ export const engineRoutes = new Elysia({ prefix: '/api/v1/engine' })
 		{
 			body: t.Object({
 				tradeId: t.String({ minLength: 1, maxLength: 128 }),
+				/** The series of the resting order, whose book prices the take. */
+				seriesId: t.Optional(t.String({ minLength: 1 })),
 				matchingOrderId: t.String({ minLength: 1 }),
-				qty: t.Optional(t.String({ pattern: '^\\d+$' }))
+				qty: t.Optional(t.String({ pattern: '^\\d+$' })),
+				/** The ViciXp call size in whole VXP the take must stay within. */
+				callSize: t.Optional(t.Number())
 			})
 		}
 	)

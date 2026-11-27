@@ -461,8 +461,8 @@ describe.if(dbAvailable)('restart and retract', () => {
 	});
 });
 
-// Migration 0021 keeps `wager` next to `amount` while machines of the previous
-// release can still serve: they write and read only `wager`.
+// Migration 0021 keeps `wager` next to `amount` while machines of an earlier
+// release can still serve: the oldest write and read only `wager`.
 describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
 	beforeAll(async () => {
 		await ensureMigrated();
@@ -506,7 +506,7 @@ describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
 		expect(await columns(id)).toEqual({ amount: 80, wager: 80 });
 	});
 
-	test('a new proposal writes wager too, for machines that read only it', async () => {
+	test('a new proposal leaves wager empty, so dropping it loses nothing', async () => {
 		const a = await seedLeague();
 		const b = await seedLeague();
 		const nowMs = Date.now();
@@ -521,7 +521,7 @@ describe.if(dbAvailable)('battle amount alongside the old wager column', () => {
 			amount: 250
 		});
 
-		expect(await columns(battle.id)).toEqual({ amount: 250, wager: 250 });
+		expect(await columns(battle.id)).toEqual({ amount: 250, wager: null });
 	});
 
 	test('running the migration again changes nothing', async () => {
