@@ -11,8 +11,8 @@ import {
 	latchesPublicProbe,
 	type HandleProbeFailure
 } from '#lib/utils/handle-probe.utils.ts';
+import { handleFormatIssue, type HandleRefusal } from '#lib/utils/handle.utils.ts';
 import { createHumanProofCache } from '#lib/utils/human-proof-cache.utils.ts';
-import { nicknameFormatIssue, type NicknameFormatIssue } from '#lib/utils/nickname.utils.ts';
 import { isWeb2Backend } from '#lib/web2/backend-mode.ts';
 import {
 	checkNicknameAvailabilityPublic as checkNicknameAvailabilityPublicWeb2,
@@ -22,7 +22,7 @@ import {
 import { nonNullish } from '@dfinity/utils';
 
 export type PublicHandleAvailability =
-	{ available: true } | { available: false; reason: NicknameFormatIssue | 'taken' };
+	{ available: true } | { available: false; reason: HandleRefusal };
 
 // Where a challenge renders when Cloudflare shows one: the latest call's
 // host, never a stale one from a surface that has since unmounted.
@@ -72,7 +72,7 @@ export const checkHandleAvailabilityPublic = async ({
 	handle: string;
 	challengeHost?: HTMLElement;
 }): Promise<PublicHandleAvailability> => {
-	const issue = nicknameFormatIssue(handle);
+	const issue = handleFormatIssue(handle);
 
 	if (nonNullish(issue)) {
 		return { available: false, reason: issue };
@@ -132,7 +132,7 @@ export const checkHandleAvailability = async ({
 	handle
 }: {
 	handle: string;
-}): Promise<{ available: boolean }> => {
+}): Promise<PublicHandleAvailability> => {
 	const web2Backend = isWeb2Backend();
 	const route = handleProbeRoute({
 		web2Backend,

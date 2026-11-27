@@ -742,18 +742,18 @@
 							<div class="flow-probs-row">
 								<div class="flow-probs-side flow-probs-side-no">
 									<span class="flow-probs-pct num">{noPct}%</span>
-									<span class="flow-probs-label text-no"
-										>{t({ locale: $localeStore, key: 'outcome.no' })}</span
-									>
+									<span class="flow-probs-label text-no">
+										{t({ locale: $localeStore, key: 'outcome.no' })}
+									</span>
 								</div>
 								<div class="flow-probs-track" aria-hidden="true">
 									<div style:width="{noPct}%" class="flow-probs-fill-no"></div>
 									<div style:width="{crowdPct}%" class="flow-probs-fill-yes"></div>
 								</div>
 								<div class="flow-probs-side flow-probs-side-yes">
-									<span class="flow-probs-label text-yes"
-										>{t({ locale: $localeStore, key: 'outcome.yes' })}</span
-									>
+									<span class="flow-probs-label text-yes">
+										{t({ locale: $localeStore, key: 'outcome.yes' })}
+									</span>
 									<span class="flow-probs-pct num">{crowdPct}%</span>
 								</div>
 							</div>
