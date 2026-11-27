@@ -17,3 +17,9 @@ node_modules/
 # The test suite runs from a checkout (see README.md), never on a deployed
 # machine.
 tests/
+
+# Files a checkout that ran the retired legacy import or account handover may
+# still hold: collection snapshots, email sheets and reports, all user data.
+etl-export*/
+*.csv
+cutover-*.jsonl
