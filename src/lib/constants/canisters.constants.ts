@@ -43,7 +43,7 @@ const viteEnvString = ({
  */
 export const VXP_LEDGER_CANISTER_ID_DEFAULT = 's7ux4-yyaaa-aaaam-qidha-cai';
 
-export const VXP_INDEX_CANISTER_ID_DEFAULT = 'swx4a-oqaaa-aaaam-qidgq-cai';
+const VXP_INDEX_CANISTER_ID_DEFAULT = 'swx4a-oqaaa-aaaam-qidgq-cai';
 
 /**
  * The VXP ledger a build with `env` talks to. Scripts run outside Vite, where

@@ -10,10 +10,9 @@
  * `featured-event.derived.ts` for the active/archived derivation.
  */
 
-export type FeaturedEventKind =
-	'tournament' | 'championship' | 'election' | 'series' | 'awards' | 'other';
+type FeaturedEventKind = 'tournament' | 'championship' | 'election' | 'series' | 'awards' | 'other';
 
-export interface FeaturedEventParticipant {
+interface FeaturedEventParticipant {
 	/** Stable identifier: ISO-3166 alpha-2 for the WC, candidate slug for an
 	 *  election, etc. Used as the join key for advancement markets and as
 	 *  the i18n suffix when names are translated. */
@@ -34,7 +33,7 @@ export interface FeaturedEventParticipant {
 	marketId?: string;
 }
 
-export interface FeaturedEventAdvancementMarket {
+interface FeaturedEventAdvancementMarket {
 	/** Market id (Flow card). */
 	id: string;
 	/** Pre-baked question copy: kept here so onboarding can render the

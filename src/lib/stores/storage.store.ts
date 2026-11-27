@@ -3,7 +3,7 @@ import { writable, type Writable } from 'svelte/store';
 
 type StorageStoreData<T> = T;
 
-export interface StorageStore<T> extends Omit<Writable<StorageStoreData<T>>, 'set'> {
+interface StorageStore<T> extends Omit<Writable<StorageStoreData<T>>, 'set'> {
 	set: (params: { key: string; value: T }) => void;
 	reset: (params: { key: string }) => void;
 }

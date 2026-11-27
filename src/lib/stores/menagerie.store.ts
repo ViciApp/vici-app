@@ -24,7 +24,7 @@ export const myReferralCountStore = writable<number | undefined>(undefined);
  *
  * Hydrated by `loadMyMenagerieSignals` (see `menagerie.services`).
  */
-export interface MyGlobalRank {
+interface MyGlobalRank {
 	rank?: number;
 	totalRanked: number;
 }

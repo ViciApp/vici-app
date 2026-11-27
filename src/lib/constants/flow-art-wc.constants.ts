@@ -65,7 +65,7 @@ export const WC_SHIRT = {
 // curated recipes, so every nation card renders a distinct, flag-true
 // scene. Keyed by lowercased alpha-2 code; the renderer resolves any
 // `wc-{cc}-*` seed against this table before the generic fallback.
-export type WCFlagLayout = 'horiz' | 'vert' | 'diag';
+type WCFlagLayout = 'horiz' | 'vert' | 'diag';
 
 export interface WCNation {
 	c1: string;
