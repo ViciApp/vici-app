@@ -4,17 +4,19 @@
 	import YouBadge from '#lib/components/ui/YouBadge.svelte';
 	import { TestId } from '#lib/constants/test-ids.constants.ts';
 	import { authPrincipal } from '#lib/derived/user.derived.ts';
+	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { copyToClipboard } from '#lib/utils/clipboard.utils.ts';
 	import { shortenWithMiddleEllipsis } from '#lib/utils/format.utils.ts';
+	import { t } from '#lib/utils/i18n.utils.ts';
 
 	interface Props {
 		address: string;
 		splitLength?: number;
-		label?: string;
+		label: string;
 		showSelfIndicator?: boolean;
 	}
 
-	const { address, splitLength = 7, label = 'Address', showSelfIndicator = true }: Props = $props();
+	const { address, splitLength = 7, label, showSelfIndicator = true }: Props = $props();
 
 	let copied = $state(false);
 
@@ -22,7 +24,7 @@
 	const isSelf = $derived(showSelfIndicator && !!$authPrincipal && address === $authPrincipal);
 
 	const handleCopy = async () => {
-		await copyToClipboard({ value: address, text: label });
+		await copyToClipboard({ value: address, text: label, locale: $localeStore });
 		copied = true;
 		setTimeout(() => {
 			copied = false;
@@ -34,7 +36,7 @@
 	<span class="font-mono text-inherit" data-tid={TestId.PrincipalDisplay}>{displayAddress}</span>
 	<button
 		class="text-muted-foreground hover:text-foreground relative inline-flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors"
-		aria-label="Copy {label}"
+		aria-label={t({ locale: $localeStore, key: 'ui.copyable_address.copy', params: { label } })}
 		onclick={handleCopy}
 	>
 		{#if copied}

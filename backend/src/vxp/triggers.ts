@@ -11,6 +11,7 @@ import { nonNullish } from '@dfinity/utils';
 import type { ClearingDid } from '../declarations';
 import { getTradeHistory } from '../engine/clearing';
 import { logger } from '../lib/logger';
+import { syncChallengesForUser } from '../social/challenge-upkeep';
 import {
 	activityVerifiedAchievements,
 	engineAchievementFacts,
@@ -98,12 +99,21 @@ const runEngineHistoryAwards = async ({
  * converges instead of double-counting. Runs the onboarding call-count
  * milestones and the referral first-prediction settlement, the Flow lifetime
  * milestones and the engine-verified achievements, and records the fill days
- * that drive the streak and the comeback.
+ * that drive the streak and the comeback. The same history refreshes the
+ * position the caller's challenge links show.
  */
 export const runTradeActivityTriggers = async ({ userId }: { userId: string }): Promise<void> => {
 	try {
 		const events = await getTradeHistory({ userId });
 		const tradeCount = executedPredictionCount(events);
+
+		// Isolated: a link left one trade behind must not cost an award, nor an
+		// award hiccup the link refresh.
+		try {
+			await syncChallengesForUser({ userId, events });
+		} catch (err) {
+			logger.error(`challenge link refresh failed for ${userId}:`, err);
+		}
 
 		if (tradeCount <= 0) {
 			return;

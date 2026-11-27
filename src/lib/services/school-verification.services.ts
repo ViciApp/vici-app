@@ -38,7 +38,7 @@ import {
 /** Hard timeout for either verification round-trip. */
 const SCHOOL_VERIFY_TIMEOUT_MS = 15_000;
 
-export interface SchoolSubmitInput {
+interface SchoolSubmitInput {
 	/** School display name as the user typed / picked it. */
 	name: string;
 	/** Inferred home country (ISO-3166 alpha-2). */
@@ -51,18 +51,18 @@ export interface SchoolSubmitInput {
 	locale: AppLocale;
 }
 
-export interface SchoolSubmitResult {
+interface SchoolSubmitResult {
 	/** Opaque handle echoed back to {@link verifySchoolCode}. */
 	submissionId: string;
 }
 
-export interface SchoolVerifyInput {
+interface SchoolVerifyInput {
 	submissionId: string;
 	/** Six-digit numeric code from the user's inbox. */
 	code: string;
 }
 
-export interface SchoolVerifyResult {
+interface SchoolVerifyResult {
 	ok: boolean;
 	/** Present on success: the canonical school id to attach. */
 	schoolId?: string;

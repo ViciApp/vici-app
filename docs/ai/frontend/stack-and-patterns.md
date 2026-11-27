@@ -173,8 +173,9 @@ the service layer and let the service own caching.
   `isNullish(x)` / `nonNullish(x)` from `@dfinity/utils` instead. The
   helpers are type guards, so narrowing works the same.
 - **Generated types are the source of truth at canister boundaries.**
-  Always import types from `#declarations/<canister>/<canister>.d.ts` for
-  request / response shapes; never re-declare them.
+  Always import request / response types from the `#declarations` barrel
+  (`import type { ClearingDid } from '#declarations'`); never re-declare
+  them.
 - **Schemas first.** When data crosses a boundary (network, storage, the
   satellite), validate with the matching `zod` schema from
   `#lib/schema/`.
@@ -470,8 +471,9 @@ top-of-book price.
 ## Routing
 
 - SvelteKit **file-based routes** under
-  [`src/routes/(app)/`](<../../../src/routes/(app)/>) (`/`, `/flow`,
-  `/markets/[id]`, …). Add a new view by adding a new
+  [`src/routes/(app)/`](<../../../src/routes/(app)/>) (`/app`, `/flow`,
+  `/markets/[id]`, …; `/` and the sign-in, invite and claim pages sit
+  outside it). Add a new view by adding a new
   `(app)/<path>/+page.svelte` (or sub-route) and a matching `AppPath`
   entry; there is no central nav store.
 - The mobile tab bar

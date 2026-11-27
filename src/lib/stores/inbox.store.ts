@@ -910,7 +910,7 @@ export const combinedInboxUnreadCount: Readable<number> = derived(
 // sign-in's cold-start data is baseline-only too: a different principal's
 // existing unreads never replay as arrival toasts.
 
-export interface InboxToast {
+interface InboxToast {
 	id: string;
 	kind: InboxNotificationKind;
 	title: string;
