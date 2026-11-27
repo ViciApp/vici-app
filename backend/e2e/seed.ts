@@ -1,10 +1,6 @@
-// Seeds the E2E database with the fixture accounts. Idempotent, so a local
+// Seeds the E2E database with the fixture account. Idempotent, so a local
 // re-run converges instead of failing:
 //
-//   - the legacy accounts are provisional claim_pending users linked with
-//     matched_via = 'etl', each with a profile;
-//   - their legacy identities carry the emails the login adoption and the
-//     beta gate's legacy match read;
 //   - the admin account gets an email identity and the admin role, so the
 //     specs can drive the admin settings API after a normal OTP sign-in;
 //   - the beta gate starts open: a local run interrupted mid-spec can leave it
@@ -17,27 +13,8 @@ import { deleteAppSetting } from '../src/admin/settings';
 import { BETA_GATE_SETTING_KEY } from '../src/auth/beta-gate';
 import { normalizeEmail } from '../src/auth/identity';
 import { pool, query } from '../src/db/client';
-import { seedProvisionalAccount } from '../tests/helpers/adoption';
-import { E2E_ADMIN_EMAIL, E2E_LEGACY_ADOPT, E2E_LEGACY_PENDING } from './fixtures';
+import { E2E_ADMIN_EMAIL } from './fixtures';
 import { assertE2eEnvironment } from './guard';
-
-const seedLegacyAccounts = async (): Promise<void> => {
-	const accounts = [E2E_LEGACY_ADOPT, E2E_LEGACY_PENDING];
-
-	for (const { principal, nickname } of accounts) {
-		await seedProvisionalAccount({ principal, nickname, points: 1250, level: 3 });
-	}
-
-	for (const { principal, email } of accounts) {
-		await query(
-			`insert into legacy_auth_identities (principal, provider, openid_email, profile_email)
-			 values ($1, 'google', $2, $2)
-			 on conflict (principal) do update
-			   set openid_email = excluded.openid_email, profile_email = excluded.profile_email`,
-			[principal, email]
-		);
-	}
-};
 
 const seedAdmin = async (): Promise<void> => {
 	const email = normalizeEmail(E2E_ADMIN_EMAIL);
@@ -71,7 +48,6 @@ const seedAdmin = async (): Promise<void> => {
 if (import.meta.main) {
 	assertE2eEnvironment(process.env);
 
-	await seedLegacyAccounts();
 	await seedAdmin();
 	await deleteAppSetting(BETA_GATE_SETTING_KEY);
 

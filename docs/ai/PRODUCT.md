@@ -745,9 +745,11 @@ film stills. Design contract:
 
 ### vici.market after the cutover
 
-vici.market, the retired legacy app, is closed: every route shows "VICI has
-moved to vici.app" (the account, predictions and VXP are on vici.app) and
-sends the visitor to the same page there, with a link as a fallback. Its
+vici.market, the retired legacy app, is closed: every route says the site
+has shut down and that vici.app is a new VICI to sign up on, and sends the
+visitor to the same page there, with a link as a fallback. No legacy account,
+prediction or VXP moves to vici.app: a legacy user signs up there like anyone
+else. Its
 satellite accepts no user write. How it was switched off:
 [`cutover.md`](../../.agents/workflows/cutover.md).
 

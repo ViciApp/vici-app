@@ -103,31 +103,16 @@ PUT /api/v1/admin/settings/beta_gate
 
 While `enabled` is `true`, only the listed addresses (case-insensitive) can sign in: a non-allowlisted email gets `403 { "error": "beta_closed" }` from `POST /auth/otp/request` and `POST /auth/otp/verify`, and the OAuth callbacks bounce to `/signin?e=beta` (the screen that renders the refusal) instead of minting a session. The refusal is identical for every address, so it leaks nothing about whether an account exists. Setting absent or `enabled: false` (or deleting the key) turns the gate off and everyone passes. An enabled gate with a missing or malformed `emails` list admits no one, and a single non-string entry fails the whole list closed rather than honouring the well-formed ones. The gate guards sign-in only: sessions established before it flips on keep working. It is a rollout valve, not a security boundary.
 
-`allowNewUsers: true` opens the enabled gate to new people while holding legacy accounts on the legacy app until cutover (so nobody forks their history into an empty twin account before the final import):
+`allowNewUsers: true` opens the enabled gate to everyone (the allowlist stays, so the setting can be closed again without retyping it). Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine):
 
 ```
 PUT /api/v1/admin/settings/beta_gate
 { "value": { "enabled": true, "emails": ["founder@example.com"], "allowNewUsers": true } }
 ```
 
-| Caller                                                                                                                 | Verdict                                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Email on the allowlist                                                                                                 | admitted                                                                                  |
-| Already holds a sign-in identity (`auth_identities` email, case-insensitive; or the same OAuth provider + subject)     | admitted                                                                                  |
-| Email matches `legacy_auth_identities.openid_email` or `profile_email` (case-insensitive, same match as the auto-link) | `403 { "error": "legacy_account_pending" }`; OAuth callbacks bounce to `/signin?e=legacy` |
-| Anyone else                                                                                                            | admitted (a new person)                                                                   |
+### Legacy principals
 
-Only the exact boolean `true` opens it; absent, `false` or any other value keeps the strict allowlist above, and a missing or malformed `emails` list still admits no one, so keep `emails` present (an empty list is fine). `legacy_account_pending` necessarily tells the caller that the address has a legacy account, and nothing else about it; the OTP request is still refused before any code is sent. Legacy users whose old login carried no email (passkey, Internet Identity) cannot be recognised and are admitted as new; their imported data stays on its provisional account (see [Provisional account adoption](#provisional-account-adoption)).
-
-First verified login auto-links legacy on-chain identities: when the account has no `legacy_principals` row yet and the exported `legacy_auth_identities` table contains a row whose `openid_email` (first) or `profile_email` (fallback) matches the verified address, the principal links with the corresponding `matched_via`.
-
-### Provisional account adoption
-
-Provisional accounts are `claim_pending` users linked to a legacy principal with `matched_via = 'etl'`. vici.app is a new product and migrates no legacy users, so no code creates them any more. `src/auth/adoption.ts` hands those accounts to their owners:
-
-- **Login.** A first sign-in (no auth identity by subject or by email yet) whose email matches an `'etl'`-linked provisional account adopts it in place: the auth identity attaches to it, `claim_pending` clears, the link's `matched_via` becomes `openid_email` / `profile_email`, and no new users row is created. Still-unlinked principals carrying the same email link to it as well. `resolveIdentity` holds a per-email advisory lock and locks the provisional row, so concurrent first logins adopt once.
-- **Never merged.** Two populated accounts are not merged automatically: user ids are embedded in activity and relation keys, and VXP was paid to each account's own derived principal. A login email matching several provisional accounts adopts one (openid match before profile match, then the most imported activity, then principal order) and leaves the rest provisional.
-- **Admin queue.** A login that matches several provisional accounts writes a `legacy_adoption_conflicts` row (principal, provisional user, the account the person ended up with, reason). `GET /api/v1/admin/legacy-adoption-conflicts` lists the rows whose provisional account is still unadopted. Resolution is manual and per case: there is no merge endpoint, and moving the on-chain VXP between derived principals is out of scope here.
+vici.app is a new product: no legacy account or data is migrated, and a person who used the legacy app signs up like anyone else. `legacy_principals` still maps the on-chain principals some team and service accounts used on the legacy app to their user ids, and stays read for them: market curation (`isCreatorOrAdmin`, a series created under a linked principal), settled history (`settlementPrincipalsByUser`, resolved results), profile search by principal and `GET /auth/me` (`legacyPrincipals`). Nothing writes it at sign-in any more.
 
 ## Custody
 
@@ -224,7 +209,7 @@ App modules are imported directly only when they have no value imports (importin
 - `e2e/server.ts` (`bun run e2e:server`) imports the production app from `src/index.ts` and, before listening, swaps its external dependencies through the existing test seams: `setEngineActorProvider` and `setVxpLedgerProvider` install the fakes in `e2e/fake-engine.ts`, and `setEmailTransport` (`src/lib/email.ts`) routes email into an in-memory outbox. It adds two routes that `src/index.ts` never registers: `GET /__e2e/otp/:email` (the latest sign-in code sent to an address) and `POST /__e2e/reset-rate-limits` (every local request shares the limiter's "unknown IP" key, and the seeded admin's inbox shares one window in `rate_limit_windows`, so it clears both).
 - `e2e/fake-engine.ts` answers the public reads from `e2e/fixtures.ts` (live markets, one settled market, the VXP collateral asset, empty tapes and leaderboards) and every account as the never-deposited empty one until a deposit lands. Its ledgers hold balances and allowances in memory (zero until `fundFakeAccount`), and `deposit_collateral` enforces the real rules: `icrc2_transfer_from` needs an allowance covering amount + fee, the asset's allowed domains apply, an id replays without moving funds. Any other method rejects, so an unexpected engine call surfaces as a failing request. The treasury side of the VXP ledger fake refuses transfers.
 - `bun run e2e:stack` is the one entry Playwright uses: `e2e/preflight.ts` runs the guard first, so a non-loopback database is refused before `migrate` connects to it, then migrate, seed and server.
-- `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) writes the legacy fixture accounts (provisional, `matched_via = 'etl'`) with their legacy identities and creates the admin account. Idempotent.
+- `e2e/seed.ts` (`bun run e2e:seed`, after `bun run migrate`) creates the admin account. Idempotent.
 
 Production guards, independent of each other:
 
@@ -272,7 +257,7 @@ backend/
     tournaments/    # monthly league tournament: draw, rounds, prizes
     vxp/            # award economy: grant core, payout, triggers, calibration, referral settlement
     worlds/         # affiliations, their stats and the monthly podium
-    declarations/   # vendored candid bindings for clearing + registry (generated, never hand-edited); satellite/ is the retired satellite's frozen copy the ETL reads
+    declarations/   # vendored candid bindings for clearing + registry (generated, never hand-edited)
     engine/         # actor provider, TTL cache, typed clearing/registry wrappers
     routes/         # /api/v1 route modules (auth, wallet, engine, markets, events, ...)
     lib/            # logger, crypto, keys (HKDF derivation), ic-agent, cookies, email, rate limiting

@@ -1,4 +1,4 @@
-import { E2E_ADMIN_EMAIL, E2E_LEGACY_PENDING } from '../backend/e2e/fixtures';
+import { E2E_ADMIN_EMAIL } from '../backend/e2e/fixtures';
 import { AppPage, uniqueEmail } from './pages/app.page';
 import { expect, test } from './support/fixtures';
 
@@ -24,11 +24,7 @@ test.describe('beta access gate', () => {
 		await expect(app.codeInput).toBeHidden();
 	});
 
-	test('allowNewUsers admits a new email and holds a legacy one on the legacy app', async ({
-		page,
-		admin,
-		backend
-	}) => {
+	test('allowNewUsers admits a new email', async ({ page, admin, backend }) => {
 		const app = new AppPage(page);
 
 		await admin.setBetaGate({ enabled: true, emails: [E2E_ADMIN_EMAIL], allowNewUsers: true });
@@ -40,24 +36,5 @@ test.describe('beta access gate', () => {
 		await app.requestCode(newcomer);
 		await app.enterCode({ email: newcomer, backend });
 		await app.waitForNewAccountHandleStep();
-
-		// An address with a legacy account is told to stay on the legacy app.
-		await page.context().clearCookies();
-		await page.goto('/signin');
-		await app.requestCode(E2E_LEGACY_PENDING.email);
-
-		await expect(app.legacyPendingMessage).toBeVisible();
-		await expect(app.legacyAppLink).toHaveAttribute('href', 'https://vici.market');
-		await expect(app.codeInput).toBeHidden();
-	});
-
-	test('the OAuth refusal marker renders the legacy message and is stripped', async ({ page }) => {
-		const app = new AppPage(page);
-
-		await page.goto('/signin?e=legacy');
-
-		await expect(app.legacyPendingMessage).toBeVisible();
-		await expect(app.legacyAppLink).toBeVisible();
-		await expect(page).toHaveURL(/\/signin$/);
 	});
 });

@@ -8,16 +8,11 @@ import { acquireTurnstileToken } from '#lib/services/turnstile.services.ts';
  *   another try solves a fresh one.
  * - bot_check_unavailable: the API could not check the token at all.
  * - rate_limited: too many requests from this network or for this inbox.
- * - beta_closed / legacy_account_pending: the beta gate's refusals.
+ * - beta_closed: the beta gate's refusal.
  * - failed: anything else (network, malformed address).
  */
 export type EmailSignInCodeRefusal =
-	| 'bot_check_failed'
-	| 'bot_check_unavailable'
-	| 'rate_limited'
-	| 'beta_closed'
-	| 'legacy_account_pending'
-	| 'failed';
+	'bot_check_failed' | 'bot_check_unavailable' | 'rate_limited' | 'beta_closed' | 'failed';
 
 export type EmailSignInCodeResult = { ok: true } | { ok: false; reason: EmailSignInCodeRefusal };
 
@@ -26,8 +21,7 @@ const REFUSALS: Partial<Record<string, EmailSignInCodeRefusal>> = {
 	turnstile_unavailable: 'bot_check_unavailable',
 	turnstile_unconfigured: 'bot_check_unavailable',
 	rate_limited: 'rate_limited',
-	beta_closed: 'beta_closed',
-	legacy_account_pending: 'legacy_account_pending'
+	beta_closed: 'beta_closed'
 };
 
 /**

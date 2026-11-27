@@ -12,30 +12,6 @@ export const E2E_EMAIL_DOMAIN = 'vici-e2e.test';
  * the admin settings API (beta gate) from the specs. */
 export const E2E_ADMIN_EMAIL = `admin@${E2E_EMAIL_DOMAIN}`;
 
-export interface E2eLegacyAccount {
-	principal: string;
-	email: string;
-	nickname: string;
-}
-
-/** Imported through the ETL importer as a provisional account; signing in
- * with the matching email must adopt it. */
-export const E2E_LEGACY_ADOPT: E2eLegacyAccount = {
-	principal: 'fi5vb-dqbae-aqcai-baeaq-caiba-eaqca-ibaea-qcaib-aeaqc-aibae-aqe',
-	email: `legacy.adopt@${E2E_EMAIL_DOMAIN}`,
-	nickname: 'legacyadopter'
-};
-
-/** Imported the same way but only ever used against the `allowNewUsers`
- * gate, which must hold it back with `legacy_account_pending`. A separate
- * account from the adoption one: once an address holds a sign-in identity the
- * gate admits it, so sharing one would make the specs order-dependent. */
-export const E2E_LEGACY_PENDING: E2eLegacyAccount = {
-	principal: 'uduew-qycai-baeaq-caiba-eaqca-ibaea-qcaib-aeaqc-aibae-aqcai-bae',
-	email: `legacy.pending@${E2E_EMAIL_DOMAIN}`,
-	nickname: 'legacypending'
-};
-
 /** The fake engine's series creator and oracle: data only, never called. */
 export const E2E_CREATOR_PRINCIPAL =
 	'n6e37-rydam-bqgay-dambq-gayda-mbqga-ydamb-qgayd-ambqg-aydam-bqe';

@@ -3,9 +3,8 @@
 // means everyone passes, an enabled gate admits exactly the allowlist
 // (case-insensitively) and refuses everyone else with the stable
 // `beta_closed` wire error, on both the OTP flow and the OAuth callback.
-// With `allowNewUsers` it also admits brand-new people and already
-// onboarded accounts while holding legacy accounts back with the
-// distinct `legacy_account_pending` code (OAuth: `/signin?e=legacy`).
+// With `allowNewUsers` the enabled gate admits everyone, an address the
+// legacy app knew included: vici.app migrates no legacy account.
 
 import {
 	afterAll,
@@ -48,7 +47,7 @@ const isAllowed = async (email: string): Promise<boolean> =>
 const openToNewUsers = (emails: string[] = [uniqueEmail()]): Promise<unknown> =>
 	setGate({ enabled: true, emails, allowNewUsers: true });
 
-/** A legacy account row as the auth-identity drain exports it. */
+/** A row of the legacy identity export, which the gate no longer reads. */
 const seedLegacyAccount = async ({
 	openidEmail = null,
 	profileEmail = null
@@ -151,10 +150,9 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 		await clearGate();
 	});
 
-	test('allowlisted address passes, even when it matches a legacy account', async () => {
+	test('allowlisted address passes', async () => {
 		const email = uniqueEmail();
 
-		await seedLegacyAccount({ openidEmail: email });
 		await openToNewUsers([email.toUpperCase()]);
 
 		expect(await betaGateVerdict({ email })).toBe('allowed');
@@ -166,69 +164,25 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 		expect(await betaGateVerdict({ email: uniqueEmail() })).toBe('allowed');
 	});
 
-	test('legacy openid_email match is held back case-insensitively', async () => {
-		const email = uniqueEmail();
+	test('an address the legacy app knew is a new person and passes', async () => {
+		const openidEmail = uniqueEmail();
+		const profileEmail = uniqueEmail();
 
-		await seedLegacyAccount({ openidEmail: email.toUpperCase() });
+		await seedLegacyAccount({ openidEmail, profileEmail });
 		await openToNewUsers();
 
-		expect(await betaGateVerdict({ email })).toBe('legacy_account_pending');
-		expect(await betaGateVerdict({ email: ` ${email.toUpperCase()} ` })).toBe(
-			'legacy_account_pending'
-		);
-	});
-
-	test('legacy profile_email match is held back too', async () => {
-		const email = uniqueEmail();
-
-		await seedLegacyAccount({ profileEmail: email });
-		await openToNewUsers();
-
-		expect(await betaGateVerdict({ email: email.toUpperCase() })).toBe('legacy_account_pending');
-	});
-
-	test('an existing sign-in identity passes even when the address is also legacy', async () => {
-		const email = uniqueEmail();
-
-		// Already onboarded (the legacy link was adopted at that first login):
-		// the gate must never lock such a person out again.
-		await seedLegacyAccount({ openidEmail: email });
-		await resolveIdentity({ provider: 'email', subject: email, email });
-		await openToNewUsers();
-
-		expect(await betaGateVerdict({ email: email.toUpperCase() })).toBe('allowed');
-	});
-
-	test('an existing provider identity passes by subject when its email changed', async () => {
-		const oldEmail = uniqueEmail();
-		const newEmail = uniqueEmail();
-		const subject = `sub-${crypto.randomUUID()}`;
-
-		await resolveIdentity({ provider: 'google', subject, email: oldEmail });
-		await seedLegacyAccount({ openidEmail: newEmail });
-		await openToNewUsers();
-
-		expect(
-			await betaGateVerdict({ email: newEmail, identity: { provider: 'google', subject } })
-		).toBe('allowed');
-		// Without the subject, the new address alone reads as a legacy account.
-		expect(await betaGateVerdict({ email: newEmail })).toBe('legacy_account_pending');
+		expect(await betaGateVerdict({ email: openidEmail })).toBe('allowed');
+		expect(await betaGateVerdict({ email: profileEmail.toUpperCase() })).toBe('allowed');
 	});
 
 	test('allowNewUsers absent or false keeps the strict allowlist', async () => {
-		const legacy = uniqueEmail();
-
-		await seedLegacyAccount({ openidEmail: legacy });
-
 		await setGate({ enabled: true, emails: [uniqueEmail()] });
 
 		expect(await betaGateVerdict({ email: uniqueEmail() })).toBe('beta_closed');
-		expect(await betaGateVerdict({ email: legacy })).toBe('beta_closed');
 
 		await setGate({ enabled: true, emails: [uniqueEmail()], allowNewUsers: false });
 
 		expect(await betaGateVerdict({ email: uniqueEmail() })).toBe('beta_closed');
-		expect(await betaGateVerdict({ email: legacy })).toBe('beta_closed');
 	});
 
 	test('an existing sign-in identity does not bypass the strict allowlist', async () => {
@@ -263,12 +217,9 @@ describe.if(dbAvailable)('beta gate policy with allowNewUsers', () => {
 	});
 
 	test('allowNewUsers is inert while the gate is disabled', async () => {
-		const legacy = uniqueEmail();
-
-		await seedLegacyAccount({ openidEmail: legacy });
 		await setGate({ enabled: false, emails: [], allowNewUsers: true });
 
-		expect(await betaGateVerdict({ email: legacy })).toBe('allowed');
+		expect(await betaGateVerdict({ email: uniqueEmail() })).toBe('allowed');
 	});
 });
 
@@ -378,43 +329,16 @@ describe.if(dbAvailable)('beta gate on the OTP flow', () => {
 		expect(res.headers.get('set-cookie')).toContain('vici_session=');
 	});
 
-	test('allowNewUsers: a legacy address is refused before any code is issued', async () => {
+	test('allowNewUsers: an address the legacy app knew signs up like a new one', async () => {
 		const email = uniqueEmail();
 
 		await seedLegacyAccount({ profileEmail: email.toUpperCase() });
 		await openToNewUsers();
 
-		const res = await otpRequest(email.toUpperCase());
-
-		expect(res.status).toBe(403);
-		expect(await res.json()).toEqual({ error: 'legacy_account_pending' });
-		expect(await otpCountFor(email)).toBe(0);
-	});
-
-	test('allowNewUsers: a legacy address cannot verify a code issued earlier', async () => {
-		const email = uniqueEmail();
-		const code = await createOtp(email);
-
-		await seedLegacyAccount({ openidEmail: email });
-		await openToNewUsers();
-
-		const res = await otpVerify({ email, code });
-
-		expect(res.status).toBe(403);
-		expect(await res.json()).toEqual({ error: 'legacy_account_pending' });
-		expect(res.headers.get('set-cookie')).toBeNull();
-	});
-
-	test('allowNewUsers: an onboarded legacy address still signs in', async () => {
-		const email = uniqueEmail();
-
-		await seedLegacyAccount({ openidEmail: email });
-		await resolveIdentity({ provider: 'email', subject: email, email });
-		await openToNewUsers();
-
-		const requested = await otpRequest(email);
+		const requested = await otpRequest(email.toUpperCase());
 
 		expect(requested.status).toBe(200);
+		expect(await otpCountFor(email)).toBe(1);
 
 		const res = await otpVerify({ email, code: await createOtp(email) });
 
@@ -523,7 +447,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 		expect(res.headers.get('set-cookie')).toContain('vici_session=');
 	});
 
-	test('allowNewUsers: a legacy profile is bounced to the legacy landing', async () => {
+	test('allowNewUsers: a profile the legacy app knew logs in like a new one', async () => {
 		const email = uniqueEmail();
 
 		await seedLegacyAccount({ openidEmail: email });
@@ -532,8 +456,8 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 		const res = await callback(email.toUpperCase());
 
 		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=legacy`);
-		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
+		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/`);
+		expect(res.headers.get('set-cookie')).toContain('vici_session=');
 	});
 
 	test('allowNewUsers: a returning Google identity logs in by subject', async () => {
@@ -541,7 +465,6 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 		const changedEmail = uniqueEmail();
 
 		await resolveIdentity({ provider: 'google', subject: sub, email: uniqueEmail() });
-		await seedLegacyAccount({ profileEmail: changedEmail });
 		await openToNewUsers();
 
 		const res = await callback(changedEmail, sub);
@@ -554,11 +477,7 @@ describe.if(dbAvailable)('beta gate on the Google callback', () => {
 	test('allowNewUsers off: a non-allowlisted profile still gets the beta landing', async () => {
 		await setGate({ enabled: true, emails: [uniqueEmail()] });
 
-		const email = uniqueEmail();
-
-		await seedLegacyAccount({ openidEmail: email });
-
-		const res = await callback(email);
+		const res = await callback(uniqueEmail());
 
 		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=beta`);
 	});
@@ -638,18 +557,5 @@ describe.if(dbAvailable)('beta gate: apple callback', () => {
 
 		expect(res.status).toBe(302);
 		expect(res.headers.get('set-cookie')).toContain('vici_session=');
-	});
-
-	test('allowNewUsers: a legacy apple profile is bounced to the legacy landing', async () => {
-		const email = uniqueEmail();
-
-		await seedLegacyAccount({ profileEmail: email });
-		await openToNewUsers();
-
-		const res = await callback(email);
-
-		expect(res.status).toBe(302);
-		expect(res.headers.get('location')).toBe(`${env.publicAppUrl}/signin?e=legacy`);
-		expect(res.headers.get('set-cookie')).not.toContain('vici_session=');
 	});
 });

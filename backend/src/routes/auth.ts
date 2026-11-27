@@ -7,11 +7,7 @@
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
 import * as apple from '../auth/apple';
-import {
-	LEGACY_ACCOUNT_PENDING_ERROR,
-	betaGateVerdict,
-	type BetaGateVerdict
-} from '../auth/beta-gate';
+import { betaGateVerdict, type BetaGateVerdict } from '../auth/beta-gate';
 import * as google from '../auth/google';
 import { requireUser, unauthenticated } from '../auth/guard';
 import { resolveIdentity } from '../auth/identity';
@@ -66,8 +62,7 @@ const providerUnavailable = (set: StatusContext): { error: string } =>
 
 /** Gated sign-in refusal: the verdict code as the stable error. `beta_closed`
  * is one body for every refused address, so it never doubles as an
- * address-existence oracle; `legacy_account_pending` deliberately says only
- * that the address belongs to a legacy account. */
+ * address-existence oracle. */
 const gateRefused = ({
 	set,
 	verdict
@@ -82,8 +77,7 @@ const gateRefused = ({
 
 /** Landing marker for a gated OAuth refusal: a redirect cannot carry the
  * JSON error body, so the sign-in screen reads the reason from `?e=`. */
-const gateRefusedPath = (verdict: Exclude<BetaGateVerdict, 'allowed'>): string =>
-	verdict === LEGACY_ACCOUNT_PENDING_ERROR ? '/signin?e=legacy' : '/signin?e=beta';
+const GATE_REFUSED_PATH = '/signin?e=beta';
 
 /** Login response: rotate the session (revoking whatever cookie rode in) and
  * answer with the fresh session cookie. */
@@ -319,13 +313,10 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 
 		// The redirect flow's counterpart of the 403 gate body: the browser is
 		// mid-navigation, so the refusal rides the landing path.
-		const verdict = await betaGateVerdict({
-			email: profile.email,
-			identity: { provider: 'google', subject: profile.sub }
-		});
+		const verdict = await betaGateVerdict({ email: profile.email });
 
 		if (verdict !== 'allowed') {
-			return redirectToApp({ path: gateRefusedPath(verdict), clearStateCookie });
+			return redirectToApp({ path: GATE_REFUSED_PATH, clearStateCookie });
 		}
 
 		const userId = await resolveIdentity({
@@ -400,13 +391,10 @@ export const authRoutes = new Elysia({ prefix: '/api/v1' })
 				return redirectToApp({ path: '/?e=apple', clearStateCookie });
 			}
 
-			const verdict = await betaGateVerdict({
-				email: profile.email,
-				identity: { provider: 'apple', subject: profile.sub }
-			});
+			const verdict = await betaGateVerdict({ email: profile.email });
 
 			if (verdict !== 'allowed') {
-				return redirectToApp({ path: gateRefusedPath(verdict), clearStateCookie });
+				return redirectToApp({ path: GATE_REFUSED_PATH, clearStateCookie });
 			}
 
 			// Apple sends the user's name only on the very first authorization, as

@@ -17,8 +17,6 @@ export class AppPage {
 	readonly codeInput: Locator;
 	readonly codeSubmit: Locator;
 	readonly betaClosedMessage: Locator;
-	readonly legacyPendingMessage: Locator;
-	readonly legacyAppLink: Locator;
 	readonly onboarding: Locator;
 	readonly onboardingHandleInput: Locator;
 	/** The handle step's Finish button, rendered only for a signed-in session. */
@@ -42,8 +40,6 @@ export class AppPage {
 		this.codeInput = page.getByLabel(enMessages['signin.otp.aria']);
 		this.codeSubmit = page.getByRole('button', { name: enMessages['signin.otp.verify_cta'] });
 		this.betaClosedMessage = page.getByText(enMessages['signin.beta_closed']);
-		this.legacyPendingMessage = page.getByText(enMessages['signin.legacy_pending.body']);
-		this.legacyAppLink = page.getByRole('link', { name: enMessages['signin.legacy_pending.cta'] });
 		this.onboarding = page.getByTestId(TestId.Onboarding);
 		this.onboardingHandleInput = page.getByTestId(TestId.OnboardingHandleInput);
 		this.onboardingFinish = page.getByTestId(TestId.OnboardingPrimary);

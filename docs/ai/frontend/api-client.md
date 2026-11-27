@@ -103,9 +103,7 @@ to the app enums. Duel `sideA` / `sideB` hold account ids.
   app root, where `Authn` picks up the session), and Apple + Passkey shown
   disabled ("coming soon"). Beta-gate refusals arrive as the OTP error code
   or, for OAuth, as a `/signin?e=` marker: `beta_closed` / `e=beta` render
-  `signin.beta_closed`, and `legacy_account_pending` / `e=legacy` render
-  `signin.legacy_pending.*` with a link to `LEGACY_APP_URL`
-  (`#lib/constants/auth.constants.ts`). Gate semantics live in
+  `signin.beta_closed`. Gate semantics live in
   [`backend/README.md`](../../../backend/README.md#beta-access-gate). A
   refused or unsolvable bot check renders `signin.otp.bot_check_failed`, an
   API that cannot check it `signin.otp.bot_check_unavailable`, and either rate

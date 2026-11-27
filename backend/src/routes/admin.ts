@@ -1,7 +1,6 @@
 // Administration surface: role grant/revoke (mirrored to the engine
-// registry), the runtime app settings, and the queue of provisional accounts
-// that login / claim adoption left for manual resolution. Every endpoint is
-// admin-gated; requireUser first so the 401/403 split stays honest.
+// registry) and the runtime app settings. Every endpoint is admin-gated;
+// requireUser first so the 401/403 split stays honest.
 
 import { isNullish } from '@dfinity/utils';
 import { Elysia, t } from 'elysia';
@@ -13,7 +12,6 @@ import {
 	listAppSettings,
 	upsertAppSetting
 } from '../admin/settings';
-import { listAdoptionConflicts } from '../auth/adoption';
 import {
 	forbidden,
 	requireAdmin,
@@ -107,15 +105,6 @@ export const adminRoutes = new Elysia({ prefix: '/api/v1/admin' })
 		},
 		{ params: t.Object({ userId: t.String({ format: 'uuid' }) }) }
 	)
-	.get('/legacy-adoption-conflicts', async ({ request, set }) => {
-		const gated = await gate(request, set);
-
-		if ('error' in gated) {
-			return gated.error;
-		}
-
-		return { items: await listAdoptionConflicts() };
-	})
 	.get('/settings', async ({ request, set }) => {
 		const gated = await gate(request, set);
 

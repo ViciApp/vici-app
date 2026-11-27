@@ -14,7 +14,7 @@ Vici is a prediction-market app. Three areas, each with its own area README:
 
 What `ls` and `package.json` cannot tell you:
 
-- **Generated, never hand-edited:** `src/declarations/**` and the vendored `backend/src/declarations/**` (`npm run did`; the hand-written wiring `src/declarations/{index,_factory,_types}.ts` is the exception, and `backend/src/declarations/satellite/**` is the frozen copy of the retired satellite's bindings that only the ETL reads).
+- **Generated, never hand-edited:** `src/declarations/**` and the vendored `backend/src/declarations/**` (`npm run did`; the hand-written wiring `src/declarations/{index,_factory,_types}.ts` is the exception).
 - **The Rust risk engine is in [`../icdc-core/`](https://github.com/AntonioVentilii/icdc-core)**, with its own `AGENTS.md`. Never modify it from here.
 - **The app has one backend: the HTTP API in `backend/`** (vici.app). The browser holds no signing identity; the only direct canister read left in the frontend is the public order book. The legacy Juno satellite (vici.market) is retired: `juno.config.ts` only carries its redirect and write freeze, and `backend/scripts/etl/**` reads its frozen data. See [`api-client.md`](./docs/ai/frontend/api-client.md) for the client seam.
 
