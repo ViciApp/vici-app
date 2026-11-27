@@ -12,10 +12,10 @@ primary_region = "ams"
     VITE_WEB2_API_URL = "https://api.vici.app"
     VITE_BACKEND = "web2"
     # Public Cloudflare Turnstile site key for the bot check on the anonymous
-    # endpoints (the backend holds the matching TURNSTILE_SECRET_KEY). Empty
-    # until the widget is created in Cloudflare; the API refuses the check in
-    # production meanwhile.
-    VITE_TURNSTILE_SITE_KEY = ""
+    # endpoints (the backend holds the matching TURNSTILE_SECRET_KEY). The
+    # widget is "vici.app" in Cloudflare, managed mode, for vici.app and
+    # www.vici.app only.
+    VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAGVm_fKJeaGzJzq8"
 
 # Keep one machine warm: the SPA gets no benefit from scale-to-zero, and a
 # cold-stopped machine that wedges is invisible to Fly without a health check.
