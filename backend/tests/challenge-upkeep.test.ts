@@ -19,11 +19,49 @@ import {
 	linkExists,
 	newSeries,
 	player,
-	settledSeries
+	settledSeries,
+	settlementReads
 } from './helpers/challenges';
 import { dbAvailable } from './helpers/setup';
 
 let restore: (() => void) | undefined;
+
+const closedAtOf = async (id: string): Promise<string | null | undefined> => {
+	const [row] = await query<{ market_closed_at_ms: string | null }>(
+		`select market_closed_at_ms::text from challenge_links where id = $1`,
+		[id]
+	);
+
+	return row?.market_closed_at_ms;
+};
+
+/** Runs prune ticks until every given link is stamped closed, at most as many
+ * as one full walk of the pending series needs (the database is shared, so
+ * the walk may start anywhere). */
+const pruneUntilStamped = async ({
+	ids,
+	stampSeriesLimit
+}: {
+	ids: string[];
+	stampSeriesLimit: number;
+}): Promise<void> => {
+	const rows = await query<{ pending: number }>(
+		`select count(distinct series_id)::int as pending from challenge_links
+		 where market_closed_at_ms is null`
+	);
+	const maxTicks = Math.ceil((rows[0]?.pending ?? 0) / stampSeriesLimit) + 2;
+
+	for (let tick = 0; tick < maxTicks; tick++) {
+		clearCache();
+		await pruneChallengeLinks({ stampSeriesLimit });
+
+		const stamps = await Promise.all(ids.map(closedAtOf));
+
+		if (stamps.every(nonNullish)) {
+			return;
+		}
+	}
+};
 
 describe.if(dbAvailable)('challenge link lifecycle', () => {
 	beforeAll(async () => {
@@ -146,19 +184,37 @@ describe.if(dbAvailable)('challenge link lifecycle', () => {
 			const { id } = await create({ who: maya, seriesId });
 
 			settledSeries.add(seriesId);
-			clearCache();
 
 			const before = Date.now();
 
-			await pruneChallengeLinks();
+			await pruneUntilStamped({ ids: [id], stampSeriesLimit: 1000 });
 
-			const [row] = await query<{ market_closed_at_ms: string | null }>(
-				`select market_closed_at_ms::text from challenge_links where id = $1`,
-				[id]
-			);
-
-			expect(Number(row?.market_closed_at_ms)).toBeGreaterThanOrEqual(before);
+			expect(Number(await closedAtOf(id))).toBeGreaterThanOrEqual(before);
 			expect(await linkExists(id)).toBe(true);
+		});
+
+		test('one tick checks a bounded page of open markets and the next resumes', async () => {
+			const maya = await player();
+			const ids: string[] = [];
+
+			for (let i = 0; i < 3; i++) {
+				const seriesId = newSeries();
+
+				fill({ userId: maya.userId, seriesId, qty: 10, priceCents: 38 });
+				ids.push((await create({ who: maya, seriesId })).id);
+				settledSeries.add(seriesId);
+			}
+
+			clearCache();
+			settlementReads.length = 0;
+
+			await pruneChallengeLinks({ stampSeriesLimit: 2 });
+
+			expect(settlementReads.flat().length).toBeLessThanOrEqual(2);
+
+			await pruneUntilStamped({ ids, stampSeriesLimit: 100 });
+
+			expect((await Promise.all(ids.map(closedAtOf))).every(nonNullish)).toBe(true);
 		});
 	});
 });

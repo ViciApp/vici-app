@@ -24,6 +24,8 @@ export const NS_PER_MS = BigInt(1_000_000);
 export const fills = new Map<string, ClearingDid.Event[]>();
 const seriesById = new Map<string, { expiryMs: number; binary: boolean; engineId: string }>();
 export const settledSeries = new Set<string>();
+/** The series of each batched settlement read the fake engine answered. */
+export const settlementReads: string[][] = [];
 let nextEventId = 1;
 
 const settlementView = (seriesId: string) => ({
@@ -47,13 +49,16 @@ export const installChallengeEngine = (): { ledger: LedgerStub; restore: () => v
 					Promise.resolve(fills.get(principal ?? '') ?? ([] as ClearingDid.Event[])),
 				get_settlement_status: (seriesId: string) =>
 					Promise.resolve(settledSeries.has(seriesId) ? [settlementView(seriesId)] : []),
-				list_series_settlement_statuses: ({ series_ids }: { series_ids: string[] }) =>
-					Promise.resolve(
+				list_series_settlement_statuses: ({ series_ids }: { series_ids: string[] }) => {
+					settlementReads.push(series_ids);
+
+					return Promise.resolve(
 						series_ids.map((seriesId) => ({
 							series_id: seriesId,
 							status: settledSeries.has(seriesId) ? [settlementView(seriesId)] : []
 						}))
-					)
+					);
+				}
 			} as unknown as ClearingService);
 		},
 		registry: () =>

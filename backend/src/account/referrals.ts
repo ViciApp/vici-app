@@ -218,7 +218,9 @@ export const referralIneligibility = async (
  * Writes the one referrals row of an eligible referee plus the auto-confirmed
  * friendship, for any channel: a referral code, or a challenge link
  * (`challengeId`, with the challenger's own code). The referee primary key
- * makes a racing second redemption a no-op, so the first written row stands.
+ * makes a racing second redemption a no-op, so the first written row stands:
+ * `false` tells the loser it credited nobody, and it writes no friendship,
+ * since its referrer is not the one the row names.
  * NO payout fires here: the bonus is deferred to the referee's first
  * prediction (the trade trigger drives ../vxp/referral.ts), so sign-ups that
  * never engage reward nobody.
@@ -233,13 +235,18 @@ export const writeReferralRedemption = async ({
 	referrerUserId: string;
 	code: string;
 	challengeId?: string;
-}): Promise<void> => {
-	await query(
+}): Promise<boolean> => {
+	const inserted = await query<{ referee_user_id: string }>(
 		`insert into referrals (referee_user_id, referrer_user_id, code, redeemed_at_ms, challenge_id)
 		 values ($1, $2, $3, $4, $5)
-		 on conflict (referee_user_id) do nothing`,
+		 on conflict (referee_user_id) do nothing
+		 returning referee_user_id`,
 		[userId, referrerUserId, code, Date.now(), challengeId ?? null]
 	);
+
+	if (isNullish(inserted[0])) {
+		return false;
+	}
 
 	await writeConfirmedFriendship({ referrerUserId, refereeUserId: userId });
 
@@ -248,6 +255,8 @@ export const writeReferralRedemption = async ({
 			isNullish(challengeId) ? '' : ', through a challenge link'
 		}`
 	);
+
+	return true;
 };
 
 const INELIGIBLE_REFERRAL_MESSAGES: Record<ReferralIneligibility, string> = {
@@ -275,7 +284,11 @@ export const redeemReferralCode = async ({
 
 	const { normalized, referrerUserId } = await resolveCodeForUser({ userId, code });
 
-	await writeReferralRedemption({ userId, referrerUserId, code: normalized });
+	const redeemed = await writeReferralRedemption({ userId, referrerUserId, code: normalized });
+
+	if (!redeemed) {
+		throw new ReferralError(INELIGIBLE_REFERRAL_MESSAGES.already_redeemed);
+	}
 };
 
 /**

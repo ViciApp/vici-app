@@ -63,10 +63,15 @@ create unique index if not exists challenge_links_active_series_idx
 create index if not exists challenge_links_challenger_created_idx
   on challenge_links (challenger_user_id, created_at_ms desc);
 
--- The prune job's three scans: links on markets it has not seen close yet,
--- closed markets past retention, revoked links past retention.
+-- The prune job's scans: links on markets it has not seen close yet (by
+-- expiry, and by series for its paged settlement check), closed markets past
+-- retention, revoked links past retention.
 create index if not exists challenge_links_open_expiry_idx
   on challenge_links (series_expiry_ms)
+  where market_closed_at_ms is null;
+
+create index if not exists challenge_links_open_series_idx
+  on challenge_links (series_id)
   where market_closed_at_ms is null;
 
 create index if not exists challenge_links_closed_idx

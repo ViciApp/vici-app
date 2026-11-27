@@ -11,7 +11,7 @@ import {
 	writeConfirmedFriendship,
 	writeReferralRedemption
 } from '../account/referrals';
-import { query, tx } from '../db/client';
+import { query, tx, type TxQuery } from '../db/client';
 import { getTradeHistory } from '../engine/clearing';
 import { PUBLICLY_VISIBLE_PROFILE_SQL } from '../profiles/profile';
 import type { CallSide } from '../vxp/calibration';
@@ -85,14 +85,15 @@ export const redeemChallenge = async ({
 		return 'not_eligible';
 	}
 
-	await writeReferralRedemption({
+	const redeemed = await writeReferralRedemption({
 		userId,
 		referrerUserId: link.challenger_user_id,
 		code: await getOrAssignReferralCode(link.challenger_user_id),
 		challengeId: link.id
 	});
 
-	return 'redeemed';
+	// A redemption that raced another one and lost credited nobody.
+	return redeemed ? 'redeemed' : 'not_eligible';
 };
 
 interface AnswerRow {
@@ -100,6 +101,24 @@ interface AnswerRow {
 	entry_price_bps: number;
 	answered_at_ms: string;
 }
+
+const findAnswer = async ({
+	challengeId,
+	userId,
+	q = query
+}: {
+	challengeId: string;
+	userId: string;
+	q?: TxQuery;
+}): Promise<AnswerRow | undefined> => {
+	const rows = await q<AnswerRow>(
+		`select side, entry_price_bps, answered_at_ms::text from challenge_answers
+		 where challenge_id = $1 and answerer_user_id = $2`,
+		[challengeId, userId]
+	);
+
+	return rows[0];
+};
 
 const toAnswer = (row: AnswerRow): ChallengeAnswer => ({
 	side: row.side,
@@ -110,7 +129,8 @@ const toAnswer = (row: AnswerRow): ChallengeAnswer => ({
 /**
  * Records the caller's answer to a link: their own position on its market,
  * read from their trade history in the engine (the client sends no side and
- * no price). One answer per (link, user): a repeat returns the first. The
+ * no price). One answer per (link, user): a repeat returns the first, even
+ * after the caller's position changed or closed. The
  * first answer makes challenger and answerer friends; reading a link never
  * does.
  */
@@ -129,6 +149,14 @@ export const recordChallengeAnswer = async ({
 
 	if (link.challenger_user_id === userId) {
 		throw new ChallengeSelfError();
+	}
+
+	// The stored answer stands even once the caller has closed or flipped the
+	// position it recorded, so a repeat never needs the engine.
+	const previous = await findAnswer({ challengeId: link.id, userId });
+
+	if (nonNullish(previous)) {
+		return toAnswer(previous);
 	}
 
 	const held = heldBinaryPosition({
@@ -151,13 +179,7 @@ export const recordChallengeAnswer = async ({
 		);
 
 		if (isNullish(inserted[0])) {
-			const existing = await q<AnswerRow>(
-				`select side, entry_price_bps, answered_at_ms::text from challenge_answers
-				 where challenge_id = $1 and answerer_user_id = $2`,
-				[link.id, userId]
-			);
-
-			return { row: existing[0], isNew: false };
+			return { row: await findAnswer({ challengeId: link.id, userId, q }), isNew: false };
 		}
 
 		await writeConfirmedFriendship({

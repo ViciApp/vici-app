@@ -3,7 +3,11 @@
 // existing settlement), and the engine-verified answer that befriends them.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { getOrAssignReferralCode, redeemReferralCode } from '../src/account/referrals';
+import {
+	getOrAssignReferralCode,
+	redeemReferralCode,
+	writeReferralRedemption
+} from '../src/account/referrals';
 import { createSession } from '../src/auth/sessions';
 import { query } from '../src/db/client';
 import { clearCache } from '../src/engine/cache';
@@ -145,6 +149,47 @@ describe.if(dbAvailable)('challenge credit and answers', () => {
 			expect(await flat.json()).toEqual({ outcome: 'redeemed' });
 		});
 
+		test('only the redemption that wrote the row is credited or befriends', async () => {
+			const maya = await player();
+			const ana = await player();
+			const leo = await player();
+			const seriesId = newSeries();
+
+			fill({ userId: maya.userId, seriesId, qty: 10, priceCents: 38 });
+			fill({ userId: ana.userId, seriesId, qty: 10, priceCents: 40 });
+
+			const mayaLink = await create({ who: maya, seriesId });
+			const anaLink = await create({ who: ana, seriesId });
+
+			const outcomes = await Promise.all([
+				redeemChallenge({ userId: leo.userId, id: mayaLink.id }),
+				redeemChallenge({ userId: leo.userId, id: anaLink.id })
+			]);
+
+			expect([...outcomes].sort()).toEqual(['not_eligible', 'redeemed']);
+
+			const [winner, loser] = outcomes[0] === 'redeemed' ? [maya, ana] : [ana, maya];
+
+			expect(
+				await query(`select referrer_user_id from referrals where referee_user_id = $1`, [
+					leo.userId
+				])
+			).toEqual([{ referrer_user_id: winner.userId }]);
+			expect(await relationOf(winner.userId, leo.userId)).toBe('ACTIVE');
+			expect(await relationOf(loser.userId, leo.userId)).toBeUndefined();
+
+			// The write that loses the referee key reports it and befriends nobody.
+			expect(
+				await writeReferralRedemption({
+					userId: leo.userId,
+					referrerUserId: loser.userId,
+					code: await getOrAssignReferralCode(loser.userId),
+					challengeId: loser === maya ? mayaLink.id : anaLink.id
+				})
+			).toBe(false);
+			expect(await relationOf(loser.userId, leo.userId)).toBeUndefined();
+		});
+
 		test('a caller without a profile is told to retry after creating it', async () => {
 			const maya = await player();
 			const seriesId = newSeries();
@@ -233,6 +278,14 @@ describe.if(dbAvailable)('challenge credit and answers', () => {
 			const repeat = await call({ method: 'POST', path: `/${id}/answer`, token: leo.token });
 
 			expect(await repeat.json()).toEqual(firstBody);
+
+			// Closing the position later does not undo the stored answer.
+			fill({ userId: leo.userId, seriesId, qty: 20, priceCents: 50 });
+
+			const afterClose = await call({ method: 'POST', path: `/${id}/answer`, token: leo.token });
+
+			expect(afterClose.status).toBe(200);
+			expect(await afterClose.json()).toEqual(firstBody);
 
 			const self = await call({ method: 'POST', path: `/${id}/answer`, token: maya.token });
 

@@ -21,8 +21,8 @@ const CHALLENGE_PRUNE_MAX_BATCHES = 20;
 /**
  * Rewrites the caller's active links from a trade history the trade trigger
  * already loaded: side, entry price and time from the held position, all
- * cleared when it is flat (the link stays active). One indexed select and
- * one update, no engine call.
+ * cleared when it is flat (the link stays active). One indexed select, one
+ * pass over the history and one update, no engine call.
  */
 export const syncChallengesForUser = async ({
 	userId,
@@ -41,8 +41,20 @@ export const syncChallengesForUser = async ({
 		return;
 	}
 
+	// One pass over the history, keeping only the linked series' rows, so
+	// each position below scans its own fills and not the whole history.
+	const eventsBySeries = new Map<string, ClearingDid.Event[]>(
+		links.map(({ series_id }) => [series_id, []])
+	);
+
+	for (const event of events) {
+		eventsBySeries.get(event.series_id)?.push(event);
+	}
+
 	const positions = links.map(({ series_id }) =>
-		toStoredPosition(heldBinaryPosition({ events, seriesId: series_id }))
+		toStoredPosition(
+			heldBinaryPosition({ events: eventsBySeries.get(series_id) ?? [], seriesId: series_id })
+		)
 	);
 
 	await query(
@@ -63,9 +75,25 @@ export const syncChallengesForUser = async ({
 	);
 };
 
-/** Stamps the close of every market the prune has not seen close yet: the
- * expiry for those past it, now for those settled before it. */
-const stampClosedMarkets = async (nowMs: number): Promise<void> => {
+/** How many not-yet-closed series one prune tick checks for a settlement
+ * (one engine read per 100); the next tick resumes after the last one. */
+export const CHALLENGE_STAMP_SERIES_PER_TICK = 1000;
+
+// Where the settlement check stopped, so successive ticks walk the pending
+// series in id order instead of rereading the same first page. In memory:
+// the worker is a single process, and a restart only restarts the walk.
+let stampCursor = '';
+
+/** Stamps the close of the markets the prune has not seen close yet: every
+ * one past its expiry at once (one indexed update, no engine read), and,
+ * for a bounded page of the unexpired ones, now when they are settled. */
+const stampClosedMarkets = async ({
+	nowMs,
+	seriesLimit
+}: {
+	nowMs: number;
+	seriesLimit: number;
+}): Promise<void> => {
 	await query(
 		`update challenge_links set market_closed_at_ms = series_expiry_ms
 		 where market_closed_at_ms is null and series_expiry_ms <= $1`,
@@ -73,9 +101,16 @@ const stampClosedMarkets = async (nowMs: number): Promise<void> => {
 	);
 
 	const pending = await query<{ series_id: string; series_expiry_ms: string }>(
-		`select distinct series_id, series_expiry_ms::text from challenge_links
-		 where market_closed_at_ms is null`
+		`select series_id, min(series_expiry_ms)::text as series_expiry_ms from challenge_links
+		 where market_closed_at_ms is null and series_id > $1
+		 group by series_id
+		 order by series_id
+		 limit $2`,
+		[stampCursor, seriesLimit]
 	);
+
+	stampCursor = pending.length < seriesLimit ? '' : (pending.at(-1)?.series_id ?? '');
+
 	const open = await openSeriesIds(
 		pending.map((row) => ({ seriesId: row.series_id, expiryMs: Number(row.series_expiry_ms) }))
 	);
@@ -95,10 +130,14 @@ const stampClosedMarkets = async (nowMs: number): Promise<void> => {
  * or which were revoked more than {@link CHALLENGE_LINK_RETENTION_MS} ago, in
  * bounded batches. Re-running finds nothing more to delete.
  */
-export const pruneChallengeLinks = async (): Promise<{ pruned: number }> => {
+export const pruneChallengeLinks = async ({
+	stampSeriesLimit = CHALLENGE_STAMP_SERIES_PER_TICK
+}: {
+	stampSeriesLimit?: number;
+} = {}): Promise<{ pruned: number }> => {
 	const nowMs = Date.now();
 
-	await stampClosedMarkets(nowMs);
+	await stampClosedMarkets({ nowMs, seriesLimit: stampSeriesLimit });
 
 	const cutoffMs = nowMs - CHALLENGE_LINK_RETENTION_MS;
 	let pruned = 0;
