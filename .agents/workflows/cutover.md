@@ -9,10 +9,11 @@ The one-time switch from the legacy Juno app at vici.market to the web2 app at v
 
 ## What applies the shutdown
 
-Nothing in the repo changes production by being merged. One switch, `VITE_LEGACY_SHUTDOWN=true`, read in two places, turns the legacy app off at cutover time:
+Nothing in the repo changes production by being merged. One switch, `VITE_LEGACY_SHUTDOWN=true`, read in two places, turns the legacy app off at cutover time. Nobody signs in on vici.market after it, existing accounts included: the product continues on vici.app.
 
-- **Write freeze:** [`juno.config.ts`](../../juno.config.ts) makes every Datastore and Storage collection writable by controllers only when `juno config apply` runs with the variable set (step 3). Reads stay as they are, so the ETL export and the moved screen keep working. The rules change through `set_rule`, with no functions upgrade, and the change is reversible.
-- **Moved screen:** a legacy (default backend) build made with the variable renders, on every route, "VICI has moved to vici.app" and sends the visitor to the same path on vici.app (`isLegacyShutDown` in `new-app-redirect.services.ts`). `deploy.yml` passes the repository variable `VITE_LEGACY_SHUTDOWN` to the hosting build, so once the variable is set (step 4), every deploy of the satellite, tags included, ships the moved screen.
+- **Write freeze:** [`juno.config.ts`](../../juno.config.ts) makes every Datastore and Storage collection writable by controllers only when `juno config apply` runs with the variable set (step 3). The rules change through `set_rule`, with no functions upgrade, and the change is reversible.
+- **Sign-in lock:** the same apply sets the satellite's authentication config to an allowlist (`allowedCallers`) holding only the satellite ids, and leaves the Google provider out (`legacySignInLock` in `juno.config.ts`). The satellite then refuses every Datastore and Storage call from a user, signed in or anonymous, reads included: sign-in reads or creates the caller's `#user` doc, so it fails for every account, and a session an old tab already holds can no longer read or write a collection. The custom satellite endpoints are not gated by it (see the known gap in step 3). Without Google the satellite stops minting OpenID delegations. Controllers and admin access keys are exempt, so the ETL export (admin key) and the Console keep working, and hosting is served outside the allowlist, so the moved screen loads. It goes through `set_auth_config`, with no functions upgrade, and is reversible.
+- **Moved screen:** a legacy (default backend) build made with the variable renders, on every route, "VICI has moved to vici.app" and sends the visitor to the vici.app landing, `https://vici.app/`, whatever path they opened (`isLegacyShutDown` and `newAppLandingUrl` in `new-app-redirect.services.ts`). Never a legacy path such as `/signin`: vici.app has no public sign-in. `deploy.yml` passes the repository variable `VITE_LEGACY_SHUTDOWN` to the hosting build, so once the variable is set (step 4), every deploy of the satellite, tags included, ships the moved screen.
 
 There is no hosting redirect: the satellite serves an existing asset before any redirect, sends the configured `Location` verbatim (no path), and certifies a redirect only at its literal source path, so a `**` redirect cannot cover the app's routes. The page-level redirect is also what reaches installed apps, whose service worker serves the cached shell whenever the network answers a navigation with anything but a 2xx.
 
@@ -33,7 +34,7 @@ export SATELLITE_ID="$(npx tsx scripts/lib/satellite-id.ts production)"
 export CLEARING_CANISTER_ID="$(jq -r '.canisters.clearing.remote.id.ic' dfx.json)"
 ```
 
-Optional rehearsal of steps 3 and 4 on the emulator: `juno emulator start`, then `VITE_LEGACY_SHUTDOWN=true JUNO_EMULATOR=true juno config apply --mode development` and `VITE_LEGACY_SHUTDOWN=true npm run dev`; a write from the app must be refused and every route must show the moved screen.
+Optional rehearsal of steps 3 and 4 on the emulator: `juno emulator start`, then `VITE_LEGACY_SHUTDOWN=true JUNO_EMULATOR=true juno config apply --mode development` and `VITE_LEGACY_SHUTDOWN=true npm run dev`; a sign-in and a write from the app must be refused and every route must show the moved screen.
 
 ## 1. Confirm the clearing canister can reassign accounts
 
@@ -63,9 +64,9 @@ export JUNO_TOKEN=<Administrator access key>
 VITE_LEGACY_SHUTDOWN=true juno config apply --mode production
 ```
 
-Accept the overwrite prompt if the CLI shows one (the repo is the source of truth). **Check:** the CLI reports every collection applied and none rejected; in the Juno Console, Datastore and Storage, every collection shows write "Controllers" and its read permission unchanged; vici.market still loads markets (reads work). **If a collection is rejected:** read the error. A rule created with immutable permissions cannot be changed from the CLI; fix it in the Console and apply again. **To undo** (only to abort the whole cutover): `juno config apply --mode production` without the variable restores today's rules.
+Accept the overwrite prompt if the CLI shows one (the repo is the source of truth). **Check:** the CLI reports every collection and the authentication config applied, none rejected; in the Juno Console, Datastore and Storage, every collection shows write "Controllers" and its read permission unchanged; in Authentication, Google is off and the allowed callers are exactly the two satellite ids; signing in on vici.market fails. From here until step 4 ships the moved screen, the legacy app shows errors to anyone still on it, which is the intent: keep the gap short. **If a collection is rejected:** read the error. A rule created with immutable permissions cannot be changed from the CLI; fix it in the Console and apply again. **To undo** (only to abort the whole cutover): `juno config apply --mode production` without the variable restores today's rules.
 
-Known gap: the freeze covers writes a user makes to a collection. Satellite endpoints that write with the satellite's admin key (league invites, referral codes, analytics) still answer a direct call, and legacy identities can still call the clearing canister directly until step 7 moves their accounts. Step 4 removes every caller the app had.
+Known gap: the freeze and the lock cover the Datastore and Storage calls a user makes. Custom satellite endpoints (`defineQuery` / `defineUpdate`) are outside both: the public ones still answer a direct call, anonymous or signed in, including reads such as the leaderboard and those that write with the satellite's admin key (league invites, referral codes, analytics). Closing them needs a satellite functions upgrade. Separately, a legacy identity with a delegation it already holds (OpenID delegations live up to 7 days, Internet Identity ones are minted by II) can still call the clearing canister directly until step 7 moves its account. Step 4 removes every caller the app had.
 
 ## 4. Ship the moved screen
 
@@ -77,7 +78,7 @@ gh run watch
 
 If the release carrying this PR is not cut yet, set the variable first and then merge the release PR: its tag runs `deploy.yml` with the variable.
 
-**Check:** the run is green; a fresh private window on `https://vici.market/` and on a deep link (`https://vici.market/flow`, a market page) lands on the same path on vici.app. **If the legacy app still shows:** confirm the variable (`gh variable list`) and that the tag contains this PR, then dispatch again. **To undo:** `gh variable delete VITE_LEGACY_SHUTDOWN` and dispatch `deploy.yml` on the same tag.
+**Check:** the run is green; a fresh private window on `https://vici.market/` and on a deep link (`https://vici.market/flow`, a market page) lands on `https://vici.app/`. **If the legacy app still shows:** confirm the variable (`gh variable list`) and that the tag contains this PR, then dispatch again. **To undo:** `gh variable delete VITE_LEGACY_SHUTDOWN` and dispatch `deploy.yml` on the same tag.
 
 Then move the tabs still running the previous bundle, and take the final snapshot in the same stop. Before stopping, open a signed-in vici.market tab that was loaded before the deploy (keep it in the foreground) to watch.
 
@@ -167,7 +168,7 @@ Anything missing: rerun the step that owns it (5 for data, 6 for emails, 7 for p
 
 ## After the cutover
 
-- **The satellite serves only the moved screen** until vici.market's DNS moves to a plain path-preserving redirect. Keep the `VITE_LEGACY_SHUTDOWN` variable set, and run any later `juno config apply --mode production` with `VITE_LEGACY_SHUTDOWN=true`: without it the apply reopens writes.
+- **The satellite serves only the moved screen** until vici.market's DNS moves to a plain path-preserving redirect. Keep the `VITE_LEGACY_SHUTDOWN` variable set, and run any later `juno config apply --mode production` with `VITE_LEGACY_SHUTDOWN=true`: without it the apply reopens writes and sign-in.
 - **Snapshots:** the final one is from step 4; keep it with the pre-freeze one from step 2, if taken.
 - **Stopping the satellite:** after the DNS move, when vici.market traffic no longer reaches the canister, `dfx canister stop "$SATELLITE_ID" --network ic --identity av`, then remove the custom domain in the Juno Console and turn off `deploy.yml` and `publish.yml` (`gh workflow disable`), which would otherwise act on a stopped canister at every tag. Keep the canister, its snapshots and its cycles: it is the record of the legacy data.
 - **Restoring from a snapshot** (only for data loss on the satellite): `dfx canister stop`, then `dfx canister snapshot load "$SATELLITE_ID" <snapshot-id>`, then `dfx canister start`, each with `--network ic --identity av`.

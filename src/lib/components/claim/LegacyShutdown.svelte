@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { loadNewAppPageUrl, newAppDomain } from '#lib/services/new-app-redirect.services.ts';
+	import { newAppDomain, newAppLandingUrl } from '#lib/services/new-app-redirect.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
-	// Read once: the screen replaces the whole app, so the URL cannot change
-	// under it.
-	const newAppUrl = loadNewAppPageUrl();
+	const newAppUrl = newAppLandingUrl();
 	const domain = newAppDomain();
 
 	// The satellite cannot answer the app's routes with a redirect (see
