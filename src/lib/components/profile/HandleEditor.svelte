@@ -8,9 +8,8 @@
 		handleCooldownDaysLeft,
 		HANDLE_COOLDOWN_DAYS,
 		MAX_HANDLE_LENGTH,
-		MIN_HANDLE_LENGTH,
-		nicknameUniqueKey,
-		RESERVED_HANDLES
+		isReservedHandle,
+		MIN_HANDLE_LENGTH
 	} from '#lib/constants/profile.constants.ts';
 	import { checkNicknameAvailability } from '#lib/services/profile.services.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
@@ -64,7 +63,7 @@
 	// Exact (not folded) so re-casing/re-accenting your own handle is saveable.
 	const unchanged = $derived(clean === initialHandle);
 	// Folded so "Admin" / "ádmin" can't slip past the reserved set.
-	const reserved = $derived(RESERVED_HANDLES.has(nicknameUniqueKey(clean)));
+	const reserved = $derived(isReservedHandle(clean));
 
 	type ErrorKey = MessageKey | null;
 

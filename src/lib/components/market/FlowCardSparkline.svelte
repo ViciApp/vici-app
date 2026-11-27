@@ -3,7 +3,6 @@
 	import { DAY_IN_MS } from '#lib/constants/time.constants.ts';
 	import { localeStore } from '#lib/stores/locale.store.ts';
 	import type { MarketEvent } from '#lib/types/market-metadata.ts';
-	import { sparklinePoints } from '#lib/utils/flow-card-display.utils.ts';
 	import { t } from '#lib/utils/i18n.utils.ts';
 
 	/**
@@ -11,8 +10,9 @@
 	 *
 	 * Shape:
 	 *  - 240×56 SVG (with extra 8px overflow for the label area)
-	 *  - 14-point random-walk path seeded by `seed`, ending exactly at
-	 *    `yesPercent` so the trailing dot reads as "live"
+	 *  - the real price history, ending exactly at `yesPercent` so the
+	 *    trailing dot reads as "live"; with no history, a flat line held at
+	 *    `yesPercent` (never an invented shape)
 	 *  - filled area beneath the line at 8% opacity
 	 *  - line stroke is `--yes` when YES ≥ 50%, else `--no` (not an
 	 *    accent prop)
@@ -27,7 +27,8 @@
 	 *  - When one is active, a `DAY DOM MONTH · LABEL · ↑/↓` row
 	 *    replaces the hint
 	 *  - Active state resets whenever the events identity changes
-	 *    (handled by Svelte's reactive `$effect` keyed off the seed)
+	 *    (handled by Svelte's reactive `$effect` keyed off `seed`, the
+	 *    market id)
 	 *
 	 * `event.day` is 1..7 where 7 = today and 1 = a week ago; the
 	 * date label is computed live so it stays fresh as the user
@@ -50,13 +51,13 @@
 		 * oldest first) sourced from the clearing canister's market-wide
 		 * trade history: the true movement for every viewer, not the
 		 * caller's own fills. When provided the line plots this genuine
-		 * history instead of the seed-based fallback shape:
+		 * history:
 		 *  - a non-empty series traces the actual trade prices, ending at
 		 *    the live `yesPercent`;
 		 *  - an empty series is a true cold-start; the line reads flat at
 		 *    `yesPercent` until the first trade lands.
-		 * When `undefined` (surfaces that don't fetch per-market history,
-		 * e.g. the swipe deck) the seed-based fallback shape is used.
+		 * When `undefined` (history not loaded yet, or not fetched on this
+		 * surface) the line is flat at `yesPercent` too.
 		 */
 		points?: number[];
 		/**
@@ -64,8 +65,8 @@
 		 * each point on a real time axis across the chart window, so the line
 		 * spacing reflects elapsed time (gaps where no trades landed) and event
 		 * markers can be anchored by date. When present the line plots at these
-		 * x's instead of uniform per-index steps; when absent (seed fallback or
-		 * cold-start) the index-based spacing is used.
+		 * x's instead of uniform per-index steps; when absent the index-based
+		 * spacing is used.
 		 */
 		pointXs?: number[];
 	}
@@ -121,29 +122,19 @@
 	const w = 240;
 	const h = 56;
 
-	// Point series the line plots. When real price history is supplied
-	// (`pointsProp`) it wins over the seed-based fallback shape:
+	// Point series the line plots:
 	//  - non-empty real history is plotted verbatim, with the live
 	//    `yesPercent` appended so the trailing dot reads as "now";
-	//  - an empty real series is a true cold-start; a flat line held at
-	//    `yesPercent` (two points so the path still renders);
-	//  - `undefined` (no per-market fetch on this surface) falls back to
-	//    the seed-based shape.
-	const points = $derived.by<number[]>(() => {
-		if (isNullish(pointsProp)) {
-			return sparklinePoints({ yesPercent, seed });
-		}
-
-		if (pointsProp.length === 0) {
-			return [yesPercent, yesPercent];
-		}
-
-		return [...pointsProp, yesPercent];
-	});
+	//  - no history (empty or not loaded) is a flat line held at
+	//    `yesPercent` (two points so the path still renders). A line that
+	//    moves is only ever one that traded.
+	const flat = $derived(isNullish(pointsProp) || pointsProp.length === 0);
+	const points = $derived(
+		flat || isNullish(pointsProp) ? [yesPercent, yesPercent] : [...pointsProp, yesPercent]
+	);
 
 	// Real time axis: only when we have non-empty history AND its parallel
-	// x-fractions. The seed fallback and the true cold-start (empty real
-	// series) keep uniform index spacing.
+	// x-fractions. The flat line keeps uniform index spacing.
 	const timeAxis = $derived(
 		nonNullish(pointsProp) &&
 			pointsProp.length > 0 &&
@@ -216,16 +207,17 @@
 	});
 
 	// Map an event's `day` field (1..7, 7 = today) to its index in the
-	// 15-point `points` array: `idx = (points.length-1) - (7 - day)`,
-	// i.e. the last 7 points are day 1..7. Seed-fallback only.
+	// `points` array: `idx = (points.length-1) - (7 - day)`, i.e. the last
+	// 7 points are day 1..7. Real history without time-axis x's only.
 	const eventIndexForDay = (day: number): number =>
 		Math.max(0, Math.min(points.length - 1, points.length - 1 - (7 - day)));
 
 	// Event x. On the real time axis the window is the 7d "this week" span
 	// (day 7 = now = right edge), so the day maps directly to its fraction of
-	// the width. On the seed shape it maps through the point index instead.
+	// the width; the flat line spans the same week. Real history without
+	// x's maps through the point index instead.
 	const eventX = (day: number): number => {
-		if (timeAxis) {
+		if (timeAxis || flat) {
 			return Math.max(0, Math.min(1, day / 7)) * w;
 		}
 
@@ -233,9 +225,9 @@
 	};
 
 	// Event y sits on the line: interpolated at the marker's x on the time
-	// axis, or read straight off the indexed point on the seed shape.
+	// axis and the flat line, or read straight off the indexed point.
 	const eventY = (day: number): number =>
-		timeAxis ? yAtX(eventX(day)) : yCoord(points[eventIndexForDay(day)]);
+		timeAxis || flat ? yAtX(eventX(day)) : yCoord(points[eventIndexForDay(day)]);
 
 	const toggleEvent = ({ index, ev }: { index: number; ev: Event }) => {
 		ev.stopPropagation();

@@ -47,7 +47,7 @@ export const sanitizeNickname = (raw: string): string =>
  * (client passes raw, satellite trimmed) so both agree on "the same handle".
  * Used for collisions AND handle-change detection, client + satellite.
  */
-const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
+export const COMBINING_DIACRITICAL_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
 export const nicknameUniqueKey = (raw: string): string =>
 	raw.trim().normalize('NFKD').replace(COMBINING_DIACRITICAL_MARKS, '').toLowerCase();
 
@@ -61,6 +61,19 @@ export const PENDING_ONBOARDING_STORAGE_KEY = 'vici:pending-onboarding';
  */
 export const MIN_HANDLE_LENGTH = 3;
 export const MAX_HANDLE_LENGTH = 15;
+
+/**
+ * The handle rule a visitor claims a handle under on the landing: lowercase
+ * `a-z` and `0-9` only, {@link MIN_HANDLE_LENGTH} to {@link MAX_HANDLE_LENGTH}
+ * characters. No accents, no other scripts, no `.` / `_` / `-`, so two
+ * handles never differ only by a lookalike. Checked by `handleFormatIssue`
+ * (`#lib/utils/handle.utils.ts`); `HANDLE_DISALLOWED_CHARS` is its input-time
+ * inverse.
+ */
+export const HANDLE_PATTERN = new RegExp(`^[a-z0-9]{${MIN_HANDLE_LENGTH},${MAX_HANDLE_LENGTH}}$`);
+
+/** Every character {@link HANDLE_PATTERN} refuses, for stripping as the visitor types. */
+export const HANDLE_DISALLOWED_CHARS = /[^a-z0-9]/g;
 
 /**
  * A handle can be changed once every {@link HANDLE_COOLDOWN_DAYS} days.
@@ -78,21 +91,121 @@ export const MAX_HANDLE_LENGTH = 15;
 export const HANDLE_COOLDOWN_DAYS = 30;
 
 /**
- * Handles reserved for the platform: never assignable to a user even if
- * the backend availability check would otherwise pass.
+ * Handles only VICI may use, so nobody can pass for the company, its
+ * products or its staff. Entries are folded keys; test a typed handle with
+ * {@link isReservedHandle}. Exact match, no prefix rule, because "vici..."
+ * also starts ordinary words. Names already held by real accounts are left
+ * out: reserving them would lock their owners.
  */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
-	'admin',
+	// Brand and company
 	'vici',
-	'root',
-	'support',
-	'help',
-	'mod',
+	'viciai',
+	'viciapp',
+	'vicibot',
+	'vicihq',
+	'vicilabs',
+	'vicilabsltd',
+	'vicimarket',
+	'vicimarkets',
+	'vicinews',
+	'viciofficial',
+	'viciteam',
+	'vicitoken',
+	'vicixp',
+	'venividivici',
+	'wholesome',
 	'official',
 	'team',
+	// Products, features and characters
+	'archivist',
+	'arena',
+	'battles',
+	'flow',
+	'flowmode',
+	'league',
+	'leagues',
+	'oracle',
+	'trickster',
+	'vxp',
+	'worlds',
+	// Staff, roles and mailboxes
+	'abuse',
+	'admin',
+	'admins',
+	'administrator',
+	'billing',
+	'careers',
+	'ceo',
+	'cfo',
+	'compliance',
+	'coo',
+	'cto',
+	'founder',
+	'founders',
+	'giovannitosi',
+	'hello',
+	'help',
+	'hostmaster',
+	'info',
+	'investors',
+	'legal',
+	'mod',
+	'moderation',
+	'moderator',
+	'mods',
+	'noreply',
+	'postmaster',
+	'press',
+	'privacy',
+	'reply',
+	'resolution',
+	'safety',
+	'security',
+	'staff',
+	'support',
+	'sysadmin',
+	'timschwartz',
+	'trustandsafety',
+	'viciadmin',
+	'viciantonio',
+	'vicigio',
+	'vicisupport',
+	'vicitim',
+	'webmaster',
+	// System voices and technical names
+	'announcements',
+	'anonymous',
 	'api',
+	'bot',
+	'everyone',
+	'guest',
+	'leaderboard',
+	'markets',
+	'news',
+	'notifications',
+	'null',
+	'payments',
+	'payouts',
+	'rewards',
+	'root',
+	'status',
+	'system',
+	'treasury',
+	'undefined',
+	'updates',
 	'www'
 ]);
+
+const NOT_HANDLE_KEY_CHARS = new RegExp('[^a-z0-9]', 'g');
+
+/**
+ * Whether a typed handle is one of {@link RESERVED_HANDLES} once case,
+ * accents and separators are folded away, so `VÍCI` and `vi.ci` count as
+ * `vici`.
+ */
+export const isReservedHandle = (raw: string): boolean =>
+	RESERVED_HANDLES.has(nicknameUniqueKey(raw).replace(NOT_HANDLE_KEY_CHARS, ''));
 
 /**
  * {@link sanitizeNickname} for the HandleEditor: same idea (NFC, strip
