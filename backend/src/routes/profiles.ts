@@ -20,6 +20,7 @@ import {
 	NICKNAME_CHECK_TURNSTILE_ACTION
 } from '../profiles/nickname';
 import {
+	countProfiles,
 	getProfileRow,
 	getProfileView,
 	ProfileValidationError,
@@ -291,6 +292,8 @@ export const profilesRoutes = new Elysia({ prefix: '/api/v1/profiles' })
 			})
 		}
 	)
+	// Public: the landing page's registered-users figure, one aggregate.
+	.get('/count', async () => ({ count: await countProfiles() }))
 	.get('/:userId', async ({ request, params }) => {
 		// Accounts are keyed by uuid, so any other id (an on-chain principal,
 		// say) can never match a row; answer it as absent instead of letting the

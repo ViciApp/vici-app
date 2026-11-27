@@ -5,19 +5,11 @@ import {
 	MAX_SESSION_ID_LENGTH
 } from '../../src/analytics/events';
 import { ANALYTICS_EVENT_NAMES, ANALYTICS_PROP_KEYS } from '../../src/analytics/taxonomy';
-import {
-	extractBlock,
-	extractUnionLiterals,
-	importRepoModule,
-	quotedStrings,
-	readRepoSource
-} from '../helpers/repo-source';
+import { extractUnionLiterals, importRepoModule, readRepoSource } from '../helpers/repo-source';
 
-// The app keeps the event taxonomy as a dual source: the TS union in
-// src/lib/types/analytics-event.ts and its runtime Zod mirror in
-// src/lib/schema/analytics-event.schema.ts. Both are pinned here. The union is
-// type-level and the schema module value-imports the app's schema builder, so
-// each is read by static extraction; ANALYTICS_PROP_KEYS is a plain value in a
+// The app keeps the event taxonomy as the TS union in
+// src/lib/types/analytics-event.ts, pinned here. The union is type-level, so it
+// is read by static extraction; ANALYTICS_PROP_KEYS is a plain value in a
 // module with only type imports, so it is loaded directly.
 describe('shared drift: analytics taxonomy', () => {
 	test('backend ANALYTICS_EVENT_NAMES matches the app TS union', () => {
@@ -25,19 +17,6 @@ describe('shared drift: analytics taxonomy', () => {
 			source: readRepoSource('src/lib/types/analytics-event.ts'),
 			typeName: 'AnalyticsEventName'
 		});
-
-		const backend: string[] = [...ANALYTICS_EVENT_NAMES];
-
-		expect(backend).toEqual(app);
-	});
-
-	test('backend ANALYTICS_EVENT_NAMES matches the app Zod enum', () => {
-		const app = quotedStrings(
-			extractBlock({
-				source: readRepoSource('src/lib/schema/analytics-event.schema.ts'),
-				marker: 'export const AnalyticsEventNameSchema'
-			})
-		);
 
 		const backend: string[] = [...ANALYTICS_EVENT_NAMES];
 
@@ -53,7 +32,7 @@ describe('shared drift: analytics taxonomy', () => {
 		expect(backend).toEqual([...app.ANALYTICS_PROP_KEYS]);
 	});
 
-	test('backend ingest string caps match the satellite capture', async () => {
+	test('backend ingest string caps match the app capture', async () => {
 		const app = await importRepoModule<{
 			ANALYTICS_MAX_SESSION_ID_LENGTH: number;
 			ANALYTICS_MAX_PATH_LENGTH: number;

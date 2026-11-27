@@ -133,6 +133,14 @@ export const getMarketMetadata = async ({
 	return isNullish(rows[0]) ? undefined : shapeMetadata(rows[0]);
 };
 
+/** Every stored metadata row, for the market surfaces that project tags and
+ * the suggested flag across the whole catalog in one read. */
+export const listMarketMetadata = async (): Promise<MarketMetadata[]> => {
+	const rows = await query<MetadataRow>(`select * from market_metadata order by series_id`);
+
+	return rows.map(shapeMetadata);
+};
+
 export const upsertMarketMetadata = async ({
 	user,
 	seriesId,

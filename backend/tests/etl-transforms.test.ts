@@ -4,13 +4,12 @@
 // rewrites onto user ids, FK-guarded skips, and the documented skips.
 
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { SATELLITE_COLLECTIONS, type ExportedDoc } from '../scripts/etl/lib';
 import { importDocs, importerFor, IMPORTERS } from '../scripts/etl/transforms';
 import { query } from '../src/db/client';
 import { ensureMigrated, uniquePrincipal } from './helpers/auth';
 import { uniqueNickname } from './helpers/profiles';
+import { extractBlock, quotedStrings, readRepoSource } from './helpers/repo-source';
 import { dbAvailable } from './helpers/setup';
 
 const doc = ({
@@ -62,14 +61,19 @@ describe('etl collection registry', () => {
 		expect(new Set(registered).size).toBe(registered.length);
 	});
 
-	test('matches the app collection catalog on disk', () => {
-		const catalog = JSON.parse(
-			readFileSync(join(import.meta.dir, '../../juno.collections.json'), 'utf8')
-		) as Record<string, string>;
+	test('matches the collections the satellite config deploys', () => {
+		const deployed = quotedStrings(
+			extractBlock({
+				source: readRepoSource('juno.config.ts'),
+				marker: 'enum JunoDatastoreCollection',
+				open: '{',
+				close: '}'
+			})
+		);
 
 		const registered: string[] = [...SATELLITE_COLLECTIONS];
 
-		expect(registered.sort()).toEqual(Object.values(catalog).sort());
+		expect(registered.sort()).toEqual(deployed.sort());
 	});
 
 	test('skipped collections declare a reason and import nothing', async () => {

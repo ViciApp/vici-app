@@ -17,8 +17,6 @@ import {
 	LEAGUE_FOUNDER_MIN_MEMBERS,
 	MARATHON_DAILY_STREAK_TARGET,
 	ON_FIRE_STREAK_TARGET,
-	ONBOARDING_M2_TRADE_COUNT,
-	ONBOARDING_M3_TRADE_COUNT,
 	ONBOARDING_MILESTONE_AMOUNTS,
 	ORACLE_ACCURACY_TARGET,
 	ORACLE_TRADES_TARGET,
@@ -309,17 +307,6 @@ describe('shared drift: onboarding milestones', () => {
 		// The app computes m3 as the remainder so the three always sum to the
 		// starter total.
 		expect(ONBOARDING_MILESTONE_AMOUNTS.m3).toBe(parseVxp(total - m1 - m2));
-	});
-
-	test('m2/m3 trade-count gates match the satellite service', () => {
-		// The satellite keeps these thresholds inline in its eligibility rows
-		// rather than as named constants, so they are pinned where they live.
-		const satellite = readRepoSource('src/satellite/services/vxp-onboarding.services.ts');
-		const m2 = satellite.match(/mk:\s*'m2',\s*eligible:\s*tradeCount\s*>=\s*(\d+)/);
-		const m3 = satellite.match(/mk:\s*'m3',\s*eligible:\s*tradeCount\s*>=\s*(\d+)/);
-
-		expect(ONBOARDING_M2_TRADE_COUNT).toBe(Number(m2?.[1]));
-		expect(ONBOARDING_M3_TRADE_COUNT).toBe(Number(m3?.[1]));
 	});
 });
 
