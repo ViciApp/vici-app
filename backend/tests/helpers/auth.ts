@@ -35,3 +35,12 @@ export const createTestUser = async (role: 'user' | 'admin' = 'user'): Promise<s
 
 	return id;
 };
+
+/** Links a legacy principal that does not parse to `userId`: the schema
+ * stores it as plain text, so every read over that user must survive it. */
+export const linkUnparseablePrincipal = async (userId: string): Promise<void> => {
+	await query(
+		`insert into legacy_principals (principal, user_id, matched_via) values ($1, $2, 'claim')`,
+		[`not-a-principal-${randomBytes(8).toString('hex')}`, userId]
+	);
+};
