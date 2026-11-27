@@ -5,6 +5,7 @@
 
 import { isNullish, nonNullish } from '@dfinity/utils';
 import { env, type TurnstileEnv } from '../env';
+import { serviceUnavailable, type StatusContext } from './http';
 import { logger } from './logger';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -131,4 +132,30 @@ export const verifyTurnstileToken = async ({
 
 		return 'unavailable';
 	}
+};
+
+/**
+ * The refusal for a verdict that does not let the request through, or nothing
+ * for `passed` and `bypassed`: `403 turnstile_failed` for a refused token (the
+ * client solves again), `503 turnstile_unavailable` or `turnstile_unconfigured`
+ * when nothing could be checked.
+ */
+export const turnstileRefusal = ({
+	set,
+	verdict
+}: {
+	set: StatusContext;
+	verdict: TurnstileVerdict;
+}): { error: string } | undefined => {
+	if (verdict === 'passed' || verdict === 'bypassed') {
+		return;
+	}
+
+	if (verdict === 'failed') {
+		set.status = 403;
+
+		return { error: 'turnstile_failed' };
+	}
+
+	return serviceUnavailable(set, `turnstile_${verdict}`);
 };

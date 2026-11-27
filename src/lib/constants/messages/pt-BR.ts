@@ -1829,6 +1829,10 @@ export const ptBRMessages = {
 	'signin.loading.google': 'Abrindo Google…',
 	'signin.loading.ii': 'Abrindo Internet Identity…',
 	'signin.loading.passkey': 'Abrindo Passkey…',
+	'signin.otp.bot_check_failed': 'A verificação de segurança falhou. Tente novamente.',
+	'signin.otp.bot_check_unavailable':
+		'Verificação de segurança indisponível. Tente novamente em um minuto.',
+	'signin.otp.rate_limited': 'Muitas solicitações de código. Tente mais tarde.',
 	'signin.provider.apple': 'Continuar com Apple',
 	'signin.provider.dev': 'Entrar para Dev',
 	'signin.provider.email': 'Continuar com e-mail',

@@ -12,6 +12,11 @@ export const TURNSTILE_ONLOAD_CALLBACK = '__viciTurnstileReady';
  * `NICKNAME_CHECK_TURNSTILE_ACTION` in backend/src/profiles/nickname.ts). */
 export const TURNSTILE_ACTION_HANDLE_CHECK = 'handle_check';
 
+/** The action the email sign-in code request's widget is rendered with, so a
+ * token solved for the handle probe cannot buy an email (mirrored by
+ * `OTP_REQUEST_TURNSTILE_ACTION` in backend/src/auth/otp.ts). */
+export const TURNSTILE_ACTION_EMAIL_CODE = 'email_code';
+
 /** How long a token request may take. Most solves are invisible and take a
  * second or two; this leaves a visitor who is shown a challenge time to answer
  * it before the request gives up. */

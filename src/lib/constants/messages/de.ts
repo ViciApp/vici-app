@@ -2166,8 +2166,12 @@ export const deMessages = {
 	'signin.loading.passkey': 'Passkey wird geöffnet…',
 	'signin.otp.aria': 'Bestätigungscode',
 	'signin.otp.back': 'Andere E-Mail verwenden',
+	'signin.otp.bot_check_failed': 'Sicherheitsprüfung fehlgeschlagen. Bitte erneut versuchen.',
+	'signin.otp.bot_check_unavailable':
+		'Sicherheitsprüfung gerade nicht verfügbar. Versuch es gleich noch einmal.',
 	'signin.otp.error': 'Dieser Code hat nicht funktioniert. Bitte erneut versuchen.',
 	'signin.otp.placeholder': 'Bestätigungscode',
+	'signin.otp.rate_limited': 'Zu viele Code-Anfragen. Versuch es später erneut.',
 	'signin.otp.sent': 'Gib den Code ein, den wir an {email} gesendet haben.',
 	'signin.otp.verify_cta': 'Bestätigen',
 	'signin.provider.apple': 'Mit Apple fortfahren',

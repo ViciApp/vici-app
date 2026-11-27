@@ -1,27 +1,109 @@
-import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { isNullish } from '@dfinity/utils';
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { randomBytes } from 'node:crypto';
 import {
 	createOtp,
 	OTP_MAX_ATTEMPTS,
 	OTP_MAX_LIVE_CODES,
 	OTP_TTL_MINUTES,
+	otpMailboxKey,
 	requestOtp,
 	verifyOtp
 } from '../src/auth/otp';
 import { query } from '../src/db/client';
+import type { TurnstileEnv } from '../src/env';
 import { app } from '../src/index';
 import { setEmailTransport, type EmailMessage } from '../src/lib/email';
 import { resetRateLimits } from '../src/lib/rate-limit';
+import { setTurnstileSeam, type SiteverifyCall } from '../src/lib/turnstile';
 import { ensureMigrated, uniqueEmail } from './helpers/auth';
 import { dbAvailable } from './helpers/setup';
 
+// The contract the request route promises, spelled out so the test pins it.
+const TURNSTILE_ACTION = 'email_code';
+const MAILBOX_LIMIT_PER_HOUR = 6;
+
+const BYPASS: TurnstileEnv = { enabled: false, secretKey: '', bypass: true };
+const ENABLED: TurnstileEnv = { enabled: true, secretKey: 'test-secret', bypass: false };
+const UNCONFIGURED_PROD: TurnstileEnv = { enabled: false, secretKey: '', bypass: false };
+
+const answering =
+	(result: Awaited<ReturnType<SiteverifyCall>>): SiteverifyCall =>
+	() =>
+		Promise.resolve(result);
+
+const uniqueIp = (): string => `10.${[...randomBytes(3)].join('.')}`;
+
+const requestCode = async ({
+	email,
+	ip,
+	turnstileToken = 'token'
+}: {
+	email: string;
+	ip?: string;
+	turnstileToken?: string;
+}): Promise<Response> =>
+	await app.handle(
+		new Request('http://localhost/api/v1/auth/otp/request', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				...(isNullish(ip) ? {} : { 'x-forwarded-for': ip })
+			},
+			body: JSON.stringify({ email, turnstileToken })
+		})
+	);
+
+const liveCodesFor = async (email: string): Promise<number> => {
+	const rows = await query<{ count: number }>(
+		`select count(*)::int as count from otp_codes where lower(email) = $1`,
+		[email]
+	);
+
+	return rows[0]?.count ?? 0;
+};
+
+describe('otpMailboxKey', () => {
+	test('folds a +tag and the case into one inbox', () => {
+		expect(otpMailboxKey('Ada+vici@Example.com')).toBe('ada@example.com');
+		expect(otpMailboxKey('ada+a+b@example.com')).toBe('ada@example.com');
+		expect(otpMailboxKey(' ada@example.com ')).toBe('ada@example.com');
+	});
+
+	test('drops dots only for Gmail, on both of its domains', () => {
+		expect(otpMailboxKey('a.d.a+x@googlemail.com')).toBe('ada@gmail.com');
+		expect(otpMailboxKey('A.da@gmail.com')).toBe('ada@gmail.com');
+		expect(otpMailboxKey('a.da@example.com')).toBe('a.da@example.com');
+	});
+
+	test('keeps an address it cannot split as typed', () => {
+		expect(otpMailboxKey('+tag@example.com')).toBe('+tag@example.com');
+		expect(otpMailboxKey('no-at-sign')).toBe('no-at-sign');
+	});
+});
+
 describe.if(dbAvailable)('email OTP', () => {
+	let restoreTurnstile: (() => void) | undefined;
+
 	beforeAll(async () => {
 		await ensureMigrated();
 	});
 
 	beforeEach(() => {
 		resetRateLimits();
+		// The routes under test read the seam, never the runner's env.
+		restoreTurnstile = setTurnstileSeam({ config: BYPASS });
 	});
+
+	afterEach(() => {
+		restoreTurnstile?.();
+		restoreTurnstile = undefined;
+	});
+
+	const useTurnstile = (seam: { config: TurnstileEnv; call?: SiteverifyCall }): void => {
+		restoreTurnstile?.();
+		restoreTurnstile = setTurnstileSeam(seam);
+	};
 
 	test('the code email states the lifetime the code is issued with', async () => {
 		const email = uniqueEmail();
@@ -169,13 +251,7 @@ describe.if(dbAvailable)('email OTP', () => {
 		const bodies = [];
 
 		for (const email of [uniqueEmail(), known]) {
-			const res = await app.handle(
-				new Request('http://localhost/api/v1/auth/otp/request', {
-					method: 'POST',
-					headers: { 'content-type': 'application/json' },
-					body: JSON.stringify({ email })
-				})
-			);
+			const res = await requestCode({ email });
 
 			expect(res.status).toBe(200);
 
@@ -186,13 +262,7 @@ describe.if(dbAvailable)('email OTP', () => {
 	});
 
 	test('the request route rejects a malformed address', async () => {
-		const res = await app.handle(
-			new Request('http://localhost/api/v1/auth/otp/request', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ email: 'not-an-email' })
-			})
-		);
+		const res = await requestCode({ email: 'not-an-email' });
 
 		expect(res.status).toBe(400);
 	});
@@ -246,14 +316,7 @@ describe.if(dbAvailable)('email OTP', () => {
 	});
 
 	test('the request route rate-limits per client', async () => {
-		const request = () =>
-			app.handle(
-				new Request('http://localhost/api/v1/auth/otp/request', {
-					method: 'POST',
-					headers: { 'content-type': 'application/json' },
-					body: JSON.stringify({ email: uniqueEmail() })
-				})
-			);
+		const request = () => requestCode({ email: uniqueEmail() });
 
 		for (let i = 0; i < 5; i++) {
 			expect((await request()).status).toBe(200);
@@ -263,5 +326,153 @@ describe.if(dbAvailable)('email OTP', () => {
 
 		expect(limited.status).toBe(429);
 		expect(limited.headers.get('retry-after')).not.toBeNull();
+	});
+
+	test('the request route sends a code only for a token solved for the email-code action', async () => {
+		const solved = uniqueEmail();
+
+		useTurnstile({ config: ENABLED, call: answering({ success: true, action: TURNSTILE_ACTION }) });
+
+		expect((await requestCode({ email: solved, ip: uniqueIp() })).status).toBe(200);
+		expect(await liveCodesFor(solved)).toBe(1);
+
+		const cases: [SiteverifyCall, string][] = [
+			[answering({ success: false }), ''],
+			[answering({ success: false }), 'token'],
+			[answering({ success: true, action: 'handle_check' }), 'token']
+		];
+
+		for (const [call, turnstileToken] of cases) {
+			const email = uniqueEmail();
+
+			useTurnstile({ config: ENABLED, call });
+
+			const res = await requestCode({ email, ip: uniqueIp(), turnstileToken });
+
+			expect(res.status).toBe(403);
+			expect(await res.json()).toEqual({ error: 'turnstile_failed' });
+			expect(await liveCodesFor(email)).toBe(0);
+		}
+	});
+
+	test('the request route refuses without a token field', async () => {
+		const res = await app.handle(
+			new Request('http://localhost/api/v1/auth/otp/request', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ email: uniqueEmail() })
+			})
+		);
+
+		expect(res.status).toBe(400);
+	});
+
+	test('Cloudflare down, or no secret in production, sends nothing and answers 503', async () => {
+		const cases: [TurnstileEnv, SiteverifyCall | undefined, string][] = [
+			[ENABLED, () => Promise.reject(new Error('network down')), 'turnstile_unavailable'],
+			[UNCONFIGURED_PROD, undefined, 'turnstile_unconfigured']
+		];
+
+		for (const [config, call, error] of cases) {
+			const email = uniqueEmail();
+
+			useTurnstile({ config, call });
+
+			const res = await requestCode({ email, ip: uniqueIp() });
+
+			expect(res.status).toBe(503);
+			expect(await res.json()).toEqual({ error });
+			expect(await liveCodesFor(email)).toBe(0);
+		}
+	});
+
+	test('verifying a code needs no bot check', async () => {
+		useTurnstile({ config: UNCONFIGURED_PROD });
+
+		const email = uniqueEmail();
+		const code = await createOtp(email);
+		const res = await app.handle(
+			new Request('http://localhost/api/v1/auth/otp/verify', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ email, code })
+			})
+		);
+
+		expect(res.status).toBe(200);
+	});
+
+	test(`one inbox gets at most ${MAILBOX_LIMIT_PER_HOUR} requests an hour, across IPs and +tags`, async () => {
+		const [local, domain] = uniqueEmail().split('@');
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			const res = await requestCode({ email: `${local}+${i}@${domain}`, ip: uniqueIp() });
+
+			expect(res.status).toBe(200);
+		}
+
+		const limited = await requestCode({
+			email: `${local?.toUpperCase()}+more@${domain}`,
+			ip: uniqueIp()
+		});
+
+		expect(limited.status).toBe(429);
+		expect(await limited.json()).toEqual({ error: 'rate_limited' });
+		expect(limited.headers.get('retry-after')).not.toBeNull();
+		expect(await liveCodesFor(`${local}+more@${domain}`)).toBe(0);
+		expect((await requestCode({ email: uniqueEmail(), ip: uniqueIp() })).status).toBe(200);
+	});
+
+	test('the inbox budget is shared by every API machine', async () => {
+		const email = uniqueEmail();
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			// A fresh in-memory limiter on every call stands in for a request
+			// landing on another machine.
+			resetRateLimits();
+
+			expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(200);
+		}
+
+		resetRateLimits();
+
+		const limited = await requestCode({ email, ip: uniqueIp() });
+
+		expect(limited.status).toBe(429);
+		expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+	});
+
+	test('an inbox window that has run out starts over', async () => {
+		const email = uniqueEmail();
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			await requestCode({ email, ip: uniqueIp() });
+		}
+
+		expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(429);
+
+		await query(
+			`update rate_limit_windows set reset_at = now() - interval '1 second' where key = $1`,
+			[`otp_request_mailbox:${otpMailboxKey(email)}`]
+		);
+		// The live-code cap would otherwise hold back the next code.
+		await query(`delete from otp_codes where lower(email) = $1`, [email]);
+
+		expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(200);
+		expect(await liveCodesFor(email)).toBe(1);
+	});
+
+	test('a refused bot check spends none of the inbox budget', async () => {
+		const email = uniqueEmail();
+
+		useTurnstile({ config: ENABLED, call: answering({ success: false }) });
+
+		for (let i = 0; i < MAILBOX_LIMIT_PER_HOUR; i++) {
+			expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(403);
+		}
+
+		useTurnstile({ config: ENABLED, call: answering({ success: true, action: TURNSTILE_ACTION }) });
+
+		expect((await requestCode({ email, ip: uniqueIp() })).status).toBe(200);
 	});
 });
