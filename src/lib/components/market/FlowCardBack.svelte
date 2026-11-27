@@ -41,10 +41,10 @@
 		// native range input changes.
 		onCallSizeChange?: (next: string) => void;
 		// Real, market-wide price history (0–100 YES series) for the
-		// community-read sparkline. Absent → seed-based fallback shape.
+		// community-read sparkline. Absent → a flat line at the live price.
 		points?: number[];
 		// Parallel x-fractions (0–1) placing each `points` entry on the time
-		// axis. Present alongside real history; absent for the seed shape.
+		// axis. Present alongside real history.
 		pointXs?: number[];
 		// Translated title / resolution for the active locale, resolved by the
 		// parent. Default to the on-chain originals so untranslated decks (and

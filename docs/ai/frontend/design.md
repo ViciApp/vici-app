@@ -545,6 +545,29 @@ float and CTA fill stop (the cards rest in their fanned pose), the copy
 line stays fully visible and advances on a plain timer instead of a
 fade, and the dwell shortens (`DECK_DWELL_REDUCED_MS`).
 
+### 7.11 Card numbers: real or hidden
+
+Every number on a Flow card and on the market-detail chart is read from
+real data. A value that is missing is hidden, never filled with a sample,
+a hash of the market id or a guess, the same rule as the public landing.
+
+- **Social line.** `N friends YES · M NO` needs both counts from
+  `followedLean`; without them it falls back to `K predicting`. The
+  `+N today` part is a real trade count over the hourly candles that
+  opened in the last 24 hours (so the last 23 to 24 hours, never more than
+  the true total), the same candles as the back-face sparkline
+  (`MarketPriceSeries.tradesLastDay`), so it appears only on the focused
+  card once its history loads, and never at zero.
+- **Weekly move.** The back face's `▲/▼ N% this week` is last close minus
+  first close of the real 7d history. With fewer than two closes it is
+  hidden.
+- **Sparkline and detail chart.**
+  [`FlowCardSparkline`](../../../src/lib/components/market/FlowCardSparkline.svelte)
+  plots real candles only. With no history (not loaded yet, or no trades)
+  it draws a flat line at the live price; the detail chart adds its "No
+  trades yet" note once the empty history has loaded. A line that moves is
+  always one that traded.
+
 ---
 
 ## 8. Routing & sign-in shell

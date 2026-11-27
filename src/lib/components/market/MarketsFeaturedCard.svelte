@@ -19,13 +19,17 @@
 	} from '#lib/utils/market-translation.utils.ts';
 	import { resolveAppPath } from '#lib/utils/nav.utils.ts';
 	import { tagColor } from '#lib/utils/tag-color.utils.ts';
-	import { goto } from '$app/navigation';
 
 	/**
 	 * Fixed-width (280 px) market card used in the Saved / Trending
 	 * rails on the markets page. Header row carries the category tag
 	 * + volume; body is the question; footer pairs the YES % with
 	 * `YES / NO` mini-tags above a `ProbBar` (shared `ui/ProbBar`).
+	 *
+	 * The question is the card's link; its overlay stretches it over the
+	 * whole card so a tap anywhere opens the market, while the translation
+	 * toggle sits above the overlay as its own button (a button may not
+	 * nest inside a link).
 	 */
 	interface Props {
 		market: Market;
@@ -70,23 +74,9 @@
 			symbol: market.token.symbol
 		})
 	);
-
-	const onClick = () => goto(resolveAppPath(`${AppPath.Markets}/${market.id}`));
 </script>
 
-<div
-	style="flex: 0 0 280px; cursor: pointer; gap: 0; background: linear-gradient(180deg, var(--bg-surface), var(--bg-base));"
-	class="card-surface"
-	onclick={onClick}
-	onkeydown={(event) => {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			onClick();
-		}
-	}}
-	role="button"
-	tabindex="0"
->
+<div class="card-surface featured-card">
 	<div class="row between">
 		{#if tag}
 			<span style:color={tagColor(tag)} class="tag"
@@ -99,13 +89,15 @@
 			>{freshVolume ? t({ locale: $localeStore, key: 'market.detail.stats.new' }) : vol}</span
 		>
 	</div>
-	<div
+	<a
 		style="margin-top: 12px; font-size: 15px; font-weight: 600; line-height: 1.3; min-height: 58px;"
+		class="featured-link"
+		href={resolveAppPath(`${AppPath.Markets}/${market.id}`)}
 	>
 		{display.title}
-	</div>
+	</a>
 	{#if nonNullish(translation)}
-		<div style="margin-top: 4px;">
+		<div style="margin-top: 4px;" class="featured-above-link">
 			<MarketTranslationToggle
 				onToggle={onToggleTranslation}
 				{showOriginal}
@@ -116,7 +108,7 @@
 	{/if}
 	<div style="margin-top: 14px;" class="row between">
 		{#if hasProbability}
-			<span style:color="var(--yes)" style:font-weight="600" class="num yes t-h4">{yes}%</span>
+			<span class="num t-h4 text-yes">{yes}%</span>
 		{:else}
 			<span style:font-weight="600" class="num t-h4"
 				><MarketProbabilitySkeleton variant={market.priceLoaded ? 'empty' : 'loading'} /></span
@@ -131,3 +123,30 @@
 		<ProbBar {yes} />
 	</div>
 </div>
+
+<style lang="postcss">
+	/* `.card-surface` is unlayered, so a Tailwind utility could not override
+	   its background or gap: the overrides live in this scoped class. */
+	.featured-card {
+		position: relative;
+		flex: 0 0 280px;
+		gap: 0;
+		background: linear-gradient(180deg, var(--bg-surface), var(--bg-base));
+	}
+
+	.featured-link {
+		display: block;
+	}
+
+	.featured-link::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+	}
+
+	.featured-above-link {
+		position: relative;
+		z-index: 1;
+	}
+</style>
