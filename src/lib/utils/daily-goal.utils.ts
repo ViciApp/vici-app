@@ -11,7 +11,7 @@ import { nonNullish } from '@dfinity/utils';
 // dashboard "Today's goal" resume card, so the two surfaces never drift.
 export const DAILY_GOAL_TARGET = 10;
 
-export interface DailyGoalState {
+interface DailyGoalState {
 	// Predictions committed toward the goal on `date` (`0..target`).
 	done: number;
 	// Local-day key (`YYYY-MM-DD`) the count belongs to.
@@ -84,7 +84,7 @@ const isDailyGoalState = (value: unknown): value is DailyGoalState =>
 	typeof (value as DailyGoalState).date === 'string';
 
 /** Read the localStorage mirror, or `undefined` when absent / malformed. */
-export const readDailyGoalMirror = (): DailyGoalState | undefined => {
+const readDailyGoalMirror = (): DailyGoalState | undefined => {
 	const raw = storageGet<DailyGoalState>({ key: DAILY_GOAL_STORAGE_KEY });
 
 	return isDailyGoalState(raw) ? raw : undefined;

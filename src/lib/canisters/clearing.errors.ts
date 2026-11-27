@@ -50,7 +50,7 @@ export class MarketClosedError extends Error {
  * An i18n message descriptor, a `MessageKey` plus its interpolation params,
  * resolved by the caller through `t({ locale, key, params })`.
  */
-export interface TradeErrorMessage {
+interface TradeErrorMessage {
 	key: MessageKey;
 	params?: Record<string, string | number>;
 }

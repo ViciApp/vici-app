@@ -615,33 +615,28 @@ is the canonical sign-in / sign-up visual:
   in `--laurel`.
 - Sub copy in `--text-muted`.
 - Provider stack rendered through
-  [`SignInActions.svelte`](../../../src/lib/components/authn/SignInActions.svelte):
-  the four supported methods today: Internet Identity, Google,
-  Passkey (WebAuthn), Dev (local only).
+  [`SignInProviderStack.svelte`](../../../src/lib/components/authn/SignInProviderStack.svelte),
+  whose per-provider flags at the top of the file say which methods
+  show: Google, email (a passkey ceremony that keeps the address) and
+  Passkey (WebAuthn), Dev on dev builds only; Apple (through Internet
+  Identity's OpenID flow) and Internet Identity are built but flagged
+  off. The web2 build renders
+  [`SignInProviderStackWeb2.svelte`](../../../src/lib/components/authn/SignInProviderStackWeb2.svelte)
+  instead: email one-time code and Google, with Apple and Passkey shown
+  as disabled coming-soon buttons.
 - Footer switcher between sign-in and sign-up modes.
 - Legal fineprint at the bottom of the page (terms, privacy,
   play-money preview disclaimer).
-
-**Out of scope today**: Apple Sign-In (Juno's auth provider list
-covers `internet_identity` / `google` / `github` / `webauthn` /
-`dev` only; adding Apple needs a custom OAuth flow on top of
-Juno's delegation system) and email magic-link.
 
 ### 8.5 Bottom-nav active state
 
 The mobile tab bar
 ([`MobileNav.svelte`](../../../src/lib/components/layout/MobileNav.svelte))
-exact-matches `page.url.pathname` to the nav button's path, with
-two cascade rules:
-
-1. The Markets nav button (configured as `AppPath.Home` since the
-   markets feed lives at `/`) lights up for any
-   `/markets/[id]` detail route.
-2. The Profile nav button lights up on `/wallet` (which has no
-   nav slot of its own).
-
-If new nav-less routes are added (e.g. `/notifications`,
-`/settings`: both deferred), they extend this cascade table.
+exact-matches `page.url.pathname` to the nav button's path, and its
+`isActive` aliases the routes without a slot of their own to a parent
+tab (for example Markets, `AppPath.Home` at `/app`, for `/markets/[id]`;
+Profile for `/wallet`, `/settings` and `/notifications`). A new route
+without a slot gets its line there.
 
 ### 8.6 Dev-only Tweaks panel
 

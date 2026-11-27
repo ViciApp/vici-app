@@ -246,7 +246,7 @@ export const GetAnalyticsProfileCreatedArgsSchema = j.strictObject({
 /** One profile-created row: the doc key (principal text) + envelope
  * `created_at` in nanoseconds (as text: nat64 exceeds JS safe-int). No profile
  * body field leaves the satellite. */
-export const ProfileCreatedExportRowSchema = j.strictObject({
+const ProfileCreatedExportRowSchema = j.strictObject({
 	key: j.string(),
 	createdAtNs: j.string()
 });

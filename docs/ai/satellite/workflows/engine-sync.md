@@ -67,7 +67,9 @@ many places (admin UI, scripts, future integrations).
 6. **Update `eng_0`-specific assumptions** in one place. The engine ID
    is pinned in
    [`src/lib/constants/icdc.constants.ts`](../../../../src/lib/constants/icdc.constants.ts)
-   as `VICI_ENGINE_ID`. Don't hard-code `"eng_0"` anywhere else.
+   as `VICI_ENGINE_ID`. Don't hard-code `"eng_0"` anywhere else. The API
+   mirrors it in `backend/src/engine/registry.ts`, pinned by
+   `backend/tests/shared-drift/domain-limits.test.ts`.
 
 7. **Smoke-test.**
 
@@ -99,13 +101,15 @@ many places (admin UI, scripts, future integrations).
 
 ## Don'ts
 
-- Hard-code `"eng_0"` outside `icdc.constants.ts`.
+- Hard-code `"eng_0"` outside `icdc.constants.ts` (and its API mirror).
 - Re-trigger a write loop. Don't `setDoc` back into the same collection
   from inside its hook without a termination guard.
 - Throw to the FE for a missing oracle / engine: the FE didn't cause
   it. Log + return.
 - Silently swallow errors. Use the logger taxonomy
-  (`engine_sync_error` / `engine_sync_skipped_*`) so operators can grep.
+  (`engine_sync_error`, `engine_sync_invalid_key`,
+  `engine_sync_decode_failed` in `engine-sync.services.ts`) so operators
+  can grep.
 - Keep stale mapping data only in code comments. The
   authoritative table is in code; mirror it in
   `docs/engine-integration.md` so non-engineers can read it.

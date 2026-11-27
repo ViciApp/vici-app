@@ -50,7 +50,7 @@ export const levelShareCostUsd = ({
 	takerSide: OrderSide;
 }): bigint => shareCostUsd({ price: level.price.decimal, side: takerSide });
 
-export interface MarketOrderFill {
+interface MarketOrderFill {
 	filledQty: bigint;
 	/** What the fill cost the caller, in clearing USD base units. */
 	spentUsd: bigint;
