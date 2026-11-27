@@ -166,14 +166,21 @@
 
 		const copied = await writeToClipboard(`${text} ${url}`);
 
-		notificationsStore.add({
-			title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
-			message: copied
-				? t({ locale: $localeStore, key: copiedMessageKey })
-				: t({ locale: $localeStore, key: 'flow.invite.toast_copy_failed' }),
-			type: copied ? 'success' : 'error',
-			duration: 2000
-		});
+		notificationsStore.add(
+			copied
+				? {
+						title: t({ locale: $localeStore, key: 'flow.end.copy_toast_title' }),
+						message: t({ locale: $localeStore, key: copiedMessageKey }),
+						type: 'success',
+						duration: 2000
+					}
+				: {
+						title: t({ locale: $localeStore, key: 'flow.invite.toast_copy_failed' }),
+						message: t({ locale: $localeStore, key: 'common.error.generic' }),
+						type: 'error',
+						duration: 2000
+					}
+		);
 	};
 
 	// Share the day's calls: native share sheet where available, clipboard +
