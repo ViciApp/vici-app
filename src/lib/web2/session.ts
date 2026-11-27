@@ -15,7 +15,7 @@ import { get, readonly, writable, type Readable } from 'svelte/store';
  * store is the single source of that truth for the auth surface; it stays
  * inert (and unread) while the app runs on the default on-chain backend.
  */
-export interface Web2SessionState {
+interface Web2SessionState {
 	user: Web2Me | undefined;
 	/**
 	 * True until the first `/me` probe resolves. Consumers treat it as "we

@@ -371,8 +371,8 @@ export const leaguesRoutes = new Elysia({ prefix: '/api/v1/leagues' })
 	})
 	// Public read: renders in <img> tags, so no session gate. Serves a 302 to
 	// a short-lived presigned URL (S3) or streams the local file (dev).
-	.get('/:leagueId/image', ({ params, set }) => {
-		const location = locateLeagueImage(params.leagueId);
+	.get('/:leagueId/image', async ({ params, set }) => {
+		const location = await locateLeagueImage(params.leagueId);
 
 		if (location.kind === 'redirect') {
 			set.status = 302;
