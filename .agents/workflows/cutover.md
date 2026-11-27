@@ -14,7 +14,9 @@ Nothing in the repo changes production by being merged. One switch, `VITE_LEGACY
 - **Write freeze:** [`juno.config.ts`](../../juno.config.ts) makes every Datastore and Storage collection writable by controllers only when `juno config apply` runs with the variable set (step 3). Reads stay as they are, so the ETL export and the moved screen keep working. The rules change through `set_rule`, with no functions upgrade, and the change is reversible.
 - **Moved screen:** a legacy (default backend) build made with the variable renders, on every route, "VICI has moved to vici.app" and sends the visitor to the same path on vici.app (`isLegacyShutDown` in `new-app-redirect.services.ts`). `deploy.yml` passes the repository variable `VITE_LEGACY_SHUTDOWN` to the hosting build, so once the variable is set (step 4), every deploy of the satellite, tags included, ships the moved screen.
 
-There is no hosting redirect: the satellite serves an existing asset before any redirect, sends the configured `Location` verbatim (no path), and certifies a redirect only at its literal source path, so a `**` redirect cannot cover the app's routes. The page-level redirect is also what reaches open tabs and installed apps, whose service worker serves the cached shell whenever the network answers a navigation with anything but a 2xx.
+There is no hosting redirect: the satellite serves an existing asset before any redirect, sends the configured `Location` verbatim (no path), and certifies a redirect only at its literal source path, so a `**` redirect cannot cover the app's routes. The page-level redirect is also what reaches installed apps, whose service worker serves the cached shell whenever the network answers a navigation with anything but a 2xx.
+
+A tab already running the previous bundle never reads the new build on its own. Step 4 moves it with the mechanism that bundle already ships: the satellite is stopped long enough for the tab's next satellite call to fail with "canister is stopped", the maintenance overlay comes up (`maintenance.services.ts`), it probes `HEAD /` every 5 seconds, and once the satellite answers again it calls `window.location.reload()`. The service worker handles navigations network first (`handleNavigation` in `src/service-worker/index.ts`): the reload fetches the new shell from the network, caches it in place of the old one and serves it, so the tab lands on the moved screen. Only a response that is not a 2xx falls back to the cached shell.
 
 ## Before you start
 
@@ -41,9 +43,9 @@ dfx canister metadata clearing candid:service --network ic | grep admin_reassign
 
 **Check:** the line prints. **If not:** stop. The clearing upgrade did not land; without it step 7 cannot run, and nothing has changed yet.
 
-## 2. Snapshot the satellite
+## 2. Safety snapshot before the freeze
 
-The satellite also serves vici.market, so the site is down for the minute this takes.
+The satellite also serves vici.market, so the site is down for the minute this takes. This snapshot is the state before any rule changes; step 4 takes the final one. The IC caps the number of snapshots a canister holds and `dfx canister snapshot create` refuses past the cap; `--replace <snapshot-id>` overwrites an existing one and keeps its id.
 
 ```bash
 dfx canister stop "$SATELLITE_ID" --network ic --identity av
@@ -52,7 +54,7 @@ dfx canister start "$SATELLITE_ID" --network ic --identity av
 dfx canister snapshot list "$SATELLITE_ID" --network ic --identity av
 ```
 
-**Check:** the new snapshot id is listed (write it down) and `dfx canister status "$SATELLITE_ID" --network ic --identity av` says `Running`. **If the snapshot is refused** for the per-canister limit: pick an older snapshot from the list that nobody needs and repeat with `--replace <snapshot-id>`. **If `start` fails:** retry it before anything else; the site is down until it runs.
+**Check:** the new snapshot id is listed (write it down as the pre-freeze snapshot) and `dfx canister status "$SATELLITE_ID" --network ic --identity av` says `Running`. **If the snapshot is refused** for the cap: repeat with `--replace <snapshot-id>` on an older snapshot nobody needs. If no slot can be spared, skip this step: the snapshot of step 4 is the one that must exist. **If `start` fails:** retry it before anything else; the site is down until it runs.
 
 ## 3. Freeze legacy writes
 
@@ -75,7 +77,23 @@ gh run watch
 
 If the release carrying this PR is not cut yet, set the variable first and then merge the release PR: its tag runs `deploy.yml` with the variable.
 
-**Check:** the run is green; a fresh private window on `https://vici.market/` and on a deep link (`https://vici.market/flow`, a market page) lands on the same path on vici.app; an already open vici.market tab shows the moved screen after a reload. **If the legacy app still shows:** confirm the variable (`gh variable list`) and that the tag contains this PR, then dispatch again. **To undo:** `gh variable delete VITE_LEGACY_SHUTDOWN` and dispatch `deploy.yml` on the same tag.
+**Check:** the run is green; a fresh private window on `https://vici.market/` and on a deep link (`https://vici.market/flow`, a market page) lands on the same path on vici.app. **If the legacy app still shows:** confirm the variable (`gh variable list`) and that the tag contains this PR, then dispatch again. **To undo:** `gh variable delete VITE_LEGACY_SHUTDOWN` and dispatch `deploy.yml` on the same tag.
+
+Then move the tabs still running the previous bundle, and take the final snapshot in the same stop. Before stopping, open a signed-in vici.market tab that was loaded before the deploy (keep it in the foreground) to watch.
+
+```bash
+dfx canister stop "$SATELLITE_ID" --network ic --identity av
+dfx canister snapshot create "$SATELLITE_ID" --network ic --identity av
+dfx canister snapshot list "$SATELLITE_ID" --network ic --identity av
+# keep it stopped for at least 3 minutes from the stop, then:
+dfx canister start "$SATELLITE_ID" --network ic --identity av
+```
+
+Why 3 minutes: the app shell's polled satellite reads (`CachedLoader` through `AtomicLoader`: leaderboard, market metadata and tags, following, received reactions) run every 30 seconds, and a browser throttles the timers of a background tab to about once a minute; 3 minutes covers a few rounds of both. Writes are frozen since step 3, so this snapshot is the final state of the legacy data. If `create` is refused for the cap, run it with `--replace <pre-freeze snapshot id>`: this one supersedes it.
+
+**Check:** the snapshot is listed (write it down as the final snapshot); within about 35 seconds of the stop the watched tab shows the maintenance overlay, and within 5 seconds of `start` it reloads onto the moved screen and then vici.app. **If the overlay does not come up:** the tab made no satellite call yet; wait, the window is the point. **If `start` fails:** retry it at once; the site is down until it runs.
+
+Tabs this cannot reach: one that makes no satellite call during the window, such as a signed-out page with no satellite polling, or a background tab the browser froze or throttled past the window. After `start` its satellite calls succeed again, so it does not move by itself: reads keep working, writes are refused by the freeze, and it lands on the moved screen at its next full load (a reload, a new visit, the app reopened).
 
 ## 5. Final delta ETL
 
@@ -150,6 +168,6 @@ Anything missing: rerun the step that owns it (5 for data, 6 for emails, 7 for p
 ## After the cutover
 
 - **The satellite serves only the moved screen** until vici.market's DNS moves to a plain path-preserving redirect. Keep the `VITE_LEGACY_SHUTDOWN` variable set, and run any later `juno config apply --mode production` with `VITE_LEGACY_SHUTDOWN=true`: without it the apply reopens writes.
-- **Final snapshot:** once step 9 passes, take one more snapshot as in step 2 and record its id with the first one.
+- **Snapshots:** the final one is from step 4; keep it with the pre-freeze one from step 2, if taken.
 - **Stopping the satellite:** after the DNS move, when vici.market traffic no longer reaches the canister, `dfx canister stop "$SATELLITE_ID" --network ic --identity av`, then remove the custom domain in the Juno Console and turn off `deploy.yml` and `publish.yml` (`gh workflow disable`), which would otherwise act on a stopped canister at every tag. Keep the canister, its snapshots and its cycles: it is the record of the legacy data.
 - **Restoring from a snapshot** (only for data loss on the satellite): `dfx canister stop`, then `dfx canister snapshot load "$SATELLITE_ID" <snapshot-id>`, then `dfx canister start`, each with `--network ic --identity av`.

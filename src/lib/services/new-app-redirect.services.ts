@@ -66,8 +66,9 @@ export const loadNewAppSignupUrl = (): string => {
  * in `juno.config.ts`, see `.agents/workflows/cutover.md`), so the legacy app
  * keeps working until the cutover deploys it. The satellite serves an existing
  * asset before any hosting redirect, and the shell is one, so this screen is
- * what reaches open tabs and installed apps, including those whose service
- * worker serves the cached shell.
+ * what every load of vici.market gets, installed apps included. A tab still
+ * running the previous bundle reaches it through the maintenance reload the
+ * cutover triggers by stopping the satellite.
  */
 export const isLegacyShutDown = (): boolean =>
 	!isWeb2Backend() && viteEnv()?.VITE_LEGACY_SHUTDOWN === 'true';

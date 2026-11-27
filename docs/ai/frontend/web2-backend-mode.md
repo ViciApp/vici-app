@@ -288,7 +288,10 @@ watch). The screen sends the visitor to the same path on the new app
 (`loadNewAppPageUrl`) with `location.replace` and keeps a link for a browser
 that blocks it. The redirect lives in the page because the satellite cannot
 issue one for the app's routes, and because an installed app's service
-worker answers a redirected navigation with the cached shell. The same
+worker answers a redirected navigation with the cached shell. A tab still
+running the previous bundle cannot see the flag: the cutover stops the
+satellite so its maintenance watch (`maintenance.services.ts`) reloads it
+onto this build. The same
 variable write-freezes the satellite in `juno.config.ts`; `deploy.yml` reads
 it from a repository variable. When and how it is set:
 [`cutover.md`](../../../.agents/workflows/cutover.md).

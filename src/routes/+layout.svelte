@@ -27,9 +27,11 @@
 
 	const { children }: Props = $props();
 
-	// Build-time: the shut-down legacy build never boots the satellite, signs
-	// anyone in or polls, so no tab left open on it keeps calling a frozen
-	// backend.
+	// Build-time: a load of the shut-down legacy build never boots the
+	// satellite, signs anyone in or polls. A tab still running the previous
+	// bundle cannot see this flag; the cutover moves it by stopping the
+	// satellite, which its maintenance watch answers with a reload onto this
+	// build (`.agents/workflows/cutover.md`, step 4).
 	const legacyShutDown = isLegacyShutDown();
 
 	let satelliteInitialized = $state(false);
