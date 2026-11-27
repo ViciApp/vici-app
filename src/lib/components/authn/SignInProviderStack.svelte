@@ -58,9 +58,10 @@
 	type ProviderId = 'apple' | 'google' | 'email' | 'ii' | 'passkey' | 'dev';
 
 	// Per-provider visibility flags: show/hide the button entirely.
-	// Apple is flag-off: returning V3 users never created an account with it,
-	// so offering it was misleading. `onApple` / `apple-signin.services` / the
-	// Apple icon + keys stay dormant behind this flag (reversible).
+	// Apple is flag-off: no existing account was ever created with it, so
+	// offering it to returning users was misleading. `onApple` /
+	// `apple-signin.services` / the Apple icon + keys stay dormant behind
+	// this flag (reversible).
 	const APPLE_LOGIN_ENABLED = false;
 	const GOOGLE_LOGIN_ENABLED = true;
 	const EMAIL_LOGIN_ENABLED = true;

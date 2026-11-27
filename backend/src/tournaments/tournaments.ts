@@ -8,8 +8,11 @@
 // and paid out through the economy's idempotent prize grants.
 
 import { isNullish, nonNullish } from '@dfinity/utils';
-import { Principal } from '@icp-sdk/core/principal';
-import { parsedPrincipal, settlementPrincipalsByUser } from '../auth/identity';
+import {
+	parsedPrincipal,
+	parsedSettlementPrincipalsByUser,
+	settlementPrincipalsByUser
+} from '../auth/identity';
 import { query, tx, type TxQuery } from '../db/client';
 import { settledTotals, settledTotalsByPrincipal } from '../engine/clearing';
 import { leagueMemberPrincipals } from '../leagues/members';
@@ -760,9 +763,12 @@ const settledInTournament = async ({
 	userId: string;
 	tournament: Tournament;
 }): Promise<boolean> => {
-	const principals = (await settlementPrincipalsByUser([userId])).get(userId) ?? [];
+	const principals = await parsedSettlementPrincipalsByUser({
+		userIds: [userId],
+		read: 'tournament prize'
+	});
 	const { calls } = await settledTotals({
-		members: principals.map((text) => Principal.fromText(text)),
+		members: principals.get(userId) ?? [],
 		fromMs: tournament.monthStartMs,
 		toMs: tournament.monthEndMs
 	});
