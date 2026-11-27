@@ -754,6 +754,8 @@ export const zhHansMessages = {
 	'claim.moved.footer.prompt_new_account': '在本站已有账户？',
 	'claim.moved.footer.prompt_signup': '在这里已有账户？',
 	'claim.moved.sub_new_account': '此登录在本站没有 VICI 账户。新账户需在 {domain} 创建。',
+	'claim.moved.sub_shutdown':
+		'本网站已关闭。你的账户、预测和 VXP 都在 {domain}：前往登录即可继续。',
 	'claim.moved.sub_signup': '新账户需在 {domain} 创建。前往注册，开始做出你的预测。',
 	'claim.moved.title': 'VICI 已迁移到 {domain}',
 	'claim.notice.dismiss_aria': '隐藏此通知',
