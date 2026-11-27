@@ -22,7 +22,10 @@ import type { VxpAwardDoc } from '#lib/types/vxp-award.ts';
 import { MONTH_ANCHOR_RE, monthAnchorFromMs } from '#lib/utils/month-anchor.utils.ts';
 import { vxpBaseUnits } from '#lib/utils/vxp-amount.utils.ts';
 import { assertControllerCaller, controllerCaller } from '#satellite/services/authz.services.ts';
-import { leagueMemberPrincipals } from '#satellite/services/league-member.services.ts';
+import {
+	leagueMemberPrincipals,
+	memberLeagueRows
+} from '#satellite/services/league-member.services.ts';
 import {
 	settledTotals,
 	settledTotalsByPrincipal
@@ -35,6 +38,7 @@ import {
 } from '#satellite/services/vxp-awards.services.ts';
 import { transferWithBadFeeRetry } from '#satellite/services/vxp-payout.services.ts';
 import { logError, logInfo } from '#satellite/utils/logger.utils.ts';
+import { escapeRegex } from '#satellite/utils/regex.utils.ts';
 import { timeMs } from '#satellite/utils/time.utils.ts';
 import { tournamentDrawRefusal } from '#satellite/utils/tournament-draw.utils.ts';
 import {
@@ -661,28 +665,7 @@ export const getCurrentTournamentFn = (): {
 		return { tournament: null, matches: [] };
 	}
 
-	const { items: matchItems } = listDocsStore({
-		collection: Collection.TOURNAMENT_MATCHES,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const matches: TournamentMatchDoc[] = [];
-	const prefix = `${latest.id}/`;
-
-	for (const [docKey, item] of matchItems) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = decodeDocData<TournamentMatchDoc>(item.data);
-
-				if (doc.tournamentId === latest.id) {
-					matches.push(doc);
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
+	const matches = readTournamentMatches({ tournamentId: latest.id, callerBytes });
 
 	// Sort by round (canonical order) then index for deterministic
 	// FE rendering.
@@ -820,10 +803,13 @@ const pickMatchWinner = ({
 	return fromAccuracy > toAccuracy ? fromLeagueId : toLeagueId;
 };
 
-type MatchesByRound = Record<
-	TournamentRound,
-	Array<{ key: string; doc: TournamentMatchDoc; version?: bigint }>
->;
+interface TournamentMatchEntry {
+	key: string;
+	doc: TournamentMatchDoc;
+	version?: bigint;
+}
+
+type MatchesByRound = Record<TournamentRound, TournamentMatchEntry[]>;
 
 /** Every match doc of the tournament with its key and version, bucketed by
  * round and sorted by index (populating next-round slots requires a
@@ -835,12 +821,6 @@ const readMatchesByRound = ({
 	tournamentId: string;
 	callerBytes: Uint8Array;
 }): MatchesByRound => {
-	const { items } = listDocsStore({
-		collection: Collection.TOURNAMENT_MATCHES,
-		caller: callerBytes,
-		params: {}
-	});
-
 	const matchesByRound: MatchesByRound = {
 		r1: [],
 		quarter: [],
@@ -848,20 +828,8 @@ const readMatchesByRound = ({
 		final: []
 	};
 
-	const prefix = `${tournamentId}/`;
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = decodeDocData<TournamentMatchDoc>(item.data);
-
-				if (doc.tournamentId === tournamentId) {
-					matchesByRound[doc.round].push({ key: docKey, doc, version: item.version });
-				}
-			} catch {
-				// skip malformed
-			}
-		}
+	for (const entry of tournamentMatchEntries({ tournamentId, callerBytes })) {
+		matchesByRound[entry.doc.round].push(entry);
 	}
 
 	for (const r of TOURNAMENT_ROUNDS) {
@@ -1444,6 +1412,43 @@ const settledInTournament = async ({
 	return calls > 0;
 };
 
+/**
+ * Every match doc of the tournament with its key and version, in no
+ * particular order. Match keys are `${tournamentId}/${round}/${index}`
+ * ({@link tournamentMatchKey}), so a key matcher anchored to that prefix
+ * bounds the read to this tournament's bracket rather than every month ever
+ * drawn: the prize claim runs this on every Tournament page mount.
+ */
+const tournamentMatchEntries = ({
+	tournamentId,
+	callerBytes
+}: {
+	tournamentId: string;
+	callerBytes: Uint8Array;
+}): TournamentMatchEntry[] => {
+	const { items } = listDocsStore({
+		collection: Collection.TOURNAMENT_MATCHES,
+		caller: callerBytes,
+		params: { matcher: { key: `^${escapeRegex(`${tournamentId}/`)}` } }
+	});
+
+	const out: TournamentMatchEntry[] = [];
+
+	for (const [key, item] of items) {
+		try {
+			const doc = decodeDocData<TournamentMatchDoc>(item.data);
+
+			if (doc.tournamentId === tournamentId) {
+				out.push({ key, doc, version: item.version });
+			}
+		} catch {
+			// skip malformed
+		}
+	}
+
+	return out;
+};
+
 /** Every match doc of the tournament, in no particular order. */
 const readTournamentMatches = ({
 	tournamentId,
@@ -1451,37 +1456,10 @@ const readTournamentMatches = ({
 }: {
 	tournamentId: string;
 	callerBytes: Uint8Array;
-}): TournamentMatchDoc[] => {
-	const { items } = listDocsStore({
-		collection: Collection.TOURNAMENT_MATCHES,
-		caller: callerBytes,
-		params: {}
-	});
+}): TournamentMatchDoc[] =>
+	tournamentMatchEntries({ tournamentId, callerBytes }).map(({ doc }) => doc);
 
-	const prefix = `${tournamentId}/`;
-	const out: TournamentMatchDoc[] = [];
-
-	for (const [docKey, item] of items) {
-		if (docKey.startsWith(prefix)) {
-			try {
-				const doc = decodeDocData<TournamentMatchDoc>(item.data);
-
-				if (doc.tournamentId === tournamentId) {
-					out.push(doc);
-				}
-			} catch {
-				// skip malformed
-			}
-		}
-	}
-
-	return out;
-};
-
-/**
- * Scan `LEAGUE_MEMBERS` for the caller's current memberships, each with
- * the time its doc was stored.
- */
+/** The caller's current memberships, each with the time its doc was stored. */
 const readCallerMemberships = ({
 	callerText,
 	callerBytes
@@ -1489,26 +1467,17 @@ const readCallerMemberships = ({
 	callerText: string;
 	callerBytes: Uint8Array;
 }): TournamentPrizeMembership[] => {
-	const { items } = listDocsStore({
-		collection: Collection.LEAGUE_MEMBERS,
-		caller: callerBytes,
-		params: {}
-	});
-
-	const suffix = `/${callerText}`;
 	const out: TournamentPrizeMembership[] = [];
 
-	for (const [docKey, item] of items) {
-		if (docKey.endsWith(suffix)) {
-			try {
-				const member = decodeDocData<LeagueMemberDoc>(item.data);
+	for (const [, item] of memberLeagueRows({ memberPrincipal: callerText, caller: callerBytes })) {
+		try {
+			const member = decodeDocData<LeagueMemberDoc>(item.data);
 
-				if (member.member === callerText) {
-					out.push({ leagueId: member.leagueId, joinedAtNs: item.created_at });
-				}
-			} catch {
-				// skip malformed
+			if (member.member === callerText) {
+				out.push({ leagueId: member.leagueId, joinedAtNs: item.created_at });
 			}
+		} catch {
+			// skip malformed
 		}
 	}
 
