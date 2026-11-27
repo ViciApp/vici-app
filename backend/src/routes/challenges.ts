@@ -119,6 +119,9 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 	// signs in. A session, when present, only decides `isOwner`; the answer
 	// then belongs to that viewer, so no shared cache may keep it.
 	.get('/:id', async ({ request, set, params }) => {
+		// Before any early answer, so every response of the route carries it.
+		addVary(set, 'Cookie');
+
 		const limited = enforceLimit({
 			set,
 			name: 'challenge_read',
@@ -132,8 +135,6 @@ export const challengesRoutes = new Elysia({ prefix: '/api/v1/challenges' })
 		}
 
 		const viewer = await requireUser(request);
-
-		addVary(set, 'Cookie');
 
 		if (nonNullish(viewer)) {
 			set.headers['cache-control'] = 'private';

@@ -7,6 +7,8 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { query } from '../src/db/client';
 import { clearCache } from '../src/engine/cache';
+import { env } from '../src/env';
+import { app } from '../src/index';
 import { userIcPrincipalText } from '../src/lib/keys';
 import { resetRateLimits } from '../src/lib/rate-limit';
 import { DAY_IN_MS } from '../src/lib/time';
@@ -436,6 +438,32 @@ describe.if(dbAvailable)('challenge links', () => {
 			expect(
 				(await call({ method: 'GET', path: '/ZZZZZZZZZZZZZZZZ', ip: uniqueIp() })).status
 			).toBe(404);
+		});
+
+		test('every answer of the read varies on the cookie, keeping the CORS origin', async () => {
+			const ip = uniqueIp();
+			const readFromApp = async (): Promise<Response> =>
+				await app.handle(
+					new Request('http://localhost/api/v1/challenges/ZZZZZZZZZZZZZZZZ', {
+						headers: { origin: env.publicAppUrl, 'fly-client-ip': ip }
+					})
+				);
+			const varyOf = (res: Response): string[] =>
+				(res.headers.get('vary') ?? '').split(',').map((token) => token.trim().toLowerCase());
+
+			const notFound = await readFromApp();
+
+			expect(notFound.status).toBe(404);
+			expect(varyOf(notFound)).toEqual(expect.arrayContaining(['origin', 'cookie']));
+
+			for (let i = 0; i < 120; i++) {
+				await readFromApp();
+			}
+
+			const limited = await readFromApp();
+
+			expect(limited.status).toBe(429);
+			expect(varyOf(limited)).toEqual(expect.arrayContaining(['origin', 'cookie']));
 		});
 
 		test('redeem is limited per account and asks for no Turnstile token', async () => {
