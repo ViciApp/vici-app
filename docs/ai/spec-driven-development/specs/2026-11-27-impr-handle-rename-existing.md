@@ -44,33 +44,33 @@ A handle that already satisfies the rule and is not reserved is never touched.
 
 `planHandleRenames(rows)` in the same file is pure and deterministic: the same rows always give the same plan.
 
-- Every account whose current handle is compliant keeps it. Its key is taken before anything else is assigned.
+- Every account whose current handle is compliant and not reserved keeps it. Its key is taken before anything else is assigned. A compliant but reserved handle (`admin`) is not preserved: it follows rule 6 of section 1.
 - The remaining accounts are grouped by candidate. In each group the winner takes the candidate if it is free; the order is pending decision 2.
 - Every other member of the group gets the candidate plus the smallest free number, starting at 2, the base cut so the result stays within 15 characters: `antonioventilii` (15) becomes `antonioventili2` (pending decision 3). Reason `collision`.
-- "Free" means: not the key of any profile, not a reserved key, not already assigned in this plan, and not the confirmed or pending handle of a waitlist reservation.
+- "Free" means: not the key of any profile that keeps its handle (a row being renamed in this plan releases its own key first, so `a.b` can receive `ab`), not a reserved key, not already assigned in this plan, and not the confirmed or pending handle of a waitlist reservation.
 - Waitlist reservations, when the table exists, are planned in the same pass and always rank after profiles (an account beats a reservation).
 
 ### 3. Storage
 
 Migration `backend/src/db/migrations/NNNN_handle_renames.sql`:
 
-| Column                            | Holds                                                                                             |
-| --------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `user_id uuid`                    | primary key, `references users (id) on delete cascade`                                            |
-| `previous_handle text`            | the handle before the rename, as stored                                                           |
-| `previous_key text`               | its `nicknameUniqueKey` (case and accents folded, separators kept); empty when the row had no key |
-| `assigned_handle text`            | the handle the plan gave                                                                          |
-| `reason text`                     | `format`, `collision`, `too_short`, `too_long`, `no_latin`, `reserved` (a `check` constraint)     |
-| `batch_id text`                   | the apply run that wrote the row                                                                  |
-| `renamed_at timestamptz`          | when                                                                                              |
-| `notice_seen_at timestamptz`      | when the person dismissed the notice                                                              |
-| `free_change_used_at timestamptz` | when the free change was spent                                                                    |
-| `email_sent_at timestamptz`       | when the email went out                                                                           |
-| `reverted_at timestamptz`         | set by a rollback                                                                                 |
+| Column                            | Holds                                                                                                      |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `user_id uuid`                    | primary key, `references users (id) on delete cascade`                                                     |
+| `previous_handle text`            | the handle before the rename, as stored                                                                    |
+| `previous_key text`               | its `nicknameUniqueKey` (case and accents folded, separators kept), also for imported rows that had no key |
+| `assigned_handle text`            | the handle the plan gave                                                                                   |
+| `reason text`                     | `format`, `collision`, `too_short`, `too_long`, `no_latin`, `reserved` (a `check` constraint)              |
+| `batch_id text`                   | the apply run that wrote the row                                                                           |
+| `renamed_at timestamptz`          | when                                                                                                       |
+| `notice_seen_at timestamptz`      | when the person dismissed the notice                                                                       |
+| `free_change_used_at timestamptz` | when the free change was spent                                                                             |
+| `email_sent_at timestamptz`       | when the email went out                                                                                    |
+| `reverted_at timestamptz`         | set by a rollback                                                                                          |
 
 Index on `previous_key where previous_key <> ''`. One row per account: an account is force-renamed at most once per previous handle, and the import of R3 updates the row in place when a legacy handle changed in between.
 
-`previous_key` is unique in practice because it comes from the column that carries `profiles_nickname_key_uniq`; it is the redirect key of section 6.
+`previous_key` is unique for rows that had a key, because it comes from the column that carries `profiles_nickname_key_uniq`; it is the redirect key of section 6. Imported duplicates have no key (they were stored with an empty `nickname_key`), so their previous handle is ambiguous by construction: for them the row also stores `previous_key` as `nicknameUniqueKey(previous_handle)`, and section 6 resolves an old handle shared by several renamed rows deterministically to the earliest-created account among them, never to an unrelated clean winner through `handle_key`. The acceptance test covers both cases.
 
 ### 4. The script: report first, then apply
 

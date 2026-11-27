@@ -40,11 +40,12 @@ No stored satellite document is rewritten (pending decision 1). An account whose
 
 `importProfiles` uses the planner of R2 (`backend/src/profiles/handle-rename.ts`) for every document:
 
-1. The account already has a `handle_renames` row whose `previous_handle` is the document's nickname: the recorded `assigned_handle` is written. A re-run changes nothing, and a person who has already seen their handle on vici.app does not see it move.
-2. The account has a row but the document's nickname differs (the handle was changed on vici.market since the last run): the handle is derived again and the row updated in place.
+0. Before any branch: when the account was adopted and its stored handle is neither the document's nickname, nor the live recorded `assigned_handle`, nor the stored value the last import wrote, the handle was chosen on vici.app: the import leaves `nickname` alone and goes to the next document (this is case 5, checked first so cases 1 and 2 can never overwrite it).
+1. The account already has a live `handle_renames` row (`reverted_at is null`) whose `previous_handle` is the document's nickname: the recorded `assigned_handle` is written. A row with `reverted_at` set is ignored, so a rollback is never undone by the next import. A re-run changes nothing, and a person who has already seen their handle on vici.app does not see it move.
+2. The account has a live row but the document's nickname differs (the handle was changed on vici.market since the last run): the handle is derived again and the row updated in place.
 3. No row and the nickname is compliant and free: imported as is.
 4. No row and the nickname is outside the rule, reserved or taken: `compliantHandleFor`, then the collision rule of R2 against what is already in `profiles` and what this run has assigned. Existing rows are never displaced by an import; within one run the order is the one decided in R2 pending decision 2. A `handle_renames` row is written with `batch_id` naming the import run.
-5. An account that was adopted and has since changed its handle on vici.app keeps that handle: when the stored handle is neither the document's nickname nor the recorded assignment, the import leaves `nickname` alone.
+5. An account that was adopted and has since changed its handle on vici.app keeps that handle (checked first, as step 0).
 
 `nickname_key` and `handle_key` are always written from the final handle. The "imported without a reserved handle" branch disappears: no row is left with a handle and an empty key. `handle_last_change_ms` is imported unchanged, so a rename at import costs no change allowance. `verify-parity.ts` compares handles through the same function, so a renamed handle is not reported as a mismatch.
 
